@@ -19,21 +19,21 @@ const SectionLabel = ({ children }) => (
 export default function CandidateDetail({ candidate, onBack }) {
   return (
     <div className="flex flex-col">
-      {/* Stage tracker — top of the detail view */}
-      <div className="flex items-center gap-3 border-b border-hairline px-6 py-4 lg:px-8">
+      {/* Stage tracker + close — top of the detail overlay */}
+      <div className="flex items-center justify-between gap-4 border-b border-hairline px-6 py-4 lg:px-8">
+        <StageTracker current={candidate.stage} className="min-w-0" />
         {onBack && (
           <button
             type="button"
             onClick={onBack}
-            className="-ml-1 flex items-center gap-1 text-sm text-secondary transition-colors hover:text-ink lg:hidden"
+            aria-label="Close detail"
+            className="shrink-0 rounded-full border border-hairline p-1.5 text-secondary transition-colors hover:border-ink/30 hover:text-ink"
           >
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-4 w-4">
-              <path d="M10 3.5L5.5 8l4.5 4.5" strokeLinecap="round" strokeLinejoin="round" />
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-3.5 w-3.5">
+              <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
             </svg>
-            Back
           </button>
         )}
-        <StageTracker current={candidate.stage} />
       </div>
 
       <div className="flex flex-col gap-10 px-6 py-8 lg:px-8">

@@ -14,6 +14,8 @@ export const candidates = [
     verdict: 'strong',
     stage: 'Judged',
     avatar: avatar(47),
+    experience: '8 yrs',
+    location: 'Lisbon · Remote',
     competencies: [
       { name: 'System design', score: 88 },
       { name: 'Communication', score: 84 },
@@ -43,6 +45,8 @@ export const candidates = [
     verdict: 'strong',
     stage: 'Decided',
     avatar: avatar(9),
+    experience: '6 yrs',
+    location: 'Seoul · Remote',
     competencies: [
       { name: 'System design', score: 86 },
       { name: 'Communication', score: 93 },
@@ -72,6 +76,8 @@ export const candidates = [
     verdict: 'strong',
     stage: 'Judged',
     avatar: avatar(32),
+    experience: '7 yrs',
+    location: 'Porto · Hybrid',
     competencies: [
       { name: 'System design', score: 74 },
       { name: 'Communication', score: 88 },
@@ -101,6 +107,8 @@ export const candidates = [
     verdict: 'strong',
     stage: 'Interviewed',
     avatar: avatar(12),
+    experience: '9 yrs',
+    location: 'Mexico City · Remote',
     competencies: [
       { name: 'System design', score: 85 },
       { name: 'Communication', score: 71 },
@@ -130,6 +138,8 @@ export const candidates = [
     verdict: 'look-closer',
     stage: 'Interviewed',
     avatar: avatar(5),
+    experience: '5 yrs',
+    location: 'Bangalore · Remote',
     competencies: [
       { name: 'System design', score: 72 },
       { name: 'Communication', score: 58 },
@@ -159,6 +169,8 @@ export const candidates = [
     verdict: 'look-closer',
     stage: 'Defined',
     avatar: avatar(51),
+    experience: '4 yrs',
+    location: 'Manchester · Hybrid',
     competencies: [
       { name: 'System design', score: 64 },
       { name: 'Communication', score: 60 },
