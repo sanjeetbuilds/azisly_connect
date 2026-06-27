@@ -11,10 +11,14 @@ import CandidatesScreen from './screens/CandidatesScreen.jsx'
 import InviteScreen from './screens/InviteScreen.jsx'
 import DecisionScreen from './screens/DecisionScreen.jsx'
 import ManagerFlow from './screens/ManagerFlow.jsx'
+import ManagerReviewFlow from './screens/ManagerReviewFlow.jsx'
 
-// Magic-link entry: a hiring manager reaches the app via ?invite=<token>.
-// Resolved once at load — there is no client routing.
-const inviteToken = new URLSearchParams(window.location.search).get('invite')
+// Magic-link entries: a hiring manager reaches the app via ?invite=<token>
+// (define a role) or ?review=<token> (review the shortlist). Resolved once at
+// load — there is no client routing.
+const params = new URLSearchParams(window.location.search)
+const inviteToken = params.get('invite')
+const reviewToken = params.get('review')
 
 export default function App() {
   const [authed, setAuthed] = useState(false)
@@ -23,7 +27,10 @@ export default function App() {
   const [draft, setDraft] = useState(null) // { title, openings, method } from Create Role
   const [decisionCandidate, setDecisionCandidate] = useState(null)
 
-  // Hiring-manager magic-link flow (no account, no sidebar).
+  // Hiring-manager magic-link flows (no account, no sidebar).
+  if (reviewToken !== null) {
+    return <ManagerReviewFlow token={reviewToken} />
+  }
   if (inviteToken !== null) {
     return <ManagerFlow token={inviteToken} />
   }
