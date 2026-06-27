@@ -6,6 +6,10 @@ import CompetencyBar from './CompetencyBar.jsx'
 import VerdictTag from './VerdictTag.jsx'
 import EvidenceQuote from './EvidenceQuote.jsx'
 import StageTracker from './StageTracker.jsx'
+import Tag, { skillColor } from './Tag.jsx'
+import Kbd from './Kbd.jsx'
+import { XIcon } from './icons.jsx'
+import { SOURCES } from '../data/candidates.js'
 
 // A plain <p>, not a heading — headings inherit the global ink colour and
 // tighter tracking; section labels must stay small, grey, and normally spaced.
@@ -19,45 +23,64 @@ const SectionLabel = ({ children }) => (
  * quotes, and the action buttons (one primary, the rest secondary).
  */
 export default function CandidateDetail({ candidate, onBack }) {
+  const src = SOURCES[candidate.source]
   return (
     <div className="flex flex-col">
-      {/* Stage tracker + close — top of the detail overlay */}
-      <div className="flex items-center justify-between gap-4 border-b border-hairline px-8 py-5 lg:px-12">
+      {/* Stage tracker + close — top of the floating detail panel */}
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-hairline bg-surface px-6 py-4 lg:px-8">
         <StageTracker current={candidate.stage} className="min-w-0" />
         {onBack && (
           <button
             type="button"
             onClick={onBack}
             aria-label="Close detail"
-            className="shrink-0 rounded-full border border-hairline p-1.5 text-secondary transition-colors hover:border-ink/30 hover:text-ink"
+            className="shrink-0 rounded-lg border border-hairline p-1.5 text-secondary transition-colors hover:border-ink/30 hover:text-ink"
           >
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-3.5 w-3.5">
-              <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
-            </svg>
+            <XIcon className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
 
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-14 px-8 py-12 lg:px-12 lg:py-14">
-        {/* Header: identity + hero score */}
-        <div className="flex items-start justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <Avatar src={candidate.avatar} name={candidate.name} size={56} />
-            <div className="flex flex-col gap-2.5">
-              <div>
-                <h2 className="text-xl text-ink">{candidate.name}</h2>
-                <p className="text-sm text-secondary">{candidate.role}</p>
+      <div className="flex flex-col gap-10 px-6 py-8 lg:px-8">
+        {/* Header: identity + meta + hero score */}
+        <div className="flex flex-col gap-5">
+          <div className="flex items-start justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <Avatar src={candidate.avatar} name={candidate.name} size={56} />
+              <div className="flex flex-col gap-2">
+                <div>
+                  <h2 className="text-xl text-ink">{candidate.name}</h2>
+                  <p className="text-sm text-secondary">{candidate.role}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-[13px] text-secondary">
+                  <VerdictTag verdict={candidate.verdict} />
+                  <span>·</span>
+                  <span>{candidate.location}</span>
+                  <span>·</span>
+                  <span>{candidate.experience}</span>
+                  <span>·</span>
+                  <span>Applied {candidate.applied}</span>
+                  {src && <Tag color={src.color}>{src.label}</Tag>}
+                </div>
               </div>
-              <VerdictTag verdict={candidate.verdict} />
             </div>
+            <ScoreDisplay score={candidate.score} label="Overall" />
           </div>
-          <ScoreDisplay score={candidate.score} label="Overall" />
+
+          {/* Skills */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {candidate.skills.map((s) => (
+              <Tag key={s} color={skillColor(s)}>
+                {s}
+              </Tag>
+            ))}
+          </div>
         </div>
 
         {/* Competencies */}
-        <section className="flex flex-col gap-5">
+        <section className="flex flex-col gap-4">
           <SectionLabel>Competencies</SectionLabel>
-          <Card className="flex flex-col gap-6 p-8">
+          <Card className="flex flex-col gap-6 p-6">
             {candidate.competencies.map((c) => (
               <CompetencyBar key={c.name} name={c.name} score={c.score} />
             ))}
@@ -65,11 +88,11 @@ export default function CandidateDetail({ candidate, onBack }) {
         </section>
 
         {/* Evidence */}
-        <section className="flex flex-col gap-5">
+        <section className="flex flex-col gap-4">
           <SectionLabel>Evidence</SectionLabel>
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-4">
             {candidate.evidence.map((e, i) => (
-              <Card key={i} className="p-8">
+              <Card key={i} className="p-6">
                 <EvidenceQuote quote={e.quote} competency={e.competency} source={e.source} />
               </Card>
             ))}
@@ -77,10 +100,11 @@ export default function CandidateDetail({ candidate, onBack }) {
         </section>
 
         {/* Actions — one primary, the rest secondary */}
-        <div className="flex flex-wrap items-center gap-3 border-t border-hairline pt-8">
+        <div className="sticky bottom-0 -mx-6 flex flex-wrap items-center gap-3 border-t border-hairline bg-surface px-6 py-5 lg:-mx-8 lg:px-8">
           <Button variant="primary">Advance candidate</Button>
           <Button variant="secondary">Save for later</Button>
           <Button variant="secondary">Reject</Button>
+          <Kbd className="ml-auto">⌘↵</Kbd>
         </div>
       </div>
     </div>

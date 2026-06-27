@@ -14,8 +14,20 @@
   --color-hairline: #e8e8eb; /* thin neutral border                   */
   --color-bar: #3a3a3a; /* competency bar fill — soft dark grey   */
   --color-track: #f0f0f0; /* competency bar track — very light      */
-  --color-strong: #2e7d55; /* verdict: strong (positive)  — verdicts only  */
-  --color-attention: #b7791f; /* verdict: look closer (weak) — verdicts only  */
+  --color-strong: #2e7d55; /* verdict: strong (positive)            */
+  --color-attention: #b7791f; /* verdict: look closer (weak)          */
+
+  /* Functional accent — interactive cues (focus, active controls, sort).
+     Restrained: used for state, not decoration. */
+  --color-accent: #5b5bd6;
+  --color-accent-soft: #eeeefb;
+
+  /* Elevation — soft, low-opacity shadows (Linear/Stripe style) so surfaces
+     layer instead of sitting flat. */
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --shadow-panel: 0 4px 16px rgba(16, 24, 40, 0.08), 0 1px 4px rgba(16, 24, 40, 0.04);
+  --shadow-overlay: -10px 0 44px rgba(16, 24, 40, 0.13), 0 14px 36px rgba(16, 24, 40, 0.1);
+  --shadow-dropdown: 0 8px 24px rgba(16, 24, 40, 0.12), 0 2px 6px rgba(16, 24, 40, 0.06);
 
   /* Type — a refined grotesk with personality; mono for numbers only.
      If Hanken Grotesk is unavailable, fall back to General Sans (not Inter). */
@@ -28,7 +40,17 @@
   /* Signature motion — gentle staggered fade-in for lists, and a
      slide-in for the detail overlay (same easing family). */
   --animate-fade-in-up: fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
-  --animate-slide-in-right: slide-in-right 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-slide-in-right: slide-in-right 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-in: fade-in 0.2s ease-out both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes fade-in-up {
