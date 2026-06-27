@@ -33,7 +33,7 @@ const NAV_GROUPS = [{ label: 'Main', items: ['Pipeline', 'Candidates', 'Roles'] 
  * recruiter identity pinned to the bottom. A single hairline divides it from
  * the main content.
  */
-export default function Sidebar({ active = 'Candidates', onNavigate, workspace, className = '' }) {
+export default function Sidebar({ active = 'Candidates', onNavigate, onNewRole, workspace, className = '' }) {
   return (
     <aside
       className={`sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-hairline bg-background lg:flex ${className}`}
@@ -73,7 +73,7 @@ export default function Sidebar({ active = 'Candidates', onNavigate, workspace, 
         ))}
 
         <div className="px-1.5 pt-1">
-          <Button variant="primary" className="w-full">
+          <Button variant="primary" className="w-full" onClick={onNewRole}>
             New role
           </Button>
         </div>
