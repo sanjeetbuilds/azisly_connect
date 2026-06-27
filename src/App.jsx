@@ -5,6 +5,7 @@ import LoginScreen from './screens/LoginScreen.jsx'
 import RolesScreen from './screens/RolesScreen.jsx'
 import CreateRoleScreen from './screens/CreateRoleScreen.jsx'
 import DefineRoleScreen from './screens/DefineRoleScreen.jsx'
+import ReviewRoleScreen from './screens/ReviewRoleScreen.jsx'
 import CandidatesScreen from './screens/CandidatesScreen.jsx'
 
 export default function App() {
@@ -24,7 +25,7 @@ export default function App() {
     )
   }
 
-  const finishRole = () => {
+  const addRole = () => {
     const cfg = draft ?? { title: 'New role', openings: 1, method: 'self' }
     const role = {
       id: `role-${roles.length + 1}`,
@@ -36,8 +37,6 @@ export default function App() {
       updated: 'Updated just now',
     }
     setRoles((prev) => [role, ...prev])
-    setDraft(null)
-    setView('roles')
   }
 
   const activeNav = view === 'candidates' ? 'Candidates' : 'Roles'
@@ -74,7 +73,24 @@ export default function App() {
           roleTitle={draft?.title ?? 'New role'}
           openings={draft?.openings ?? 1}
           onBack={() => setView('create')}
-          onComplete={finishRole}
+          onComplete={() => setView('review')}
+        />
+      )}
+
+      {view === 'review' && (
+        <ReviewRoleScreen
+          roleTitle={draft?.title ?? 'New role'}
+          openings={draft?.openings ?? 1}
+          onBack={() => setView('define')}
+          onApprove={addRole}
+          onStartSourcing={() => {
+            setDraft(null)
+            setView('candidates')
+          }}
+          onBackToRoles={() => {
+            setDraft(null)
+            setView('roles')
+          }}
         />
       )}
 
