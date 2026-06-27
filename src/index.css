@@ -16,6 +16,7 @@
   --color-track: #f0f0f0; /* competency bar track — very light      */
   --color-strong: #2e7d55; /* verdict: strong (positive)            */
   --color-attention: #b7791f; /* verdict: look closer (weak)          */
+  --color-error: #d92d20; /* form/validation errors               */
 
   /* Functional accent — interactive cues (focus, active controls, sort).
      Restrained: used for state, not decoration. */

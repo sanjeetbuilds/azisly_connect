@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Button, Input } from '../components'
 import { CheckIcon } from '../components/icons.jsx'
 
@@ -6,6 +7,8 @@ const FEATURES = [
   'Every verdict backed by evidence.',
   'From sourced to decided in one place.',
 ]
+
+const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
 
 function Wordmark({ className = '' }) {
   return (
@@ -16,12 +19,38 @@ function Wordmark({ className = '' }) {
 }
 
 /**
- * LoginScreen — a calm, centered login. Optional brand panel on the left,
- * a simple form on the right. No real auth: Sign in just enters the app.
+ * LoginScreen — a calm, centered login with prototype-level validation.
+ * Email is required and must look like an email; password is required. Use the
+ * password "wrong" (or email wrong@acme.com) to see the wrong-credentials state.
  */
 export default function LoginScreen({ onSignIn }) {
+  const [email, setEmail] = useState('aryan@acme.com')
+  const [password, setPassword] = useState('password')
+  const [emailError, setEmailError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [authError, setAuthError] = useState('')
+
   const handleSubmit = (e) => {
     e.preventDefault()
+
+    const eErr = !email.trim()
+      ? 'Enter your email.'
+      : !isEmail(email)
+        ? 'Enter a valid email address.'
+        : ''
+    const pErr = !password ? 'Enter your password.' : ''
+
+    setEmailError(eErr)
+    setPasswordError(pErr)
+    setAuthError('')
+    if (eErr || pErr) return
+
+    // Prototype auth: a specific fake credential fails so the state is visible.
+    if (email.trim().toLowerCase() === 'wrong@acme.com' || password === 'wrong') {
+      setAuthError('Wrong password, or no account with that email.')
+      return
+    }
+
     onSignIn()
   }
 
@@ -60,21 +89,40 @@ export default function LoginScreen({ onSignIn }) {
             <p className="text-sm text-secondary">Welcome back to Azisly Recruit.</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
             <Input
               label="Email"
               type="email"
               autoComplete="email"
-              defaultValue="aryan@acme.com"
+              value={email}
+              error={emailError}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                if (emailError) setEmailError('')
+                if (authError) setAuthError('')
+              }}
               placeholder="you@company.com"
             />
             <Input
               label="Password"
               type="password"
               autoComplete="current-password"
-              defaultValue="password"
+              value={password}
+              error={passwordError}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                if (passwordError) setPasswordError('')
+                if (authError) setAuthError('')
+              }}
               placeholder="••••••••"
             />
+
+            {authError && (
+              <div className="rounded-lg border border-error/30 bg-error/[0.05] px-3 py-2 text-xs text-error">
+                {authError}
+              </div>
+            )}
+
             <Button type="submit" className="mt-1 w-full">
               Sign in
             </Button>

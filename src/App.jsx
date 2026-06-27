@@ -9,6 +9,7 @@ import DefineRoleScreen from './screens/DefineRoleScreen.jsx'
 import ReviewRoleScreen from './screens/ReviewRoleScreen.jsx'
 import CandidatesScreen from './screens/CandidatesScreen.jsx'
 import InviteScreen from './screens/InviteScreen.jsx'
+import InviteManagerScreen from './screens/InviteManagerScreen.jsx'
 import DecisionScreen from './screens/DecisionScreen.jsx'
 import ManagerFlow from './screens/ManagerFlow.jsx'
 import ManagerReviewFlow from './screens/ManagerReviewFlow.jsx'
@@ -75,7 +76,22 @@ export default function App() {
           onCancel={() => setView('roles')}
           onContinue={(cfg) => {
             setDraft(cfg)
-            setView('define')
+            setView(cfg.method === 'invite' ? 'invite-manager' : 'define')
+          }}
+          onTalkComplete={(cfg) => {
+            setDraft(cfg)
+            setView('review')
+          }}
+        />
+      )}
+
+      {view === 'invite-manager' && (
+        <InviteManagerScreen
+          roleTitle={draft?.title ?? 'this role'}
+          onCancel={() => setView('create')}
+          onDone={() => {
+            setDraft(null)
+            setView('roles')
           }}
         />
       )}

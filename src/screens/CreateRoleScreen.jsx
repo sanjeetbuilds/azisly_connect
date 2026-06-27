@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button, Card } from '../components'
 import { SearchIcon, CheckIcon, PlusIcon, MinusIcon } from '../components/icons.jsx'
+import TalkToDefine from './TalkToDefine.jsx'
 
 const ROLE_SUGGESTIONS = [
   'Senior Product Engineer',
@@ -51,7 +52,35 @@ function RadioDot({ selected }) {
   )
 }
 
-export default function CreateRoleScreen({ onCancel, onContinue }) {
+function Segmented({ value, onChange }) {
+  const opts = [
+    { key: 'form', label: 'Fill a form' },
+    { key: 'talk', label: 'Talk it through' },
+  ]
+  return (
+    <div className="inline-flex rounded-lg border border-hairline bg-surface p-0.5 shadow-card">
+      {opts.map((o) => {
+        const active = value === o.key
+        return (
+          <button
+            key={o.key}
+            type="button"
+            onClick={() => onChange(o.key)}
+            aria-pressed={active}
+            className={`rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors ${
+              active ? 'bg-ink text-surface' : 'text-secondary hover:text-ink'
+            }`}
+          >
+            {o.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+export default function CreateRoleScreen({ onCancel, onContinue, onTalkComplete }) {
+  const [mode, setMode] = useState('form')
   const [query, setQuery] = useState('')
   const [chosen, setChosen] = useState(null) // a role is only "chosen" when picked from the list
   const [open, setOpen] = useState(false)
@@ -84,12 +113,20 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
         </span>
       </header>
 
-      {/* Page header */}
+      {/* Page header + mode toggle */}
       <div className="shrink-0 px-6 pt-8 lg:px-8">
         <p className="text-sm text-secondary">Roles · New</p>
         <h1 className="mt-1.5 text-2xl text-ink">Create a role</h1>
+        <div className="mt-4">
+          <Segmented value={mode} onChange={setMode} />
+        </div>
       </div>
 
+      {mode === 'talk' ? (
+        <TalkToDefine
+          onComplete={() => onTalkComplete?.({ title: 'Senior Product Engineer', openings: 1, method: 'self' })}
+        />
+      ) : (
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-12 pt-6 lg:px-8">
         <div className="mx-auto w-full max-w-xl">
           <Card className="flex flex-col gap-7 p-7">
@@ -227,6 +264,7 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
           </div>
         </div>
       </div>
+      )}
     </div>
   )
 }
