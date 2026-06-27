@@ -50,3 +50,44 @@ export const SortIcon = ({ dir, className = 'h-3 w-3' }) => (
     <path d="M5 9.5L8 12.5l3-3" strokeLinecap="round" strokeLinejoin="round" opacity={dir === 'asc' ? 0.25 : 1} />
   </svg>
 )
+
+export const PlusIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.6" className={className}>
+    <path d="M8 3.5v9M3.5 8h9" strokeLinecap="round" />
+  </svg>
+)
+
+export const MinusIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.6" className={className}>
+    <path d="M3.5 8h9" strokeLinecap="round" />
+  </svg>
+)
+
+export const ArrowLeftIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.5" className={className}>
+    <path d="M10 3.5L5.5 8l4.5 4.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+export const SendIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.5" className={className}>
+    <path d="M8 13V4M4.5 7.5L8 4l3.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+export const PaperclipIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.4" className={className}>
+    <path
+      d="M12.3 7.4l-4.5 4.5a2.4 2.4 0 0 1-3.4-3.4l4.8-4.8a1.5 1.5 0 0 1 2.2 2.2L6.6 10.7a.7.7 0 0 1-1-1l4.3-4.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+/* AI spark — filled. */
+export const SparkleIcon = ({ className = 'h-4 w-4' }) => (
+  <svg viewBox="0 0 16 16" fill="currentColor" className={className}>
+    <path d="M8 1l1.3 3.6a3 3 0 0 0 1.6 1.6L14.5 7.5 11 8.8a3 3 0 0 0-1.6 1.6L8 14l-1.3-3.6a3 3 0 0 0-1.6-1.6L1.5 7.5 5 6.2a3 3 0 0 0 1.6-1.6L8 1z" />
+  </svg>
+)
