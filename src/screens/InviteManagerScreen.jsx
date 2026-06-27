@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button, Card, Avatar } from '../components'
-import { CheckIcon, XIcon, MailIcon } from '../components/icons.jsx'
+import { CheckIcon, XIcon, LinkIcon, ClockIcon } from '../components/icons.jsx'
 import { previousManagers as SEED } from '../data/managers.js'
 
 const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
@@ -8,7 +8,7 @@ const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
 function linkFor(email) {
   let h = 0
   for (let i = 0; i < email.length; i += 1) h = (h * 31 + email.charCodeAt(i)) >>> 0
-  return `app.azisly.com/invite/${h.toString(36).slice(0, 8)}`
+  return `https://app.azisly.com/invite/${h.toString(36).slice(0, 8)}`
 }
 
 export default function InviteManagerScreen({ roleTitle = 'Senior Product Engineer', onCancel, onDone }) {
@@ -16,7 +16,8 @@ export default function InviteManagerScreen({ roleTitle = 'Senior Product Engine
   const [selectedId, setSelectedId] = useState(null)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [sent, setSent] = useState(null) // { name, email }
+  const [sent, setSent] = useState(null) // the generated recipient { name, email }
+  const [copied, setCopied] = useState(false)
 
   const picked = managers.find((m) => m.id === selectedId) ?? null
   const newValid = isEmail(email)
@@ -32,7 +33,7 @@ export default function InviteManagerScreen({ roleTitle = 'Senior Product Engine
     if (selectedId === id) setSelectedId(null)
   }
 
-  const send = () => {
+  const generate = () => {
     if (!recipient) return
     if (!picked) {
       setManagers((prev) => [{ id: `m-${prev.length + 1}`, ...recipient }, ...prev])
@@ -40,45 +41,73 @@ export default function InviteManagerScreen({ roleTitle = 'Senior Product Engine
     setSent(recipient)
   }
 
-  /* ── Confirmation: link sent ─────────────────────────────────── */
+  const copy = (link) => {
+    navigator.clipboard?.writeText(link).catch(() => {})
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  /* ── Generated link ──────────────────────────────────────────── */
   if (sent) {
     const first = sent.name.split(' ')[0]
     const link = linkFor(sent.email)
     return (
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="flex min-h-0 flex-1 items-center justify-center px-6 py-12">
-          <Card className="flex w-full max-w-md flex-col items-center gap-5 p-8 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-strong/10 text-strong">
-              <CheckIcon className="h-7 w-7" />
-            </span>
+          <Card className="flex w-full max-w-lg flex-col gap-6 p-8">
+            <div className="flex items-center gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-strong/10 text-strong">
+                <CheckIcon className="h-6 w-6" />
+              </span>
+              <div>
+                <h1 className="text-xl text-ink">Magic link ready</h1>
+                <p className="text-sm text-secondary">Share it with {first} — they don&rsquo;t need an account.</p>
+              </div>
+            </div>
+
+            {/* Who it's for */}
+            <div className="flex items-center gap-3 rounded-xl border border-hairline bg-background px-3.5 py-3">
+              <Avatar name={sent.name} size={36} />
+              <div className="min-w-0">
+                <div className="truncate text-sm font-medium text-ink">{sent.name}</div>
+                <div className="truncate text-[13px] text-secondary">{sent.email}</div>
+              </div>
+            </div>
+
+            {/* The link */}
             <div className="flex flex-col gap-2">
-              <h1 className="text-xl text-ink">Magic link sent</h1>
-              <p className="text-sm leading-relaxed text-secondary">
-                A magic link to define <span className="text-ink">{roleTitle}</span> has been sent to{' '}
-                <span className="text-ink">{sent.email}</span>.
+              <p className="text-sm font-medium text-ink">
+                Magic link to define {roleTitle} for {sent.name}
               </p>
+              <div className="flex items-center gap-2 rounded-lg border border-hairline bg-surface px-3 py-2.5 shadow-card">
+                <LinkIcon className="h-4 w-4 shrink-0 text-secondary" />
+                <span className="min-w-0 flex-1 truncate font-mono text-[13px] text-ink">{link}</span>
+                <Button onClick={() => copy(link)} className="!px-3 !py-1.5 !text-[13px]">
+                  {copied ? (
+                    <>
+                      <CheckIcon className="mr-1 h-3.5 w-3.5" /> Copied
+                    </>
+                  ) : (
+                    'Copy'
+                  )}
+                </Button>
+              </div>
             </div>
 
-            <div className="flex w-full items-center gap-2 rounded-lg border border-hairline bg-background px-3 py-2.5 text-left">
-              <MailIcon className="h-4 w-4 shrink-0 text-secondary" />
-              <span className="min-w-0 flex-1 truncate font-mono text-[13px] text-ink">{link}</span>
-              <button
-                type="button"
-                onClick={() => navigator.clipboard?.writeText(link).catch(() => {})}
-                className="shrink-0 rounded-md border border-hairline bg-surface px-2 py-1 text-xs text-secondary transition-colors hover:text-ink"
-              >
-                Copy link
-              </button>
+            {/* Scope + expiry */}
+            <div className="flex items-start gap-2 rounded-lg bg-background px-3 py-2.5 text-[13px] leading-relaxed text-secondary">
+              <ClockIcon className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                This link opens only the <span className="text-ink">{roleTitle}</span> role and
+                expires in 7 days. You&rsquo;ll review the card here once {first} is done.
+              </span>
             </div>
 
-            <p className="text-xs leading-relaxed text-secondary">
-              That link is all {first} needs — there&rsquo;s no account to create. You&rsquo;ll see
-              the role card here once they finish.
-            </p>
-
-            <Button variant="secondary" className="mt-1" onClick={onDone}>
-              Back to roles
-            </Button>
+            <div className="flex items-center justify-end gap-3 border-t border-hairline pt-5">
+              <Button variant="secondary" onClick={onDone}>
+                Back to roles
+              </Button>
+            </div>
           </Card>
         </div>
       </div>
@@ -96,8 +125,8 @@ export default function InviteManagerScreen({ roleTitle = 'Senior Product Engine
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-12 pt-6 lg:px-8">
         <div className="mx-auto w-full max-w-xl">
           <p className="mb-5 text-sm leading-relaxed text-secondary">
-            We&rsquo;ll email a magic link so they can define the role — no account needed. Pick
-            someone you&rsquo;ve worked with, or add a new contact.
+            You&rsquo;ll get a magic link to share so they can define the role — no account needed.
+            Pick someone you&rsquo;ve worked with, or add a new contact.
           </p>
 
           <Card className="flex flex-col gap-7 p-7">
@@ -177,8 +206,8 @@ export default function InviteManagerScreen({ roleTitle = 'Senior Product Engine
             <Button variant="secondary" onClick={onCancel}>
               Back
             </Button>
-            <Button disabled={!recipient} onClick={send}>
-              Send magic link
+            <Button disabled={!recipient} onClick={generate}>
+              Generate magic link
             </Button>
           </div>
         </div>
