@@ -12,7 +12,7 @@ export default function CompetencyBar({ name, score, max = 100, className = '' }
         <span className="font-mono text-sm text-ink tabular-nums">{score}</span>
       </div>
       <div
-        className="h-1 w-full rounded-full bg-track overflow-hidden"
+        className="h-[3px] w-full rounded-full bg-track overflow-hidden"
         role="meter"
         aria-valuenow={score}
         aria-valuemin={0}

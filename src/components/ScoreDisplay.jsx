@@ -1,6 +1,6 @@
 /**
  * ScoreDisplay — the score is the hero. Big, calm, mono, and ink-coloured
- * (it never takes on a verdict colour). A tiny uppercase label sits beneath.
+ * (it never takes on a verdict colour). A small sentence-case label sits beneath.
  *
  * size: 'lg' (default hero) | 'sm' (inline / secondary placements)
  */

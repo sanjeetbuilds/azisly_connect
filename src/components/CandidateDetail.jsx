@@ -7,8 +7,10 @@ import VerdictTag from './VerdictTag.jsx'
 import EvidenceQuote from './EvidenceQuote.jsx'
 import StageTracker from './StageTracker.jsx'
 
+// A plain <p>, not a heading — headings inherit the global ink colour and
+// tighter tracking; section labels must stay small, grey, and normally spaced.
 const SectionLabel = ({ children }) => (
-  <h3 className="text-sm font-medium text-secondary">{children}</h3>
+  <p className="text-sm font-medium tracking-normal text-secondary">{children}</p>
 )
 
 /**

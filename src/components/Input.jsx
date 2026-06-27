@@ -2,7 +2,7 @@ import { useId } from 'react'
 
 /**
  * Input — clean and quiet. A light hairline border that settles to ink on
- * focus. A tiny uppercase mono label sits above it for metadata.
+ * focus. A small sentence-case grey label sits above it.
  */
 export default function Input({
   label,
