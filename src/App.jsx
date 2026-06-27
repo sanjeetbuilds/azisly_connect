@@ -1,18 +1,22 @@
 import { useState } from 'react'
 import { Sidebar } from './components'
 import { workspace } from './data/candidates.js'
+import { seedRoles, makeApprovedRole } from './data/roles.js'
 import LoginScreen from './screens/LoginScreen.jsx'
 import RolesScreen from './screens/RolesScreen.jsx'
 import CreateRoleScreen from './screens/CreateRoleScreen.jsx'
 import DefineRoleScreen from './screens/DefineRoleScreen.jsx'
 import ReviewRoleScreen from './screens/ReviewRoleScreen.jsx'
 import CandidatesScreen from './screens/CandidatesScreen.jsx'
+import InviteScreen from './screens/InviteScreen.jsx'
+import DecisionScreen from './screens/DecisionScreen.jsx'
 
 export default function App() {
   const [authed, setAuthed] = useState(false)
-  const [view, setView] = useState('roles') // roles | create | define | candidates
-  const [roles, setRoles] = useState([])
+  const [view, setView] = useState('roles') // roles | create | define | review | candidates | invite | decision
+  const [roles, setRoles] = useState(seedRoles)
   const [draft, setDraft] = useState(null) // { title, openings, method } from Create Role
+  const [decisionCandidate, setDecisionCandidate] = useState(null)
 
   if (!authed) {
     return (
@@ -27,19 +31,10 @@ export default function App() {
 
   const addRole = () => {
     const cfg = draft ?? { title: 'New role', openings: 1, method: 'self' }
-    const role = {
-      id: `role-${roles.length + 1}`,
-      title: cfg.title,
-      location: 'Remote · Europe',
-      type: 'Full-time',
-      status: 'Open',
-      candidates: 6,
-      updated: 'Updated just now',
-    }
-    setRoles((prev) => [role, ...prev])
+    setRoles((prev) => [makeApprovedRole(`role-${prev.length + 1}`, cfg.title), ...prev])
   }
 
-  const activeNav = view === 'candidates' ? 'Candidates' : 'Roles'
+  const activeNav = ['candidates', 'invite', 'decision'].includes(view) ? 'Candidates' : 'Roles'
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-ink">
@@ -94,7 +89,27 @@ export default function App() {
         />
       )}
 
-      {view === 'candidates' && <CandidatesScreen />}
+      {view === 'candidates' && (
+        <CandidatesScreen
+          onInvite={() => setView('invite')}
+          onDecide={(candidate) => {
+            setDecisionCandidate(candidate)
+            setView('decision')
+          }}
+        />
+      )}
+
+      {view === 'invite' && (
+        <InviteScreen roleTitle="Senior Product Engineer" onBack={() => setView('candidates')} />
+      )}
+
+      {view === 'decision' && (
+        <DecisionScreen
+          candidate={decisionCandidate ?? undefined}
+          onBack={() => setView('candidates')}
+          onDone={() => setView('candidates')}
+        />
+      )}
     </div>
   )
 }

@@ -1,30 +1,7 @@
-import { Button, Card, Tag } from '../components'
-
-function RoleCard({ role, onClick }) {
-  return (
-    <Card
-      as="button"
-      onClick={onClick}
-      className="flex flex-col gap-4 p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-panel"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="truncate text-[15px] text-ink">{role.title}</h3>
-          <p className="mt-0.5 truncate text-[13px] text-secondary">
-            {role.location} · {role.type}
-          </p>
-        </div>
-        <Tag color={role.status === 'Open' ? 'green' : 'gray'}>{role.status}</Tag>
-      </div>
-      <div className="flex items-center justify-between border-t border-hairline pt-3.5 text-[13px] text-secondary">
-        <span>
-          {role.candidates} candidate{role.candidates === 1 ? '' : 's'}
-        </span>
-        <span>{role.updated}</span>
-      </div>
-    </Card>
-  )
-}
+import { useEffect, useState } from 'react'
+import { Button, Tag } from '../components'
+import { ChevronRightIcon } from '../components/icons.jsx'
+import { ROLE_STATUS } from '../data/roles.js'
 
 function EmptyState({ onCreateRole }) {
   return (
@@ -48,12 +25,75 @@ function EmptyState({ onCreateRole }) {
   )
 }
 
+function SkeletonRow() {
+  return (
+    <div className="flex items-center gap-4 px-5 py-4">
+      <div className="min-w-0 flex-1">
+        <div className="h-3.5 w-40 rounded bg-hairline" />
+        <div className="mt-2 h-3 w-28 rounded bg-hairline/70" />
+      </div>
+      <div className="h-5 w-24 rounded-full bg-hairline" />
+      <div className="h-3.5 w-28 rounded bg-hairline" />
+    </div>
+  )
+}
+
+function RoleRow({ role, onClick }) {
+  const status = ROLE_STATUS[role.status] ?? ROLE_STATUS.defining
+  const highlighted = role.candidatesReady > 0
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-4 border-b border-hairline px-5 py-4 text-left transition-colors last:border-b-0 ${
+        highlighted ? 'bg-accent/[0.04] hover:bg-accent/[0.07]' : 'hover:bg-background'
+      }`}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[15px] font-medium text-ink">{role.title}</div>
+        <div className="truncate text-[13px] text-secondary">
+          {role.location} · {role.type}
+        </div>
+      </div>
+
+      <div className="hidden w-[150px] shrink-0 sm:block">
+        <Tag color={status.color}>{status.label}</Tag>
+      </div>
+
+      <div className="w-[150px] shrink-0 text-right">
+        {role.candidatesReady > 0 ? (
+          <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-accent">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+            {role.candidatesReady} ready to review
+          </span>
+        ) : (
+          <span className="text-[13px] text-secondary">
+            {role.totalCandidates > 0 ? `${role.totalCandidates} sourced` : 'Not sourcing yet'}
+          </span>
+        )}
+      </div>
+
+      <ChevronRightIcon className="h-4 w-4 shrink-0 text-secondary" />
+    </button>
+  )
+}
+
 /**
- * RolesScreen — the workspace home. Empty right after login ("No roles yet");
- * once roles exist, the same screen becomes the roles/jobs list.
+ * RolesScreen — the populated workspace: a clean list of the recruiter's roles
+ * with plain-word status and how many candidates are ready. Rows with ready
+ * candidates are highlighted. Includes loading and empty states.
  */
 export default function RolesScreen({ roles, onCreateRole, onOpenRole }) {
-  const empty = roles.length === 0
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 850)
+    return () => clearTimeout(t)
+  }, [])
+
+  const empty = !loading && roles.length === 0
+  const readyCount = roles.filter((r) => r.candidatesReady > 0).length
 
   return (
     <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -73,19 +113,36 @@ export default function RolesScreen({ roles, onCreateRole, onOpenRole }) {
         {!empty && <Button onClick={onCreateRole}>New role</Button>}
       </div>
 
-      {/* Content */}
       {empty ? (
         <EmptyState onCreateRole={onCreateRole} />
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-10 lg:px-8">
           <p className="mb-4 text-sm text-secondary">
-            <span className="font-medium text-ink">{roles.length}</span> role
-            {roles.length === 1 ? '' : 's'}
+            {loading ? (
+              <span className="inline-block h-4 w-24 animate-pulse rounded bg-hairline align-middle" />
+            ) : (
+              <>
+                <span className="font-medium text-ink">{roles.length}</span> roles
+                {readyCount > 0 && (
+                  <>
+                    {' · '}
+                    <span className="text-accent">{readyCount} with candidates ready</span>
+                  </>
+                )}
+              </>
+            )}
           </p>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {roles.map((r) => (
-              <RoleCard key={r.id} role={r} onClick={() => onOpenRole(r)} />
-            ))}
+
+          <div className="overflow-hidden rounded-xl border border-hairline bg-surface shadow-card">
+            {loading ? (
+              <div className="animate-pulse divide-y divide-hairline">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <SkeletonRow key={i} />
+                ))}
+              </div>
+            ) : (
+              roles.map((r) => <RoleRow key={r.id} role={r} onClick={() => onOpenRole(r)} />)
+            )}
           </div>
         </div>
       )}

@@ -91,3 +91,41 @@ export const SparkleIcon = ({ className = 'h-4 w-4' }) => (
     <path d="M8 1l1.3 3.6a3 3 0 0 0 1.6 1.6L14.5 7.5 11 8.8a3 3 0 0 0-1.6 1.6L8 14l-1.3-3.6a3 3 0 0 0-1.6-1.6L1.5 7.5 5 6.2a3 3 0 0 0 1.6-1.6L8 1z" />
   </svg>
 )
+
+export const ChevronRightIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.5" className={className}>
+    <path d="M6 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+export const MailIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.4" className={className}>
+    <rect x="2.5" y="3.5" width="11" height="9" rx="1.5" />
+    <path d="M3 5l5 3.5L13 5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+export const PhoneIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.4" className={className}>
+    <path
+      d="M4 2.8l1.7.3.9 2.3-1.2 1c.5 1.2 1.5 2.2 2.7 2.7l1-1.2 2.3.9.3 1.7c0 .6-.5 1-1 1C6.3 12.2 3.8 9.7 3 4c0-.6.4-1.1 1-1.2z"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+export const LinkIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.4" className={className}>
+    <path d="M6.6 9.4l2.8-2.8" strokeLinecap="round" />
+    <path d="M7.2 4.6l1-1a2.4 2.4 0 0 1 3.4 3.4l-1 1" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M8.8 11.4l-1 1a2.4 2.4 0 0 1-3.4-3.4l1-1" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+export const ClockIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.4" className={className}>
+    <circle cx="8" cy="8" r="5.5" />
+    <path d="M8 5v3.2l2 1.2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)

@@ -22,7 +22,7 @@ const SectionLabel = ({ children }) => (
  * Leads with the stage tracker, then the hero score, competency bars, evidence
  * quotes, and the action buttons (one primary, the rest secondary).
  */
-export default function CandidateDetail({ candidate, onBack }) {
+export default function CandidateDetail({ candidate, onBack, onDecide }) {
   const src = SOURCES[candidate.source]
   return (
     <div className="flex flex-col">
@@ -101,9 +101,10 @@ export default function CandidateDetail({ candidate, onBack }) {
 
         {/* Actions — one primary, the rest secondary */}
         <div className="sticky bottom-0 -mx-6 flex flex-wrap items-center gap-3 border-t border-hairline bg-surface px-6 py-5 lg:-mx-8 lg:px-8">
-          <Button variant="primary">Advance candidate</Button>
+          <Button variant="primary" onClick={() => onDecide?.(candidate)}>
+            Shortlist or pass
+          </Button>
           <Button variant="secondary">Save for later</Button>
-          <Button variant="secondary">Reject</Button>
           <Kbd className="ml-auto">⌘↵</Kbd>
         </div>
       </div>

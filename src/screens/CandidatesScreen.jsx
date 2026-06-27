@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
+  Button,
   SearchInput,
   Dropdown,
   ViewToggle,
@@ -24,7 +25,7 @@ function sortCandidates(list, { key, dir }) {
  * CandidatesScreen — the dense candidate review for a role: toolbar furniture,
  * a sortable data table or grid, and a floating detail drawer.
  */
-export default function CandidatesScreen() {
+export default function CandidatesScreen({ onInvite, onDecide }) {
   const [search, setSearch] = useState('')
   const [stage, setStage] = useState('all')
   const [role, setRole] = useState('all')
@@ -104,6 +105,11 @@ export default function CandidatesScreen() {
               <Dropdown label="Role" value={role} options={roleOptions} onChange={setRole} />
               <Dropdown label="Status" value={status} options={statusOptions} onChange={setStatus} />
               <ViewToggle value={view} onChange={setView} />
+              {onInvite && (
+                <Button variant="secondary" onClick={onInvite}>
+                  Invite to interview
+                </Button>
+              )}
             </div>
           </div>
 
@@ -147,7 +153,7 @@ export default function CandidatesScreen() {
             className="absolute inset-0 z-20 animate-fade-in cursor-default bg-ink/20 backdrop-blur-[1px]"
           />
           <div className="absolute inset-y-0 right-0 z-30 flex w-full max-w-xl animate-slide-in-right flex-col overflow-y-auto border-l border-hairline bg-surface shadow-overlay">
-            <CandidateDetail candidate={selected} onBack={closeDetail} />
+            <CandidateDetail candidate={selected} onBack={closeDetail} onDecide={onDecide} />
           </div>
         </>
       )}
