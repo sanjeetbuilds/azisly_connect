@@ -46,7 +46,7 @@ function Spinner({ className = 'h-4 w-4' }) {
 }
 
 /* The card the AI assembles, shown in the "ready" state. */
-function RoleCardPreview({ title, openings, onReview, onKeepEditing }) {
+function RoleCardPreview({ title, openings, onReview, onKeepEditing, reviewLabel = 'Review role' }) {
   const competencies = [
     { name: 'System design', weight: 'High' },
     { name: 'Ownership', weight: 'High' },
@@ -87,7 +87,7 @@ function RoleCardPreview({ title, openings, onReview, onKeepEditing }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
-        <Button onClick={onReview}>Review role</Button>
+        <Button onClick={onReview}>{reviewLabel}</Button>
         <Button variant="secondary" onClick={onKeepEditing}>
           Keep editing
         </Button>
@@ -102,7 +102,13 @@ function RoleCardPreview({ title, openings, onReview, onKeepEditing }) {
  * intro → asking (input always visible) → answer captured → optional JD
  * paste/upload → building → card ready.
  */
-export default function DefineRoleScreen({ roleTitle = 'New role', openings = 1, onBack, onComplete }) {
+export default function DefineRoleScreen({
+  roleTitle = 'New role',
+  openings = 1,
+  onBack,
+  onComplete,
+  reviewLabel = 'Review role',
+}) {
   const [messages, setMessages] = useState([{ from: 'ai', text: QUESTIONS[0] }])
   const [step, setStep] = useState(0)
   const [input, setInput] = useState('')
@@ -205,6 +211,7 @@ export default function DefineRoleScreen({ roleTitle = 'New role', openings = 1,
               <RoleCardPreview
                 title={roleTitle}
                 openings={openings}
+                reviewLabel={reviewLabel}
                 onReview={onComplete}
                 onKeepEditing={() => setPhase('chat')}
               />

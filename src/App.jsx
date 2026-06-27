@@ -10,6 +10,11 @@ import ReviewRoleScreen from './screens/ReviewRoleScreen.jsx'
 import CandidatesScreen from './screens/CandidatesScreen.jsx'
 import InviteScreen from './screens/InviteScreen.jsx'
 import DecisionScreen from './screens/DecisionScreen.jsx'
+import ManagerFlow from './screens/ManagerFlow.jsx'
+
+// Magic-link entry: a hiring manager reaches the app via ?invite=<token>.
+// Resolved once at load — there is no client routing.
+const inviteToken = new URLSearchParams(window.location.search).get('invite')
 
 export default function App() {
   const [authed, setAuthed] = useState(false)
@@ -17,6 +22,11 @@ export default function App() {
   const [roles, setRoles] = useState(seedRoles)
   const [draft, setDraft] = useState(null) // { title, openings, method } from Create Role
   const [decisionCandidate, setDecisionCandidate] = useState(null)
+
+  // Hiring-manager magic-link flow (no account, no sidebar).
+  if (inviteToken !== null) {
+    return <ManagerFlow token={inviteToken} />
+  }
 
   if (!authed) {
     return (
