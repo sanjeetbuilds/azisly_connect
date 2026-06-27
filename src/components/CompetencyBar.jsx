@@ -12,7 +12,7 @@ export default function CompetencyBar({ name, score, max = 100, className = '' }
         <span className="font-mono text-sm text-ink tabular-nums">{score}</span>
       </div>
       <div
-        className="h-1.5 w-full rounded-full bg-hairline overflow-hidden"
+        className="h-1 w-full rounded-full bg-track overflow-hidden"
         role="meter"
         aria-valuenow={score}
         aria-valuemin={0}
@@ -20,7 +20,7 @@ export default function CompetencyBar({ name, score, max = 100, className = '' }
         aria-label={name}
       >
         <div
-          className="h-full rounded-full bg-ink transition-[width] duration-700 ease-out"
+          className="h-full rounded-full bg-bar transition-[width] duration-700 ease-out"
           style={{ width: `${pct}%` }}
         />
       </div>

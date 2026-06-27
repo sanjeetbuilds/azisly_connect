@@ -36,12 +36,12 @@ export default function CandidateRow({ candidate, variant = 'rich', selected = f
         type="button"
         onClick={onClick}
         aria-current={selected ? 'true' : undefined}
-        className={`flex w-full items-center gap-2.5 rounded-card border px-2.5 py-2 text-left transition-colors ${
-          selected ? 'border-hairline bg-surface' : 'border-transparent hover:bg-surface'
+        className={`flex w-full items-center gap-2.5 rounded-card px-2.5 py-2 text-left transition-colors ${
+          selected ? 'bg-ink/[0.05]' : 'hover:bg-ink/[0.03]'
         }`}
       >
         <Avatar src={candidate.avatar} name={candidate.name} size={30} />
-        <span className="min-w-0 flex-1 truncate text-sm text-ink">{candidate.name}</span>
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">{candidate.name}</span>
         <span className="font-mono text-sm text-ink tabular-nums">{candidate.score}</span>
       </button>
     )
@@ -52,16 +52,16 @@ export default function CandidateRow({ candidate, variant = 'rich', selected = f
       type="button"
       onClick={onClick}
       aria-current={selected ? 'true' : undefined}
-      className={`relative flex w-full items-center gap-4 rounded-card border bg-surface px-4 py-4 pr-12 text-left transition-colors ${
-        selected ? 'border-ink' : 'border-hairline hover:border-ink/30'
+      className={`relative flex w-full items-center gap-5 rounded-card border bg-surface px-5 py-5 pr-12 text-left transition-colors ${
+        selected ? 'border-ink/20' : 'border-hairline hover:border-ink/20'
       }`}
     >
       <Avatar src={candidate.avatar} name={candidate.name} size={48} />
 
       <div className="min-w-0 flex-1">
-        <span className="block truncate text-[15px] text-ink">{candidate.name}</span>
+        <span className="block truncate text-[15px] font-medium text-ink">{candidate.name}</span>
         <p className="truncate text-sm text-secondary">{candidate.role}</p>
-        <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.1em] text-secondary">
+        <p className="mt-1.5 truncate text-[13px] text-secondary">
           {candidate.experience} · {candidate.location}
         </p>
       </div>

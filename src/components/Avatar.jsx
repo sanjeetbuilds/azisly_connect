@@ -24,7 +24,7 @@ export default function Avatar({ src, name = '', size = 40, className = '' }) {
       <span
         style={dim}
         aria-label={name}
-        className={`inline-flex shrink-0 items-center justify-center rounded-full border border-hairline bg-background font-mono text-[11px] text-secondary ${className}`}
+        className={`inline-flex shrink-0 items-center justify-center rounded-full border border-hairline bg-background text-[11px] font-medium text-secondary ${className}`}
       >
         {initials(name)}
       </span>

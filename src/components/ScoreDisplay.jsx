@@ -24,11 +24,7 @@ export default function ScoreDisplay({
         {score}
         {suffix && <span className="text-secondary">{suffix}</span>}
       </span>
-      {label && (
-        <span className="text-[11px] uppercase tracking-[0.18em] font-mono text-secondary">
-          {label}
-        </span>
-      )}
+      {label && <span className="text-sm text-secondary">{label}</span>}
     </div>
   )
 }

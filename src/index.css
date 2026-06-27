@@ -6,17 +6,20 @@
    ───────────────────────────────────────────────────────────── */
 @theme {
   /* Palette — the entire vocabulary. Nothing outside this. */
-  --color-background: #fcfcfd; /* near-pure neutral canvas (not warm) */
-  --color-surface: #ffffff; /* cards / panels — true white          */
-  --color-ink: #16161a; /* primary text + primary buttons       */
-  --color-ink-hover: #0e0e12; /* slight darken on hover               */
-  --color-secondary: #6b6b72; /* secondary text — calm grey           */
-  --color-hairline: #e8e8eb; /* thin neutral border                  */
-  --color-strong: #2e7d55; /* verdict: strong (positive)  — verdicts only */
-  --color-attention: #b7791f; /* verdict: look closer (weak) — verdicts only */
+  --color-background: #fcfcfd; /* near-pure neutral canvas (not warm)  */
+  --color-surface: #ffffff; /* cards / panels — true white           */
+  --color-ink: #1a1a1a; /* near-black: headings + primary buttons (never pure #000) */
+  --color-ink-hover: #0e0e12; /* slight darken on hover                */
+  --color-secondary: #6b7280; /* body + secondary text — calm grey     */
+  --color-hairline: #e8e8eb; /* thin neutral border                   */
+  --color-bar: #2a2a2a; /* competency bar fill — soft dark grey   */
+  --color-track: #f0f0f0; /* competency bar track — very light      */
+  --color-strong: #2e7d55; /* verdict: strong (positive)  — verdicts only  */
+  --color-attention: #b7791f; /* verdict: look closer (weak) — verdicts only  */
 
-  /* Type — a refined grotesk with personality; mono for numbers. */
-  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  /* Type — a refined grotesk with personality; mono for numbers only.
+     If Hanken Grotesk is unavailable, fall back to General Sans (not Inter). */
+  --font-sans: "Hanken Grotesk", "General Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
 
   /* Shape */
@@ -56,20 +59,22 @@ html {
   text-rendering: optimizeLegibility;
 }
 
+/* Body: Hanken Grotesk 400 in calm grey */
 body {
   margin: 0;
   background-color: var(--color-background);
-  color: var(--color-ink);
+  color: var(--color-secondary);
   font-family: var(--font-sans);
   font-weight: 400;
 }
 
-/* Crisp headings — medium weight (dark, never heavy-black), tight tracking */
+/* Headings: Hanken Grotesk 600 in near-black */
 h1,
 h2,
 h3,
 h4 {
-  font-weight: 500;
+  color: var(--color-ink);
+  font-weight: 600;
   letter-spacing: -0.015em;
   line-height: 1.18;
 }

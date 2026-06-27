@@ -42,11 +42,9 @@ export default function App() {
         </header>
 
         {/* Page header */}
-        <div className="shrink-0 border-b border-hairline px-6 pb-5 pt-7 lg:px-8">
-          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-secondary">
-            Pipeline · Senior Product Engineer
-          </p>
-          <h1 className="mt-1.5 text-2xl text-ink">Candidates</h1>
+        <div className="shrink-0 border-b border-hairline px-8 pb-8 pt-10 lg:px-12">
+          <p className="text-sm text-secondary">Pipeline · Senior Product Engineer</p>
+          <h1 className="mt-2 text-2xl text-ink">Candidates</h1>
         </div>
 
         {/* Master list  +  detail overlay */}
@@ -56,7 +54,7 @@ export default function App() {
             className={`flex min-h-0 flex-col overflow-y-auto transition-[width] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${listColumn}`}
           >
             {!selected && (
-              <div className="flex flex-wrap gap-2 px-6 pb-5 pt-1 lg:px-8">
+              <div className="mx-auto flex w-full max-w-2xl flex-wrap gap-2 px-8 pb-8 pt-6 lg:px-12">
                 {FILTERS.map((f) => (
                   <Chip
                     key={f.key}
@@ -72,8 +70,8 @@ export default function App() {
             <StaggerList
               className={
                 selected
-                  ? 'flex flex-col gap-1 p-2'
-                  : 'mx-auto flex w-full max-w-3xl flex-col gap-3 px-6 pb-12 lg:px-8'
+                  ? 'flex flex-col gap-1 p-3'
+                  : 'mx-auto flex w-full max-w-2xl flex-col gap-4 px-8 pb-16 lg:px-12'
               }
               step={selected ? 40 : 70}
             >

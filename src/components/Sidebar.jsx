@@ -49,9 +49,7 @@ export default function Sidebar({ active = 'Candidates', onNavigate, workspace, 
       <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-5">
         {NAV_GROUPS.map((group) => (
           <div key={group.label} className="flex flex-col gap-0.5">
-            <span className="px-2.5 pb-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-secondary">
-              {group.label}
-            </span>
+            <span className="px-2.5 pb-2 text-xs text-secondary">{group.label}</span>
             {group.items.map((item) => {
               const isActive = item === active
               return (
@@ -60,10 +58,10 @@ export default function Sidebar({ active = 'Candidates', onNavigate, workspace, 
                   type="button"
                   onClick={() => onNavigate?.(item)}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`flex items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left text-sm transition-colors ${
+                  className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors ${
                     isActive
-                      ? 'border-hairline bg-surface text-ink'
-                      : 'border-transparent text-secondary hover:bg-surface hover:text-ink'
+                      ? 'bg-ink/[0.05] text-ink'
+                      : 'text-secondary hover:bg-ink/[0.03] hover:text-ink'
                   }`}
                 >
                   {icons[item]}
