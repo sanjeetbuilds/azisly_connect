@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Button, Card } from '../components'
 import { SearchIcon, CheckIcon, PlusIcon, MinusIcon } from '../components/icons.jsx'
-import TalkToDefine from './TalkToDefine.jsx'
 
 const ROLE_SUGGESTIONS = [
   'Senior Product Engineer',
@@ -21,13 +20,13 @@ const ROLE_SUGGESTIONS = [
 const METHODS = [
   {
     key: 'self',
-    title: "I'll define this role myself",
-    desc: 'Answer a few questions and Azisly builds the role card with you.',
+    title: "I'll define it now",
+    desc: 'Continue to build the competency profile with AI — by chat or voice.',
   },
   {
     key: 'invite',
-    title: 'Invite a hiring manager to define it',
-    desc: 'Send a secure link so they can define the role. You review it after.',
+    title: 'Invite a hiring manager',
+    desc: 'Send a magic link so they can define it. You review it after.',
   },
 ]
 
@@ -52,35 +51,7 @@ function RadioDot({ selected }) {
   )
 }
 
-function Segmented({ value, onChange }) {
-  const opts = [
-    { key: 'form', label: 'Fill a form' },
-    { key: 'talk', label: 'Talk it through' },
-  ]
-  return (
-    <div className="inline-flex rounded-lg border border-hairline bg-surface p-0.5 shadow-card">
-      {opts.map((o) => {
-        const active = value === o.key
-        return (
-          <button
-            key={o.key}
-            type="button"
-            onClick={() => onChange(o.key)}
-            aria-pressed={active}
-            className={`rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              active ? 'bg-ink text-surface' : 'text-secondary hover:text-ink'
-            }`}
-          >
-            {o.label}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-export default function CreateRoleScreen({ onCancel, onContinue, onTalkComplete }) {
-  const [mode, setMode] = useState('form')
+export default function CreateRoleScreen({ onCancel, onContinue }) {
   const [query, setQuery] = useState('')
   const [chosen, setChosen] = useState(null) // a role is only "chosen" when picked from the list
   const [open, setOpen] = useState(false)
@@ -113,20 +84,13 @@ export default function CreateRoleScreen({ onCancel, onContinue, onTalkComplete 
         </span>
       </header>
 
-      {/* Page header + mode toggle */}
+      {/* Page header */}
       <div className="shrink-0 px-6 pt-8 lg:px-8">
-        <p className="text-sm text-secondary">Roles · New</p>
+        <p className="text-sm text-secondary">Roles · New · Step 1 of 2</p>
         <h1 className="mt-1.5 text-2xl text-ink">Create a role</h1>
-        <div className="mt-4">
-          <Segmented value={mode} onChange={setMode} />
-        </div>
+        <p className="mt-1.5 text-sm text-secondary">Basic setup. Next, you&rsquo;ll define it with AI.</p>
       </div>
 
-      {mode === 'talk' ? (
-        <TalkToDefine
-          onComplete={() => onTalkComplete?.({ title: 'Senior Product Engineer', openings: 1, method: 'self' })}
-        />
-      ) : (
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-12 pt-6 lg:px-8">
         <div className="mx-auto w-full max-w-xl">
           <Card className="flex flex-col gap-7 p-7">
@@ -221,9 +185,9 @@ export default function CreateRoleScreen({ onCancel, onContinue, onTalkComplete 
               </div>
             </div>
 
-            {/* How to define */}
+            {/* Who defines it */}
             <div>
-              <FieldLabel>How do you want to define it?</FieldLabel>
+              <FieldLabel>Who will define this role?</FieldLabel>
               <div className="flex flex-col gap-3">
                 {METHODS.map((m) => {
                   const selected = method === m.key
@@ -264,7 +228,6 @@ export default function CreateRoleScreen({ onCancel, onContinue, onTalkComplete 
           </div>
         </div>
       </div>
-      )}
     </div>
   )
 }

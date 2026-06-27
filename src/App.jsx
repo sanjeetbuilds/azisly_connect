@@ -78,10 +78,6 @@ export default function App() {
             setDraft(cfg)
             setView(cfg.method === 'invite' ? 'invite-manager' : 'define')
           }}
-          onTalkComplete={(cfg) => {
-            setDraft(cfg)
-            setView('review')
-          }}
         />
       )}
 

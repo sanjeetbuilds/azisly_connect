@@ -129,3 +129,21 @@ export const ClockIcon = ({ className = 'h-4 w-4' }) => (
     <path d="M8 5v3.2l2 1.2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 )
+
+export const MicIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.4" className={className}>
+    <rect x="6" y="2" width="4" height="7.5" rx="2" />
+    <path d="M3.8 7.6a4.2 4.2 0 0 0 8.4 0" strokeLinecap="round" />
+    <path d="M8 11.8V14M6 14h4" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+/* Chat bubble — used for the chat/voice mode toggle. */
+export const ChatIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.4" className={className}>
+    <path
+      d="M3 4.5A1.5 1.5 0 0 1 4.5 3h7A1.5 1.5 0 0 1 13 4.5v4A1.5 1.5 0 0 1 11.5 10H6l-2.5 2.2V10A1.5 1.5 0 0 1 3 8.5z"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
