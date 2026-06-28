@@ -8,7 +8,7 @@ import EvidenceQuote from './EvidenceQuote.jsx'
 import StageTracker from './StageTracker.jsx'
 import Tag, { skillColor } from './Tag.jsx'
 import Kbd from './Kbd.jsx'
-import { XIcon } from './icons.jsx'
+import { XIcon, PlayIcon, CheckIcon } from './icons.jsx'
 import { SOURCES } from '../data/candidates.js'
 
 // A plain <p>, not a heading — headings inherit the global ink colour and
@@ -17,13 +17,48 @@ const SectionLabel = ({ children }) => (
   <p className="text-sm font-medium tracking-normal text-secondary">{children}</p>
 )
 
+/* A mocked interview video poster + transcript summary. */
+function InterviewVideo({ candidate, summary }) {
+  return (
+    <section className="flex flex-col gap-4">
+      <SectionLabel>Interview</SectionLabel>
+      <Card className="overflow-hidden p-0">
+        <div className="relative aspect-video w-full bg-gradient-to-br from-ink to-[#2c2c34]">
+          <span className="absolute left-3 top-3 flex items-center gap-2 text-xs text-surface/90">
+            <Avatar src={candidate.avatar} name={candidate.name} size={22} />
+            {candidate.name}
+          </span>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface/95 text-ink shadow-panel transition-transform hover:scale-105">
+              <PlayIcon className="ml-1 h-6 w-6" />
+            </span>
+          </div>
+          <span className="absolute bottom-3 right-3 rounded-md bg-ink/70 px-2 py-0.5 font-mono text-xs text-surface">
+            42:18
+          </span>
+        </div>
+        {summary && <p className="px-6 py-5 text-sm leading-relaxed text-secondary">{summary}</p>}
+      </Card>
+    </section>
+  )
+}
+
 /**
  * CandidateDetail — the right pane. Opens when a candidate row is selected.
  * Leads with the stage tracker, then the hero score, competency bars, evidence
  * quotes, and the action buttons (one primary, the rest secondary).
  */
-export default function CandidateDetail({ candidate, onBack, onDecide }) {
+export default function CandidateDetail({
+  candidate,
+  onBack,
+  onDecide,
+  interview,
+  decided,
+  onTakeForward,
+  onUndo,
+}) {
   const src = SOURCES[candidate.source]
+  const managerMode = Boolean(onTakeForward)
   return (
     <div className="flex flex-col">
       {/* Stage tracker + close — top of the floating detail panel */}
@@ -77,6 +112,9 @@ export default function CandidateDetail({ candidate, onBack, onDecide }) {
           </div>
         </div>
 
+        {/* Interview video (manager review) */}
+        {interview && <InterviewVideo candidate={candidate} summary={interview} />}
+
         {/* Competencies */}
         <section className="flex flex-col gap-4">
           <SectionLabel>Competencies</SectionLabel>
@@ -99,13 +137,35 @@ export default function CandidateDetail({ candidate, onBack, onDecide }) {
           </div>
         </section>
 
-        {/* Actions — one primary, the rest secondary */}
+        {/* Actions */}
         <div className="sticky bottom-0 -mx-6 flex flex-wrap items-center gap-3 border-t border-hairline bg-surface px-6 py-5 lg:-mx-8 lg:px-8">
-          <Button variant="primary" onClick={() => onDecide?.(candidate)}>
-            Shortlist or pass
-          </Button>
-          <Button variant="secondary">Save for later</Button>
-          <Kbd className="ml-auto">⌘↵</Kbd>
+          {managerMode ? (
+            decided ? (
+              <>
+                <span className="flex items-center gap-2 text-sm font-medium text-strong">
+                  <CheckIcon className="h-4 w-4" /> Marked to take forward
+                </span>
+                <Button variant="secondary" className="ml-auto" onClick={() => onUndo?.(candidate)}>
+                  Undo
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="primary" onClick={() => onTakeForward?.(candidate)}>
+                  Take forward
+                </Button>
+                <Kbd className="ml-auto">⌘↵</Kbd>
+              </>
+            )
+          ) : (
+            <>
+              <Button variant="primary" onClick={() => onDecide?.(candidate)}>
+                Shortlist or pass
+              </Button>
+              <Button variant="secondary">Save for later</Button>
+              <Kbd className="ml-auto">⌘↵</Kbd>
+            </>
+          )}
         </div>
       </div>
     </div>

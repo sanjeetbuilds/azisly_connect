@@ -138,6 +138,13 @@ export const MicIcon = ({ className = 'h-4 w-4' }) => (
   </svg>
 )
 
+/* Filled play triangle — interview video poster. */
+export const PlayIcon = ({ className = 'h-4 w-4' }) => (
+  <svg viewBox="0 0 16 16" fill="currentColor" className={className}>
+    <path d="M5 3.4l8 4.6-8 4.6z" />
+  </svg>
+)
+
 /* Chat bubble — used for the chat/voice mode toggle. */
 export const ChatIcon = ({ className = 'h-4 w-4' }) => (
   <svg {...base} strokeWidth="1.4" className={className}>
