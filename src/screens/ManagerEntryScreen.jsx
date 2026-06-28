@@ -20,21 +20,39 @@ function Spinner() {
 }
 
 /**
- * ManagerEntryScreen (Screen 11) — the hiring manager's magic-link landing.
- * No login, no sidebar: a clean, focused welcome. States: valid link (welcome),
- * expired/invalid link, and the get-started transition.
+ * ManagerEntryScreen — the hiring manager's magic-link landing. No login, no
+ * sidebar: a clean, focused welcome. The copy adapts to the link type ('define'
+ * the role, or 'review' candidates). States: valid (welcome), expired/invalid,
+ * and the get-started transition.
  */
 export default function ManagerEntryScreen({
+  kind = 'define', // 'define' | 'review'
   roleTitle = 'Senior Product Engineer',
   recruiter = 'Aryan Mehta',
   recruiterAvatar,
   company = 'Acme',
+  candidateCount = 0,
   linkStatus = 'valid',
   onStart,
 }) {
   const [starting, setStarting] = useState(false)
   const first = recruiter.split(' ')[0]
-  const expired = linkStatus === 'expired'
+  const expired = linkStatus !== 'valid'
+
+  const copy =
+    kind === 'review'
+      ? {
+          title: `Review candidates for the ${roleTitle} role`,
+          body: `${first} at ${company} shortlisted ${candidateCount} candidate${
+            candidateCount === 1 ? '' : 's'
+          } for your call. Open each to see the score, evidence, and interview — then take them forward or pass.`,
+          cta: 'Review candidates',
+        }
+      : {
+          title: `Define the ${roleTitle} role`,
+          body: `${first} at ${company} asked you to help shape this role. Answer a few short questions in your own words — about five minutes.`,
+          cta: 'Get started',
+        }
 
   const begin = () => {
     setStarting(true)
@@ -55,10 +73,10 @@ export default function ManagerEntryScreen({
                 <ClockIcon className="h-6 w-6" />
               </span>
               <div className="flex flex-col gap-2">
-                <h1 className="text-xl text-ink">This link has expired</h1>
+                <h1 className="text-xl text-ink">This link has expired or isn&rsquo;t valid</h1>
                 <p className="text-sm leading-relaxed text-secondary">
-                  Magic links are only valid for a short time. Ask {first} for a fresh invite link
-                  and you&rsquo;ll be right back here.
+                  Magic links are only valid for a short time. Ask {first} for a fresh link and
+                  you&rsquo;ll be right back here.
                 </p>
               </div>
             </Card>
@@ -73,16 +91,15 @@ export default function ManagerEntryScreen({
                 <SparkleIcon className="h-5 w-5" />
               </span>
               <div className="flex flex-col gap-2.5">
-                <h1 className="text-xl leading-snug text-ink">
-                  You&rsquo;ve been invited to define the {roleTitle} role
-                </h1>
-                <p className="text-sm leading-relaxed text-secondary">
-                  {first} asked you to help shape this role. Answer a few short questions in your own
-                  words — about five minutes, and no account needed.
+                <p className="text-[13px] font-medium uppercase tracking-wide text-accent">
+                  {company}
                 </p>
+                <h1 className="text-xl leading-snug text-ink">{copy.title}</h1>
+                <p className="text-sm leading-relaxed text-secondary">{copy.body}</p>
+                <p className="text-[13px] text-secondary">No account needed.</p>
               </div>
               <Button className="w-full" onClick={begin}>
-                Get started
+                {copy.cta}
               </Button>
               <div className="flex items-center gap-2 text-[13px] text-secondary">
                 <Avatar src={recruiterAvatar} name={recruiter} size={20} />

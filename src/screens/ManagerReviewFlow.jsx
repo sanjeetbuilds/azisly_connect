@@ -1,25 +1,32 @@
+import { useState } from 'react'
 import ManagerReviewScreen from './ManagerReviewScreen.jsx'
 import ManagerEntryScreen from './ManagerEntryScreen.jsx'
 import { candidates, workspace } from '../data/candidates.js'
 import { interviews } from '../data/interviews.js'
 
 /**
- * ManagerReviewFlow — entry for the manager's second magic link (?review=).
- * Expired links get the same polite message; otherwise the manager reviews the
- * recruiter's shortlist (the strong-verdict candidates).
+ * ManagerReviewFlow — the manager's second magic link (?review=). A magic-link
+ * welcome (Screen 11, review variant) → the candidate review. Expired or
+ * invalid links get the polite message with no app content.
  */
 export default function ManagerReviewFlow({ token }) {
-  if (token === 'expired') {
+  const [phase, setPhase] = useState('entry') // entry | review
+  const shortlist = candidates.filter((c) => c.verdict === 'strong')
+
+  if (phase === 'entry') {
     return (
       <ManagerEntryScreen
-        linkStatus="expired"
+        kind="review"
+        roleTitle="Senior Product Engineer"
         recruiter={workspace.name}
         recruiterAvatar={workspace.avatar}
+        company="Acme"
+        candidateCount={shortlist.length}
+        linkStatus={token === 'expired' ? 'expired' : 'valid'}
+        onStart={() => setPhase('review')}
       />
     )
   }
-
-  const shortlist = candidates.filter((c) => c.verdict === 'strong')
 
   return (
     <ManagerReviewScreen
