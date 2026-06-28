@@ -8,6 +8,7 @@ import {
   CandidateCard,
   CandidateDetail,
 } from '../components'
+import ShareWithManagerModal from '../components/ShareWithManagerModal.jsx'
 import { candidates, STAGES } from '../data/candidates.js'
 
 function sortCandidates(list, { key, dir }) {
@@ -33,6 +34,9 @@ export default function CandidatesScreen({ onInvite, onDecide }) {
   const [view, setView] = useState('list')
   const [sort, setSort] = useState({ key: 'score', dir: 'desc' })
   const [selectedId, setSelectedId] = useState(null)
+  const [selectMode, setSelectMode] = useState(false)
+  const [picked, setPicked] = useState(() => new Set())
+  const [shareOpen, setShareOpen] = useState(false)
 
   const stageOptions = [
     { value: 'all', label: 'All stages' },
@@ -74,6 +78,29 @@ export default function CandidatesScreen({ onInvite, onDecide }) {
 
   const closeDetail = () => setSelectedId(null)
 
+  const toggle = (id) =>
+    setPicked((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  const toggleAll = () =>
+    setPicked((prev) => {
+      const allIn = visible.length > 0 && visible.every((c) => prev.has(c.id))
+      return allIn ? new Set() : new Set(visible.map((c) => c.id))
+    })
+  const enterSelect = () => {
+    setSelectMode(true)
+    setView('list')
+    setSelectedId(null)
+  }
+  const exitSelect = () => {
+    setSelectMode(false)
+    setPicked(new Set())
+  }
+  const pickedCandidates = candidates.filter((c) => picked.has(c.id))
+
   return (
     <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
       {/* Mobile-only header */}
@@ -92,26 +119,50 @@ export default function CandidatesScreen({ onInvite, onDecide }) {
       {/* Content: a floating surface holding the toolbar + table/grid */}
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 lg:px-8">
         <div className="overflow-hidden rounded-xl border border-hairline bg-surface shadow-card">
-          {/* Toolbar */}
-          <div className="flex flex-wrap items-center gap-3 border-b border-hairline px-5 py-3">
-            <span className="text-sm text-secondary">
-              <span className="font-medium text-ink">{visible.length}</span> candidates
-            </span>
-            <div className="w-full sm:w-60">
-              <SearchInput value={search} onChange={setSearch} />
-            </div>
-            <div className="ml-auto flex flex-wrap items-center gap-2">
-              <Dropdown label="Stage" value={stage} options={stageOptions} onChange={setStage} />
-              <Dropdown label="Role" value={role} options={roleOptions} onChange={setRole} />
-              <Dropdown label="Status" value={status} options={statusOptions} onChange={setStatus} />
-              <ViewToggle value={view} onChange={setView} />
-              {onInvite && (
-                <Button variant="secondary" onClick={onInvite}>
-                  Invite to interview
+          {/* Toolbar — normal, or a selection bar in select mode */}
+          {selectMode ? (
+            <div className="flex flex-wrap items-center gap-3 border-b border-hairline bg-accent/[0.03] px-5 py-3">
+              <span className="text-sm text-secondary">
+                <span className="font-medium text-ink">{picked.size}</span> selected
+              </span>
+              <button
+                type="button"
+                onClick={toggleAll}
+                className="text-[13px] text-accent transition-colors hover:text-accent/80"
+              >
+                {visible.length > 0 && visible.every((c) => picked.has(c.id)) ? 'Clear all' : 'Select all'}
+              </button>
+              <div className="ml-auto flex flex-wrap items-center gap-2">
+                <Button variant="secondary" onClick={exitSelect}>
+                  Cancel
                 </Button>
-              )}
+                <Button disabled={picked.size === 0} onClick={() => setShareOpen(true)}>
+                  Send to hiring manager
+                </Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-3 border-b border-hairline px-5 py-3">
+              <span className="text-sm text-secondary">
+                <span className="font-medium text-ink">{visible.length}</span> candidates
+              </span>
+              <div className="w-full sm:w-60">
+                <SearchInput value={search} onChange={setSearch} />
+              </div>
+              <div className="ml-auto flex flex-wrap items-center gap-2">
+                <Dropdown label="Stage" value={stage} options={stageOptions} onChange={setStage} />
+                <Dropdown label="Role" value={role} options={roleOptions} onChange={setRole} />
+                <Dropdown label="Status" value={status} options={statusOptions} onChange={setStatus} />
+                <ViewToggle value={view} onChange={setView} />
+                {onInvite && (
+                  <Button variant="secondary" onClick={onInvite}>
+                    Invite to interview
+                  </Button>
+                )}
+                <Button onClick={enterSelect}>Share with hiring manager</Button>
+              </div>
+            </div>
+          )}
 
           {/* Results */}
           {visible.length === 0 ? (
@@ -126,6 +177,10 @@ export default function CandidatesScreen({ onInvite, onDecide }) {
                 onSelect={setSelectedId}
                 sort={sort}
                 onSort={handleSort}
+                selectable={selectMode}
+                picked={picked}
+                onToggle={toggle}
+                onToggleAll={toggleAll}
               />
             </div>
           ) : (
@@ -156,6 +211,18 @@ export default function CandidatesScreen({ onInvite, onDecide }) {
             <CandidateDetail candidate={selected} onBack={closeDetail} onDecide={onDecide} />
           </div>
         </>
+      )}
+
+      {/* Share with hiring manager: confirm → review link */}
+      {shareOpen && (
+        <ShareWithManagerModal
+          candidates={pickedCandidates}
+          roleTitle="Senior Product Engineer"
+          onClose={() => {
+            setShareOpen(false)
+            exitSelect()
+          }}
+        />
       )}
     </div>
   )
