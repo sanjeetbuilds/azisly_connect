@@ -5,10 +5,16 @@ import VerdictTag from './VerdictTag.jsx'
 import { CheckIcon, XIcon, LinkIcon, ClockIcon } from './icons.jsx'
 import { previousManagers as MANAGERS } from '../data/managers.js'
 
-function reviewLink(email, count) {
+function reviewToken(email, count) {
   let h = count
   for (let i = 0; i < email.length; i += 1) h = (h * 31 + email.charCodeAt(i)) >>> 0
-  return `https://app.azisly.com/review/${h.toString(36).slice(0, 8)}`
+  return h.toString(36).slice(0, 8)
+}
+
+// A real link into this app's manager review route, so the manager can open it.
+function reviewLink(email, count) {
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://app.azisly.com'
+  return `${origin}/?review=${reviewToken(email, count)}`
 }
 
 /* Compact candidate row reused in both steps — same layout as the table. */
