@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Sidebar } from './components'
-import { workspace } from './data/candidates.js'
+import { candidates, workspace } from './data/candidates.js'
+import { interviews } from './data/interviews.js'
 import { seedRoles, makeApprovedRole } from './data/roles.js'
 import LoginScreen from './screens/LoginScreen.jsx'
 import RolesScreen from './screens/RolesScreen.jsx'
@@ -8,6 +9,7 @@ import CreateRoleScreen from './screens/CreateRoleScreen.jsx'
 import DefineRoleScreen from './screens/DefineRoleScreen.jsx'
 import ReviewRoleScreen from './screens/ReviewRoleScreen.jsx'
 import CandidatesScreen from './screens/CandidatesScreen.jsx'
+import ManagerDecisionScreen from './screens/ManagerDecisionScreen.jsx'
 import InviteScreen from './screens/InviteScreen.jsx'
 import InviteManagerScreen from './screens/InviteManagerScreen.jsx'
 import DecisionScreen from './screens/DecisionScreen.jsx'
@@ -52,7 +54,12 @@ export default function App() {
     setRoles((prev) => [makeApprovedRole(`role-${prev.length + 1}`, cfg.title), ...prev])
   }
 
-  const activeNav = ['candidates', 'invite', 'decision'].includes(view) ? 'Candidates' : 'Roles'
+  const activeNav = ['candidates', 'invite', 'decision', 'manager-decision'].includes(view)
+    ? 'Candidates'
+    : 'Roles'
+
+  const shortlist = candidates.filter((c) => c.verdict === 'strong')
+  const approvedIds = ['maya-okonkwo', 'hana-kim'] // the manager's picks
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-ink">
@@ -125,6 +132,22 @@ export default function App() {
             setDecisionCandidate(candidate)
             setView('decision')
           }}
+          managerResponse={{
+            manager: 'Anjali Rao',
+            roleTitle: 'Senior Product Engineer',
+            approvedCount: approvedIds.length,
+            onView: () => setView('manager-decision'),
+          }}
+        />
+      )}
+
+      {view === 'manager-decision' && (
+        <ManagerDecisionScreen
+          manager="Anjali Rao"
+          roleTitle="Senior Product Engineer"
+          candidates={shortlist}
+          approvedIds={approvedIds}
+          interviews={interviews}
         />
       )}
 

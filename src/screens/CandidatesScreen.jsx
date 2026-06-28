@@ -9,6 +9,7 @@ import {
   CandidateDetail,
 } from '../components'
 import ShareWithManagerModal from '../components/ShareWithManagerModal.jsx'
+import { CheckIcon } from '../components/icons.jsx'
 import { candidates, STAGES } from '../data/candidates.js'
 
 function sortCandidates(list, { key, dir }) {
@@ -26,7 +27,7 @@ function sortCandidates(list, { key, dir }) {
  * CandidatesScreen — the dense candidate review for a role: toolbar furniture,
  * a sortable data table or grid, and a floating detail drawer.
  */
-export default function CandidatesScreen({ onInvite, onDecide }) {
+export default function CandidatesScreen({ onInvite, onDecide, managerResponse }) {
   const [search, setSearch] = useState('')
   const [stage, setStage] = useState('all')
   const [role, setRole] = useState('all')
@@ -118,6 +119,25 @@ export default function CandidatesScreen({ onInvite, onDecide }) {
 
       {/* Content: a floating surface holding the toolbar + table/grid */}
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 lg:px-8">
+        {/* The hiring manager has responded — recruiter's update */}
+        {managerResponse && (
+          <div className="mb-4 flex flex-wrap items-center gap-4 rounded-xl border border-strong/25 bg-strong/[0.05] px-5 py-4">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-strong/10 text-strong">
+              <CheckIcon className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm text-ink">
+                <span className="font-medium">{managerResponse.manager}</span> responded to your{' '}
+                {managerResponse.roleTitle} shortlist
+              </p>
+              <p className="text-[13px] text-secondary">
+                {managerResponse.approvedCount} taken forward · just now
+              </p>
+            </div>
+            <Button onClick={managerResponse.onView}>See the picks</Button>
+          </div>
+        )}
+
         <div className="overflow-hidden rounded-xl border border-hairline bg-surface shadow-card">
           {/* Toolbar — normal, or a selection bar in select mode */}
           {selectMode ? (
