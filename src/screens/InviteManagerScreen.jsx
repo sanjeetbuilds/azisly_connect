@@ -2,21 +2,23 @@ import { useState } from 'react'
 import { Button, Card, Avatar } from '../components'
 import { CheckIcon, XIcon, LinkIcon, ClockIcon } from '../components/icons.jsx'
 import { previousManagers as SEED } from '../data/managers.js'
+import { buildDefineLink } from '../lib/magicLink.js'
 
 const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
 
-function linkFor(email) {
-  let h = 0
-  for (let i = 0; i < email.length; i += 1) h = (h * 31 + email.charCodeAt(i)) >>> 0
-  return `https://app.azisly.com/invite/${h.toString(36).slice(0, 8)}`
-}
-
-export default function InviteManagerScreen({ roleTitle = 'Senior Product Engineer', onCancel, onDone }) {
+export default function InviteManagerScreen({
+  roleId,
+  roleTitle = 'Senior Product Engineer',
+  onCancel,
+  onDone,
+}) {
   const [managers, setManagers] = useState(SEED)
   const [selectedId, setSelectedId] = useState(null)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(null) // the generated recipient { name, email }
+  const [link, setLink] = useState('')
+  const [expiredLink, setExpiredLink] = useState('')
   const [copied, setCopied] = useState(false)
 
   const picked = managers.find((m) => m.id === selectedId) ?? null
@@ -38,6 +40,8 @@ export default function InviteManagerScreen({ roleTitle = 'Senior Product Engine
     if (!picked) {
       setManagers((prev) => [{ id: `m-${prev.length + 1}`, ...recipient }, ...prev])
     }
+    setLink(buildDefineLink(roleId))
+    setExpiredLink(buildDefineLink(roleId, { days: -1 }))
     setSent(recipient)
   }
 
@@ -50,7 +54,6 @@ export default function InviteManagerScreen({ roleTitle = 'Senior Product Engine
   /* ── Generated link ──────────────────────────────────────────── */
   if (sent) {
     const first = sent.name.split(' ')[0]
-    const link = linkFor(sent.email)
     return (
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="flex min-h-0 flex-1 items-center justify-center px-6 py-12">
@@ -61,7 +64,7 @@ export default function InviteManagerScreen({ roleTitle = 'Senior Product Engine
               </span>
               <div>
                 <h1 className="text-xl text-ink">Magic link ready</h1>
-                <p className="text-sm text-secondary">Share it with {first} — they don&rsquo;t need an account.</p>
+                <p className="text-sm text-secondary">Share it with {first}. They don&rsquo;t need an account.</p>
               </div>
             </div>
 
@@ -103,7 +106,15 @@ export default function InviteManagerScreen({ roleTitle = 'Senior Product Engine
               </span>
             </div>
 
-            <div className="flex items-center justify-end gap-3 border-t border-hairline pt-5">
+            <div className="flex items-center justify-between gap-3 border-t border-hairline pt-5">
+              <a
+                href={expiredLink}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[13px] text-secondary underline decoration-hairline underline-offset-2 transition-colors hover:text-ink"
+              >
+                Preview expired link
+              </a>
               <Button variant="secondary" onClick={onDone}>
                 Back to roles
               </Button>
@@ -125,7 +136,7 @@ export default function InviteManagerScreen({ roleTitle = 'Senior Product Engine
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-12 pt-6 lg:px-8">
         <div className="mx-auto w-full max-w-xl">
           <p className="mb-5 text-sm leading-relaxed text-secondary">
-            You&rsquo;ll get a magic link to share so they can define the role — no account needed.
+            You&rsquo;ll get a magic link to share so they can define the role. No account needed.
             Pick someone you&rsquo;ve worked with, or add a new contact.
           </p>
 

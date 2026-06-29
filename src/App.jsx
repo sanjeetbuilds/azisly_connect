@@ -35,7 +35,13 @@ export default function App() {
     return <ManagerReviewFlow token={reviewToken} />
   }
   if (inviteToken !== null) {
-    return <ManagerFlow token={inviteToken} />
+    return (
+      <ManagerFlow
+        expired={inviteToken === 'expired'}
+        roleTitle={seedRoles[0].title}
+        company="Acme"
+      />
+    )
   }
 
   if (!authed) {
@@ -88,16 +94,23 @@ export default function App() {
         />
       )}
 
-      {view === 'invite-manager' && (
-        <InviteManagerScreen
-          roleTitle={draft?.title ?? 'this role'}
-          onCancel={() => setView('create')}
-          onDone={() => {
-            setDraft(null)
-            setView('roles')
-          }}
-        />
-      )}
+      {view === 'invite-manager' &&
+        (() => {
+          // The define link must reference a role in the seed file (the token
+          // carries roleId, and the manager tab looks it up from seed).
+          const inviteRole = seedRoles.find((r) => r.title === draft?.title) ?? seedRoles[0]
+          return (
+            <InviteManagerScreen
+              roleId={inviteRole.id}
+              roleTitle={inviteRole.title}
+              onCancel={() => setView('create')}
+              onDone={() => {
+                setDraft(null)
+                setView('roles')
+              }}
+            />
+          )
+        })()}
 
       {view === 'define' && (
         <DefineRoleScreen

@@ -26,12 +26,14 @@ function ManagerTopBar() {
  * entry (Screen 11) → define (reuses Screen 4's DefineRoleScreen, no sidebar) →
  * done (the card is saved and sent back to the recruiter).
  */
-export default function ManagerFlow({ token }) {
-  const expired = token === 'expired'
+export default function ManagerFlow({
+  roleTitle = 'this role',
+  company = 'Acme',
+  recruiter = workspace.name,
+  recruiterAvatar = workspace.avatar,
+  expired = false,
+}) {
   const [phase, setPhase] = useState('entry') // entry | define | done
-
-  const roleTitle = 'Senior Backend Engineer'
-  const recruiter = workspace.name
   const first = recruiter.split(' ')[0]
 
   if (phase === 'entry') {
@@ -39,8 +41,8 @@ export default function ManagerFlow({ token }) {
       <ManagerEntryScreen
         roleTitle={roleTitle}
         recruiter={recruiter}
-        recruiterAvatar={workspace.avatar}
-        company="Acme"
+        recruiterAvatar={recruiterAvatar}
+        company={company}
         linkStatus={expired ? 'expired' : 'valid'}
         onStart={() => setPhase('define')}
       />
