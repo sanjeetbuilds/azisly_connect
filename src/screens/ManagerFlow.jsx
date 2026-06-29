@@ -30,7 +30,7 @@ export default function ManagerFlow({ token }) {
   const expired = token === 'expired'
   const [phase, setPhase] = useState('entry') // entry | define | done
 
-  const roleTitle = 'Senior Product Engineer'
+  const roleTitle = 'Senior Backend Engineer'
   const recruiter = workspace.name
   const first = recruiter.split(' ')[0]
 
@@ -54,7 +54,7 @@ export default function ManagerFlow({ token }) {
         <DefineRoleScreen
           roleTitle={roleTitle}
           openings={1}
-          reviewLabel={`Send to ${first}`}
+          reviewLabel="Save and send back to recruiter"
           onBack={() => setPhase('entry')}
           onComplete={() => setPhase('done')}
         />
@@ -72,10 +72,9 @@ export default function ManagerFlow({ token }) {
             <CheckIcon className="h-7 w-7" />
           </span>
           <div className="flex flex-col gap-2">
-            <h1 className="text-xl text-ink">Role card sent</h1>
+            <h1 className="text-xl text-ink">Definition sent</h1>
             <p className="text-sm leading-relaxed text-secondary">
-              Thanks — {first} will take it from here. Your answers are saved and the card has been
-              sent back to the recruiter to review.
+              Thanks, your definition has been sent to the recruiter. {first} will take it from here.
             </p>
           </div>
           <p className="text-xs text-secondary">You can close this tab.</p>

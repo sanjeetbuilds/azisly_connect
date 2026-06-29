@@ -45,13 +45,13 @@ export default function ManagerEntryScreen({
           title: `Review candidates for the ${roleTitle} role`,
           body: `${first} at ${company} shortlisted ${candidateCount} candidate${
             candidateCount === 1 ? '' : 's'
-          } for your call. Open each to see the score, evidence, and interview — then take them forward or pass.`,
+          } for your call. Open each to see the score, evidence, and interview, then take them forward or pass.`,
           cta: 'Review candidates',
         }
       : {
-          title: `Define the ${roleTitle} role`,
-          body: `${first} at ${company} asked you to help shape this role. Answer a few short questions in your own words — about five minutes.`,
-          cta: 'Get started',
+          title: `${company} invited you to define the ${roleTitle} role`,
+          body: "You'll shape the competencies this role is scored on.",
+          cta: 'Start',
         }
 
   const begin = () => {
@@ -91,12 +91,13 @@ export default function ManagerEntryScreen({
                 <SparkleIcon className="h-5 w-5" />
               </span>
               <div className="flex flex-col gap-2.5">
-                <p className="text-[13px] font-medium uppercase tracking-wide text-accent">
-                  {company}
-                </p>
+                {kind === 'review' && (
+                  <p className="text-[13px] font-medium uppercase tracking-wide text-accent">
+                    {company}
+                  </p>
+                )}
                 <h1 className="text-xl leading-snug text-ink">{copy.title}</h1>
                 <p className="text-sm leading-relaxed text-secondary">{copy.body}</p>
-                <p className="text-[13px] text-secondary">No account needed.</p>
               </div>
               <Button className="w-full" onClick={begin}>
                 {copy.cta}

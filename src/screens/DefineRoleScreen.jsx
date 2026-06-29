@@ -12,7 +12,7 @@ import {
 
 const QUESTIONS = [
   'What does success look like for this role in the first six months?',
-  'Which three or four competencies matter most — and how should we weigh them?',
+  'Which three or four competencies matter most, and how should we weigh them?',
   'What is the seniority and scope: who do they work with day to day?',
 ]
 
@@ -294,7 +294,7 @@ export default function DefineRoleScreen({
                 </div>
                 <p className="mt-1.5 text-sm leading-relaxed text-secondary">
                   I&rsquo;ll ask a few short questions to build a clear, scoreable role card. Answer
-                  in your own words — or paste an existing job description and I&rsquo;ll work from
+                  in your own words, or paste an existing job description and I&rsquo;ll work from
                   that.
                 </p>
               </div>
@@ -313,7 +313,7 @@ export default function DefineRoleScreen({
 
               {phase === 'ready' && (
                 <>
-                  <AiRow>Here&rsquo;s the role card I put together — review it and adjust anything.</AiRow>
+                  <AiRow>Here&rsquo;s the role card I put together. Review it and adjust anything.</AiRow>
                   <RoleCardPreview
                     title={roleTitle}
                     openings={openings}
@@ -411,7 +411,7 @@ export default function DefineRoleScreen({
               <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-6">
                 <VoiceAvatar state="idle" />
                 <p className="text-[15px] text-ink">
-                  All set — here&rsquo;s the role card from our conversation.
+                  All set. Here&rsquo;s the role card from our conversation.
                 </p>
                 <RoleCardPreview
                   title={roleTitle}
