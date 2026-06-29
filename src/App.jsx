@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Sidebar } from './components'
-import { candidates, workspace } from './data/candidates.js'
+import { candidates, workspace, roleTotals } from './data/candidates.js'
 import { interviews } from './data/interviews.js'
 import { seedRoles, makeApprovedRole } from './data/roles.js'
 import LoginScreen from './screens/LoginScreen.jsx'
@@ -78,7 +78,13 @@ export default function App() {
 
       {view === 'roles' && (
         <RolesScreen
-          roles={roles}
+          roles={roles.map((r) =>
+            // The scoped role's counts derive from the candidate list, so the
+            // Roles number agrees with the Candidates title and ready count.
+            r.id === 'r-spe'
+              ? { ...r, totalCandidates: roleTotals.total, candidatesReady: roleTotals.readyToReview }
+              : r,
+          )}
           onCreateRole={() => setView('create')}
           onOpenRole={() => setView('candidates')}
         />

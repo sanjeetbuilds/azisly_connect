@@ -1,49 +1,60 @@
 // Demo data for the candidate review prototype.
 // Avatars are placeholder photos (pravatar) keyed by a stable id.
 
-// One candidate lifecycle, used across the app. Ordered: each state makes the
-// next action obvious.
-//   Sourced       added, not yet invited
-//   Invited       interview invite sent, awaiting the candidate
-//   Interviewing  AI interview in progress
-//   Scored        interview done, engine produced a score and verdict
-//   Needs human   a gate failed or the candidate is flagged, needs a human look
-//   Shared        sent to the hiring manager, awaiting their picks
-//   Taken forward hiring manager approved, moving to offline rounds
-//   Passed        not selected
+// The ABI engine scores seven competencies. Six are fixed; the seventh (Domain)
+// takes a label that changes per role. For the Senior Product Engineer role the
+// Domain label is "Product craft". A competency scored below the gate threshold
+// fails a gate, even when the overall is healthy.
+export const GATE = 50
+export const CORE_COMPETENCIES = [
+  'Communication',
+  'Problem Solving',
+  'Ownership',
+  'Learning Agility',
+  'Execution',
+  'Collaboration',
+]
+export const DOMAIN_LABEL = 'Product craft'
+
+// The engine outputs three verdicts: recommend, promising, not-yet. We key them
+// as strong | promising | not-yet and label them Strong | Promising | Not yet.
+export const VERDICTS = ['strong', 'promising', 'not-yet']
+
+// One candidate lifecycle. A scored candidate shows the next meaningful state
+// (Ready to review or Needs human), never "Scored" itself.
 export const STAGES = [
   'Sourced',
   'Invited',
   'Interviewing',
-  'Scored',
+  'Ready to review',
   'Needs human',
   'Shared',
   'Taken forward',
   'Passed',
 ]
 
-// The tag colour for each lifecycle state. Needs human is amber (attention);
-// Taken forward green (positive); Passed rose (closed).
-export const STAGE_META = {
-  Sourced: { color: 'gray' },
-  Invited: { color: 'blue' },
-  Interviewing: { color: 'purple' },
-  Scored: { color: 'gray' },
-  'Needs human': { color: 'amber' },
-  Shared: { color: 'blue' },
-  'Taken forward': { color: 'green' },
-  Passed: { color: 'rose' },
+const SHARED_OR_DECIDED = ['Shared', 'Taken forward', 'Passed']
+// Scored = the engine has produced a verdict.
+export const isScored = (c) => Boolean(c.verdict)
+// Ready to review = scored and not yet shared or decided. One source of truth.
+export const isReadyToReview = (c) => isScored(c) && !SHARED_OR_DECIDED.includes(c.stage)
+
+// Overall = the mean of assessed competencies. Not-assessed (null) is excluded,
+// never counted as 0.
+export const assessedAverage = (comps = []) => {
+  const vals = comps.map((c) => c.score).filter((v) => v != null)
+  if (!vals.length) return null
+  return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)
 }
 
-// The linear milestone track shown in the detail StageTracker. The branch and
-// terminal states map onto a milestone: Needs human sits at Scored, and both
-// Taken forward and Passed land on the final Decision step.
+// The linear milestone track shown in the detail StageTracker. Branch and
+// terminal states map onto a milestone.
 export const STAGE_TRACK = ['Sourced', 'Invited', 'Interviewing', 'Scored', 'Shared', 'Decision']
 const TRACK_INDEX = {
   Sourced: 0,
   Invited: 1,
   Interviewing: 2,
-  Scored: 3,
+  'Ready to review': 3,
   'Needs human': 3,
   Shared: 4,
   'Taken forward': 5,
@@ -61,6 +72,17 @@ export const SOURCES = {
 
 const avatar = (n) => `https://i.pravatar.cc/160?img=${n}`
 
+// Build the seven-competency array (six core + one domain), null = not assessed.
+const comps = ({ communication, problem, ownership, learning, execution, collaboration, domain }) => [
+  { name: 'Communication', score: communication },
+  { name: 'Problem Solving', score: problem },
+  { name: 'Ownership', score: ownership },
+  { name: 'Learning Agility', score: learning },
+  { name: 'Execution', score: execution },
+  { name: 'Collaboration', score: collaboration },
+  { name: DOMAIN_LABEL, score: domain },
+]
+
 export const candidates = [
   {
     id: 'maya-okonkwo',
@@ -71,23 +93,27 @@ export const candidates = [
     score: 86,
     confidence: 92,
     verdict: 'strong',
+    gate: null,
     stage: 'Taken forward',
     source: 'referral',
     applied: 'Jun 18',
     appliedSort: 18,
-    skills: ['React', 'TypeScript', 'System design', 'GraphQL'],
+    skills: ['React', 'TypeScript', 'Product', 'GraphQL'],
     avatar: avatar(47),
-    competencies: [
-      { name: 'System design', score: 88 },
-      { name: 'Communication', score: 84 },
-      { name: 'Ownership', score: 91 },
-      { name: 'Code quality', score: 78 },
-    ],
+    competencies: comps({
+      communication: 84,
+      problem: 85,
+      ownership: 91,
+      learning: 82,
+      execution: 88,
+      collaboration: 86,
+      domain: 84,
+    }),
     evidence: [
       {
         quote:
           'I rewrote our ingestion pipeline to be idempotent, which let us replay a week of failed events without a single duplicate.',
-        competency: 'System design',
+        competency: 'Problem Solving',
         source: 'Interview · Round 2',
       },
       {
@@ -104,21 +130,25 @@ export const candidates = [
     role: 'Product Engineer',
     location: 'Seoul',
     experience: '6 yrs',
-    score: 90,
+    score: 89,
     confidence: 96,
     verdict: 'strong',
+    gate: null,
     stage: 'Taken forward',
     source: 'linkedin',
     applied: 'Jun 21',
     appliedSort: 21,
     skills: ['React', 'Node.js', 'Product', 'Design systems'],
     avatar: avatar(9),
-    competencies: [
-      { name: 'System design', score: 86 },
-      { name: 'Communication', score: 93 },
-      { name: 'Ownership', score: 89 },
-      { name: 'Code quality', score: 90 },
-    ],
+    competencies: comps({
+      communication: 93,
+      problem: 88,
+      ownership: 89,
+      learning: 86,
+      execution: 90,
+      collaboration: 91,
+      domain: 88,
+    }),
     evidence: [
       {
         quote:
@@ -143,23 +173,27 @@ export const candidates = [
     score: 82,
     confidence: 88,
     verdict: 'strong',
+    gate: null,
     stage: 'Shared',
     source: 'careers',
     applied: 'Jun 15',
     appliedSort: 15,
     skills: ['React', 'CSS', 'Accessibility', 'Testing'],
     avatar: avatar(32),
-    competencies: [
-      { name: 'System design', score: 74 },
-      { name: 'Communication', score: 88 },
-      { name: 'Ownership', score: 83 },
-      { name: 'Code quality', score: 86 },
-    ],
+    competencies: comps({
+      communication: 88,
+      problem: 74,
+      ownership: 83,
+      learning: 80,
+      execution: 79,
+      collaboration: 85,
+      domain: 82,
+    }),
     evidence: [
       {
         quote:
           'I built a component contract test suite that caught three regressions before they reached the design team.',
-        competency: 'Code quality',
+        competency: 'Execution',
         source: 'Interview · Round 2',
       },
       {
@@ -176,26 +210,31 @@ export const candidates = [
     role: 'Backend Engineer',
     location: 'Mexico City',
     experience: '9 yrs',
-    score: 79,
-    confidence: 74,
-    verdict: 'strong',
-    stage: 'Scored',
+    score: 73,
+    confidence: 70,
+    verdict: 'promising',
+    gate: null,
+    stage: 'Ready to review',
     source: 'agency',
     applied: 'Jun 12',
     appliedSort: 12,
     skills: ['Go', 'Postgres', 'Kafka', 'Distributed systems'],
     avatar: avatar(12),
-    competencies: [
-      { name: 'System design', score: 85 },
-      { name: 'Communication', score: 71 },
-      { name: 'Ownership', score: 80 },
-      { name: 'Code quality', score: 79 },
-    ],
+    // Product craft was not asked in this interview, so it is not assessed.
+    competencies: comps({
+      communication: 71,
+      problem: 78,
+      ownership: 74,
+      learning: 70,
+      execution: 76,
+      collaboration: 68,
+      domain: null,
+    }),
     evidence: [
       {
         quote:
           'I introduced a queue between the API and the workers so a slow downstream never takes the front door with it.',
-        competency: 'System design',
+        competency: 'Problem Solving',
         source: 'Interview · Round 2',
       },
       {
@@ -213,25 +252,30 @@ export const candidates = [
     location: 'Bangalore',
     experience: '5 yrs',
     score: 64,
-    confidence: 58,
-    verdict: 'look-closer',
+    confidence: 61,
+    verdict: 'not-yet',
+    // Strong overall, but Communication is below the gate, so a human is needed.
+    gate: { competency: 'Communication', score: 44 },
     stage: 'Needs human',
     source: 'linkedin',
     applied: 'Jun 09',
     appliedSort: 9,
     skills: ['Terraform', 'AWS', 'Kubernetes', 'CI/CD'],
     avatar: avatar(5),
-    competencies: [
-      { name: 'System design', score: 72 },
-      { name: 'Communication', score: 58 },
-      { name: 'Ownership', score: 66 },
-      { name: 'Code quality', score: 61 },
-    ],
+    competencies: comps({
+      communication: 44,
+      problem: 72,
+      ownership: 68,
+      learning: 64,
+      execution: 73,
+      collaboration: 60,
+      domain: 67,
+    }),
     evidence: [
       {
         quote:
           'I standardised our Terraform modules, though I leaned on the existing patterns more than rethinking them.',
-        competency: 'System design',
+        competency: 'Execution',
         source: 'Interview · Round 1',
       },
       {
@@ -250,19 +294,23 @@ export const candidates = [
     experience: '4 yrs',
     score: 58,
     confidence: 54,
-    verdict: 'look-closer',
+    verdict: 'promising',
+    gate: null,
     stage: 'Passed',
     source: 'careers',
     applied: 'Jun 05',
     appliedSort: 5,
     skills: ['Kubernetes', 'AWS', 'Observability'],
     avatar: avatar(51),
-    competencies: [
-      { name: 'System design', score: 64 },
-      { name: 'Communication', score: 60 },
-      { name: 'Ownership', score: 55 },
-      { name: 'Code quality', score: 52 },
-    ],
+    competencies: comps({
+      communication: 60,
+      problem: 56,
+      ownership: 55,
+      learning: 58,
+      execution: 57,
+      collaboration: 60,
+      domain: 60,
+    }),
     evidence: [
       {
         quote:
@@ -273,13 +321,13 @@ export const candidates = [
       {
         quote:
           'The on-call runbook I wrote helped, but a teammate had to fill the gaps on the database section.',
-        competency: 'Code quality',
+        competency: 'Execution',
         source: 'Take-home review',
       },
     ],
   },
 
-  // Early-lifecycle candidates: not yet scored, so no score or verdict.
+  // Early-lifecycle candidates: not yet scored, so no verdict or competencies.
   {
     id: 'noah-becker',
     name: 'Noah Becker',
@@ -287,30 +335,16 @@ export const candidates = [
     location: 'Berlin',
     experience: '6 yrs',
     score: null,
+    confidence: null,
     verdict: null,
+    gate: null,
     stage: 'Sourced',
     source: 'referral',
     applied: 'Jun 26',
     appliedSort: 26,
+    isNew: true, // matched by the AI after the recruiter's last view
     skills: ['Go', 'gRPC', 'Postgres', 'Redis'],
     avatar: avatar(13),
-    competencies: [],
-    evidence: [],
-  },
-  {
-    id: 'omar-haddad',
-    name: 'Omar Haddad',
-    role: 'Platform Engineer',
-    location: 'Dubai',
-    experience: '7 yrs',
-    score: null,
-    verdict: null,
-    stage: 'Sourced',
-    source: 'agency',
-    applied: 'Jun 25',
-    appliedSort: 25,
-    skills: ['Kubernetes', 'Terraform', 'AWS', 'Observability'],
-    avatar: avatar(15),
     competencies: [],
     evidence: [],
   },
@@ -321,13 +355,35 @@ export const candidates = [
     location: 'Singapore',
     experience: '5 yrs',
     score: null,
+    confidence: null,
     verdict: null,
+    gate: null,
     stage: 'Sourced',
     source: 'linkedin',
     applied: 'Jun 24',
     appliedSort: 24,
+    isNew: true,
     skills: ['Python', 'Spark', 'dbt', 'Airflow'],
     avatar: avatar(45),
+    competencies: [],
+    evidence: [],
+  },
+  {
+    id: 'omar-haddad',
+    name: 'Omar Haddad',
+    role: 'Platform Engineer',
+    location: 'Dubai',
+    experience: '7 yrs',
+    score: null,
+    confidence: null,
+    verdict: null,
+    gate: null,
+    stage: 'Sourced',
+    source: 'agency',
+    applied: 'Jun 25',
+    appliedSort: 25,
+    skills: ['Kubernetes', 'Terraform', 'AWS', 'Observability'],
+    avatar: avatar(15),
     competencies: [],
     evidence: [],
   },
@@ -338,7 +394,9 @@ export const candidates = [
     location: 'Dakar',
     experience: '6 yrs',
     score: null,
+    confidence: null,
     verdict: null,
+    gate: null,
     stage: 'Invited',
     source: 'careers',
     applied: 'Jun 23',
@@ -355,7 +413,9 @@ export const candidates = [
     location: 'Tokyo',
     experience: '7 yrs',
     score: null,
+    confidence: null,
     verdict: null,
+    gate: null,
     stage: 'Interviewing',
     source: 'referral',
     applied: 'Jun 22',
@@ -366,6 +426,13 @@ export const candidates = [
     evidence: [],
   },
 ]
+
+// One source of truth for the scoped role (Senior Product Engineer): the Roles
+// screen number, the title count, and the ready count all derive from this.
+export const roleTotals = {
+  total: candidates.length,
+  readyToReview: candidates.filter(isReadyToReview).length,
+}
 
 export const workspace = {
   name: 'Aryan Mehta',

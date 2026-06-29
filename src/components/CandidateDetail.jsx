@@ -9,7 +9,7 @@ import StageTracker from './StageTracker.jsx'
 import Tag, { skillColor } from './Tag.jsx'
 import Kbd from './Kbd.jsx'
 import { XIcon, PlayIcon, CheckIcon } from './icons.jsx'
-import { SOURCES, STAGE_META, stageTrackIndex } from '../data/candidates.js'
+import { SOURCES, stageTrackIndex, GATE } from '../data/candidates.js'
 
 // A plain <p>, not a heading — headings inherit the global ink colour and
 // tighter tracking; section labels must stay small, grey, and normally spaced.
@@ -88,7 +88,7 @@ export default function CandidateDetail({
                   <p className="text-sm text-secondary">{candidate.role}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-[13px] text-secondary">
-                  <Tag color={STAGE_META[candidate.stage]?.color ?? 'gray'}>{candidate.stage}</Tag>
+                  <Tag color="gray">{candidate.stage}</Tag>
                   {candidate.verdict && <VerdictTag verdict={candidate.verdict} />}
                   <span>·</span>
                   <span>{candidate.location}</span>
@@ -115,6 +115,18 @@ export default function CandidateDetail({
               </Tag>
             ))}
           </div>
+
+          {/* Gate failure — why a human is needed, made explicit */}
+          {candidate.gate && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-attention/25 bg-attention/[0.07] px-3.5 py-3 text-[13px] leading-relaxed text-attention">
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-attention" />
+              <span>
+                <span className="font-medium">Gate: {candidate.gate.competency}</span> scored{' '}
+                {candidate.gate.score}, below the {GATE} threshold. A human look is needed before this
+                candidate is shared.
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Interview video (manager review) */}

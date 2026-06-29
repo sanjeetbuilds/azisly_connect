@@ -69,7 +69,7 @@ export default function ShareWithManagerModal({ candidates, roleTitle = 'Senior 
           {/* Header */}
           <div className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline px-6 py-4">
             <h2 className="text-lg text-ink">
-              {step === 'confirm' ? 'Send to hiring manager' : 'Review link ready'}
+              {step === 'confirm' ? 'Share with hiring manager' : 'Review link ready'}
             </h2>
             <button
               type="button"
@@ -131,7 +131,7 @@ export default function ShareWithManagerModal({ candidates, roleTitle = 'Senior 
                   Cancel
                 </Button>
                 <Button disabled={!manager} onClick={() => setStep('link')}>
-                  Generate review link
+                  Share with hiring manager
                 </Button>
               </div>
             </>

@@ -1,9 +1,9 @@
 /**
- * VerdictTag — the ONLY coloured element in the entire interface.
- * Colour here carries meaning: a candidate's verdict.
+ * VerdictTag — the engine's verdict, the one place colour carries meaning.
  *
- *   strong       → green  (#2E7D55)
- *   look-closer  → amber  (#B7791F)
+ *   strong     (recommend) → green
+ *   promising             → neutral grey (NOT green, NOT amber)
+ *   not-yet               → amber
  */
 const VERDICTS = {
   strong: {
@@ -12,8 +12,14 @@ const VERDICTS = {
     dot: 'bg-strong',
     border: 'border-strong/30',
   },
-  'look-closer': {
-    label: 'Look closer',
+  promising: {
+    label: 'Promising',
+    text: 'text-secondary',
+    dot: 'bg-secondary',
+    border: 'border-hairline',
+  },
+  'not-yet': {
+    label: 'Not yet',
     text: 'text-attention',
     dot: 'bg-attention',
     border: 'border-attention/30',

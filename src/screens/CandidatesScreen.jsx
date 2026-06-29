@@ -1,23 +1,19 @@
 import { useMemo, useState } from 'react'
-import { Button, SearchInput, Dropdown, CandidateTable, CandidateDetail } from '../components'
+import { Button, SearchInput, CandidateTable, CandidateDetail } from '../components'
 import ShareWithManagerModal from '../components/ShareWithManagerModal.jsx'
 import { CheckIcon } from '../components/icons.jsx'
-import { candidates } from '../data/candidates.js'
+import { candidates, isReadyToReview, roleTotals } from '../data/candidates.js'
 
 // Workflow tabs. Each maps to one or more lifecycle states; "All" matches every
-// state. The active tab decides the bulk action shown on selection.
+// state. The active tab decides the single bulk action and what is selectable.
 const TABS = [
   { key: 'all', label: 'All' },
   { key: 'to-interview', label: 'To interview', stages: ['Sourced'] },
   { key: 'in-progress', label: 'In progress', stages: ['Invited', 'Interviewing'] },
-  { key: 'ready', label: 'Ready to review', stages: ['Scored', 'Needs human'] },
+  { key: 'ready', label: 'Ready to review', stages: ['Ready to review', 'Needs human'] },
   { key: 'shared', label: 'Shared', stages: ['Shared'] },
   { key: 'decided', label: 'Decided', stages: ['Taken forward', 'Passed'] },
 ]
-
-// Ready to share = scored candidates awaiting a recruiter look (Scored or
-// Needs human). Stable across filters, so it reads as a workload signal.
-const READY_TO_SHARE = candidates.filter((c) => ['Scored', 'Needs human'].includes(c.stage)).length
 
 function sortCandidates(list, { key, dir }) {
   const sorted = [...list].sort((a, b) => {
@@ -31,40 +27,57 @@ function sortCandidates(list, { key, dir }) {
 }
 
 /**
- * CandidatesScreen — a workflow-led review. The count lives in the title, stage
- * tabs replace filter dropdowns, search is a quiet right-aligned field, and the
- * only floating action is a contextual bar that appears when rows are selected.
+ * CandidatesScreen — a workflow-led review for one role (Senior Product
+ * Engineer). The count and ready signal live in the title and derive from one
+ * list. Stage tabs, a relocated search field, and a single discoverable primary
+ * action that is disabled until eligible rows are selected.
  */
 export default function CandidatesScreen({ onInvite, onDecide, managerResponse }) {
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState('all')
-  const [role, setRole] = useState('all')
   const [sort, setSort] = useState({ key: 'score', dir: 'desc' })
   const [selectedId, setSelectedId] = useState(null)
   const [picked, setPicked] = useState(() => new Set())
+  const [opened, setOpened] = useState(() => new Set())
   const [shareOpen, setShareOpen] = useState(false)
 
-  const roleOptions = [
-    { value: 'all', label: 'All roles' },
-    ...[...new Set(candidates.map((c) => c.role))].map((r) => ({ value: r, label: r })),
-  ]
+  // The active action and what it accepts.
+  const action = tab === 'to-interview' ? 'invite' : 'share'
+  const eligibility = (c) => {
+    if (action === 'invite') {
+      return c.stage === 'Sourced' ? { ok: true } : { ok: false, reason: 'Already in the pipeline' }
+    }
+    if (isReadyToReview(c)) return { ok: true }
+    if (c.stage === 'Shared') return { ok: false, reason: 'Already shared' }
+    if (c.stage === 'Taken forward' || c.stage === 'Passed') return { ok: false, reason: 'Already decided' }
+    return { ok: false, reason: 'Not scored yet' }
+  }
+  const primary =
+    action === 'invite'
+      ? { label: 'Invite to interview', helper: 'Select sourced candidates to invite', run: () => onInvite?.() }
+      : { label: 'Share with hiring manager', helper: 'Select scored candidates to share', run: () => setShareOpen(true) }
+
+  const isFresh = (c) => Boolean(c.isNew) && !opened.has(c.id)
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase()
     const active = TABS.find((t) => t.key === tab)
     const filtered = candidates.filter((c) => {
       if (active?.stages && !active.stages.includes(c.stage)) return false
-      if (role !== 'all' && c.role !== role) return false
       if (q) {
         const hay = [c.name, c.role, c.location, ...c.skills].join(' ').toLowerCase()
         if (!hay.includes(q)) return false
       }
       return true
     })
-    return sortCandidates(filtered, sort)
-  }, [search, tab, role, sort])
+    const sorted = sortCandidates(filtered, sort)
+    // New, unopened candidates float to the top (stable within each group).
+    return [...sorted].sort((a, b) => (isFresh(b) ? 1 : 0) - (isFresh(a) ? 1 : 0))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, tab, sort, opened])
 
   const selected = candidates.find((c) => c.id === selectedId) ?? null
+  const pickedEligible = candidates.filter((c) => picked.has(c.id) && eligibility(c).ok)
 
   const handleSort = (key) =>
     setSort((prev) =>
@@ -79,6 +92,11 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
     setSelectedId(null)
   }
 
+  const openDetail = (id) => {
+    setSelectedId(id)
+    setOpened((prev) => (prev.has(id) ? prev : new Set(prev).add(id)))
+  }
+
   const toggle = (id) =>
     setPicked((prev) => {
       const next = new Set(prev)
@@ -88,17 +106,13 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
     })
   const toggleAll = () =>
     setPicked((prev) => {
-      const allIn = visible.length > 0 && visible.every((c) => prev.has(c.id))
-      return allIn ? new Set() : new Set(visible.map((c) => c.id))
+      const eligibleVisible = visible.filter((c) => eligibility(c).ok)
+      const allIn = eligibleVisible.length > 0 && eligibleVisible.every((c) => prev.has(c.id))
+      const next = new Set(prev)
+      eligibleVisible.forEach((c) => (allIn ? next.delete(c.id) : next.add(c.id)))
+      return next
     })
   const clearPicked = () => setPicked(new Set())
-  const pickedCandidates = candidates.filter((c) => picked.has(c.id))
-
-  // The bulk primary depends on the active tab.
-  const bulk =
-    tab === 'to-interview'
-      ? { label: 'Invite to interview', run: () => onInvite?.() }
-      : { label: 'Share with hiring manager', run: () => setShareOpen(true) }
 
   return (
     <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -109,25 +123,26 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
         </span>
       </header>
 
-      {/* Page header — count chip and ready signal live in the title */}
-      <div className="shrink-0 px-6 pb-5 pt-8 lg:px-8">
+      {/* Page header — count and ready signal derive from one list */}
+      <div className="shrink-0 px-6 pb-4 pt-8 lg:px-8">
         <p className="text-sm text-secondary">Pipeline · Senior Product Engineer</p>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <h1 className="text-2xl text-ink">Candidates</h1>
           <span className="inline-flex items-center rounded-full bg-info/10 px-2 py-0.5 font-mono text-xs font-medium text-info tabular-nums">
-            {visible.length}
+            {roleTotals.total}
           </span>
-          {READY_TO_SHARE > 0 && (
-            <span className="text-[13px] font-medium text-info">{READY_TO_SHARE} ready to share</span>
+          {roleTotals.readyToReview > 0 && (
+            <span className="text-[13px] font-medium text-info">
+              {roleTotals.readyToReview} ready to review
+            </span>
           )}
         </div>
       </div>
 
-      {/* Content: a floating surface holding the toolbar + table */}
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 lg:px-8">
-        {/* The hiring manager has responded — recruiter's update */}
+        {/* The hiring manager has responded */}
         {managerResponse && (
-          <div className="mb-4 flex flex-wrap items-center gap-4 rounded-xl border border-strong/25 bg-strong/[0.05] px-5 py-4">
+          <div className="mb-4 flex flex-wrap items-center gap-4 rounded-xl border border-strong/25 bg-strong/[0.05] px-5 py-3.5">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-strong/10 text-strong">
               <CheckIcon className="h-5 w-5" />
             </span>
@@ -144,8 +159,13 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
           </div>
         )}
 
+        {/* Search — its own line, a full, clearly styled field */}
+        <div className="mb-3">
+          <SearchInput value={search} onChange={setSearch} placeholder="Search candidates by name, skill, or location" />
+        </div>
+
         <div className="overflow-hidden rounded-xl border border-hairline bg-surface shadow-card">
-          {/* Toolbar — stage tabs on the left, a quiet search on the right */}
+          {/* Toolbar — stage tabs and ONE primary action, always visible */}
           <div className="flex flex-wrap items-center gap-3 border-b border-hairline px-4 py-2.5">
             <div className="flex flex-wrap items-center gap-1">
               {TABS.map((t) => (
@@ -161,36 +181,30 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
                 </button>
               ))}
             </div>
-            <div className="ml-auto flex items-center gap-2">
-              <Dropdown label="Role" value={role} options={roleOptions} onChange={setRole} />
-              <div className="w-44">
-                <SearchInput value={search} onChange={setSearch} />
-              </div>
+            <div className="ml-auto flex items-center gap-3">
+              {pickedEligible.length > 0 ? (
+                <span className="text-[13px] text-secondary">
+                  <span className="font-medium text-ink">{pickedEligible.length}</span> selected ·{' '}
+                  <button
+                    type="button"
+                    onClick={clearPicked}
+                    className="font-medium text-info transition-colors hover:underline"
+                  >
+                    Clear
+                  </button>
+                </span>
+              ) : (
+                <span className="hidden text-[13px] text-secondary sm:inline">{primary.helper}</span>
+              )}
+              <Button disabled={pickedEligible.length === 0} onClick={primary.run}>
+                {primary.label}
+              </Button>
             </div>
           </div>
 
-          {/* Contextual selection bar — only when rows are selected */}
-          {picked.size > 0 && (
-            <div className="flex flex-wrap items-center gap-3 border-b border-hairline bg-info-soft px-5 py-2.5">
-              <span className="text-sm text-ink">
-                <span className="font-medium">{picked.size}</span> selected
-              </span>
-              <button
-                type="button"
-                onClick={clearPicked}
-                className="text-[13px] font-medium text-info transition-colors hover:underline"
-              >
-                Clear
-              </button>
-              <div className="ml-auto">
-                <Button onClick={bulk.run}>{bulk.label}</Button>
-              </div>
-            </div>
-          )}
-
           {/* Results — list only */}
           {visible.length === 0 ? (
-            <div className="px-6 py-20 text-center text-sm text-secondary">
+            <div className="px-6 py-16 text-center text-sm text-secondary">
               No candidates in this view.
             </div>
           ) : (
@@ -198,12 +212,14 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
               <CandidateTable
                 candidates={visible}
                 selectedId={selectedId}
-                onSelect={setSelectedId}
+                onSelect={openDetail}
                 sort={sort}
                 onSort={handleSort}
                 picked={picked}
                 onToggle={toggle}
                 onToggleAll={toggleAll}
+                eligibility={eligibility}
+                isNew={isFresh}
               />
             </div>
           )}
@@ -225,10 +241,10 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
         </>
       )}
 
-      {/* Share with hiring manager: confirm → review link */}
+      {/* Share with hiring manager: only ever the eligible selection */}
       {shareOpen && (
         <ShareWithManagerModal
-          candidates={pickedCandidates}
+          candidates={pickedEligible}
           roleTitle="Senior Product Engineer"
           onClose={() => {
             setShareOpen(false)
