@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Button, Tag } from '../components'
+import { Button, Tag, Avatar } from '../components'
 import { ChevronRightIcon } from '../components/icons.jsx'
 import { ROLE_STATUS } from '../data/roles.js'
 
@@ -38,18 +38,47 @@ function SkeletonRow() {
   )
 }
 
+// Stable, distinct faces per role, derived from its id. Up to four shown.
+function roleFaces(role) {
+  const shown = Math.min(4, role.totalCandidates)
+  let h = 0
+  for (let i = 0; i < role.id.length; i += 1) h = (h * 31 + role.id.charCodeAt(i)) >>> 0
+  return Array.from({ length: shown }, (_, i) => `https://i.pravatar.cc/96?img=${((h + i * 13) % 70) + 1}`)
+}
+
+/* A small overlapping stack of a role's candidate faces, plus a "+N" chip. */
+function AvatarStack({ role }) {
+  if (role.totalCandidates === 0) return null
+  const faces = roleFaces(role)
+  const extra = role.totalCandidates - faces.length
+  return (
+    <div className="flex items-center -space-x-2">
+      {faces.map((src, i) => (
+        <Avatar key={i} src={src} name="Candidate" size={26} className="ring-2 ring-surface" />
+      ))}
+      {extra > 0 && (
+        <span className="flex h-[26px] items-center justify-center rounded-full border border-hairline bg-background px-1.5 text-[11px] font-medium text-secondary ring-2 ring-surface">
+          +{extra}
+        </span>
+      )}
+    </div>
+  )
+}
+
 function RoleRow({ role, onClick }) {
-  const status = ROLE_STATUS[role.status] ?? ROLE_STATUS.defining
-  const highlighted = role.candidatesReady > 0
+  const ready = role.candidatesReady > 0
+  const defining = role.status === 'defining'
+  const statusLabel = role.awaitingManager
+    ? 'Awaiting hiring manager'
+    : (ROLE_STATUS[role.status]?.label ?? 'Defining')
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-4 border-b border-hairline px-5 py-4 text-left transition-colors last:border-b-0 ${
-        highlighted ? 'bg-accent/[0.04] hover:bg-accent/[0.07]' : 'hover:bg-background'
-      }`}
+      className="flex w-full items-center gap-4 border-b border-hairline px-5 py-4 text-left transition-colors last:border-b-0 hover:bg-background"
     >
+      {/* Title */}
       <div className="min-w-0 flex-1">
         <div className="truncate text-[15px] font-medium text-ink">{role.title}</div>
         <div className="truncate text-[13px] text-secondary">
@@ -57,14 +86,17 @@ function RoleRow({ role, onClick }) {
         </div>
       </div>
 
-      <div className="hidden w-[150px] shrink-0 sm:block">
-        <Tag color={status.color}>{status.label}</Tag>
+      {/* Middle — overlapping candidate faces fill the empty space */}
+      <div className="hidden flex-1 justify-center sm:flex">
+        <AvatarStack role={role} />
       </div>
 
-      <div className="w-[150px] shrink-0 text-right">
-        {role.candidatesReady > 0 ? (
-          <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-accent">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+      {/* Status, said once: lead with the count, neutral grey tag only when it adds info */}
+      <div className="flex w-[190px] shrink-0 flex-col items-end gap-1.5">
+        {defining && <Tag color="gray">{statusLabel}</Tag>}
+        {ready ? (
+          <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-info">
+            <span className="h-1.5 w-1.5 rounded-full bg-info" />
             {role.candidatesReady} ready to review
           </span>
         ) : (
@@ -80,9 +112,9 @@ function RoleRow({ role, onClick }) {
 }
 
 /**
- * RolesScreen — the populated workspace: a clean list of the recruiter's roles
- * with plain-word status and how many candidates are ready. Rows with ready
- * candidates are highlighted. Includes loading and empty states.
+ * RolesScreen — the populated workspace: a clean list of the recruiter's roles.
+ * The count lives in the title; each row says its status once (lead with the
+ * count) and fills the middle with a stack of its candidate faces.
  */
 export default function RolesScreen({ roles, onCreateRole, onOpenRole }) {
   const [loading, setLoading] = useState(true)
@@ -104,35 +136,30 @@ export default function RolesScreen({ roles, onCreateRole, onOpenRole }) {
         </span>
       </header>
 
-      {/* Page header */}
-      <div className="flex shrink-0 items-center justify-between gap-4 px-6 pb-5 pt-8 lg:px-8">
-        <div>
-          <p className="text-sm text-secondary">Acme · Workspace</p>
-          <h1 className="mt-1.5 text-2xl text-ink">Roles</h1>
+      {/* Page header — count and ready signal live in the title */}
+      <div className="shrink-0 px-6 pb-5 pt-8 lg:px-8">
+        <p className="text-sm text-secondary">Acme · Workspace</p>
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <h1 className="text-2xl text-ink">Roles</h1>
+          {!loading && !empty && (
+            <>
+              <span className="inline-flex items-center rounded-full bg-info/10 px-2 py-0.5 font-mono text-xs font-medium text-info tabular-nums">
+                {roles.length}
+              </span>
+              {readyCount > 0 && (
+                <span className="text-[13px] font-medium text-info">
+                  {readyCount} with candidates ready
+                </span>
+              )}
+            </>
+          )}
         </div>
-        {!empty && <Button onClick={onCreateRole}>New role</Button>}
       </div>
 
       {empty ? (
         <EmptyState onCreateRole={onCreateRole} />
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-10 lg:px-8">
-          <p className="mb-4 text-sm text-secondary">
-            {loading ? (
-              <span className="inline-block h-4 w-24 animate-pulse rounded bg-hairline align-middle" />
-            ) : (
-              <>
-                <span className="font-medium text-ink">{roles.length}</span> roles
-                {readyCount > 0 && (
-                  <>
-                    {' · '}
-                    <span className="text-accent">{readyCount} with candidates ready</span>
-                  </>
-                )}
-              </>
-            )}
-          </p>
-
           <div className="overflow-hidden rounded-xl border border-hairline bg-surface shadow-card">
             {loading ? (
               <div className="animate-pulse divide-y divide-hairline">

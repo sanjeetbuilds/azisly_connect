@@ -55,6 +55,7 @@ export const seedRoles = [
     location: 'London · Onsite',
     type: 'Full-time',
     status: 'defining',
+    awaitingManager: true, // a magic link was sent to a hiring manager to define it
     candidatesReady: 0,
     totalCandidates: 0,
     updated: 'Draft · just now',
