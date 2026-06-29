@@ -1,14 +1,16 @@
-import { STAGES } from '../data/candidates.js'
+import { STAGE_TRACK } from '../data/candidates.js'
 
 /**
  * StageTracker — a hiring-progress tracker for the top of a detail view.
- * A row of pill chips: Sourced → Defined → Interviewed → Judged → Decided.
+ * A row of pill chips along the lifecycle milestones: Sourced, Invited,
+ * Interviewing, Scored, Shared, Decision. Pass `current` as a milestone index
+ * (see stageTrackIndex) so branch states map onto the right step.
  *
- *   done     — subtle filled chip with a check
- *   current  — highlighted in ink
- *   upcoming — muted, hairline outline
+ *   done     subtle filled chip with a check
+ *   current  highlighted in ink
+ *   upcoming muted, hairline outline
  *
- * Strictly ink/greyscale — no verdict colours here.
+ * Strictly ink/greyscale, no verdict colours here.
  */
 const Check = () => (
   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-3 w-3">
@@ -16,7 +18,7 @@ const Check = () => (
   </svg>
 )
 
-export default function StageTracker({ stages = STAGES, current, className = '' }) {
+export default function StageTracker({ stages = STAGE_TRACK, current, className = '' }) {
   const currentIndex = typeof current === 'number' ? current : stages.indexOf(current)
 
   const chip = {

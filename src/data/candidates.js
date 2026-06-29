@@ -1,7 +1,55 @@
 // Demo data for the candidate review prototype.
 // Avatars are placeholder photos (pravatar) keyed by a stable id.
 
-export const STAGES = ['Sourced', 'Defined', 'Interviewed', 'Judged', 'Decided']
+// One candidate lifecycle, used across the app. Ordered: each state makes the
+// next action obvious.
+//   Sourced       added, not yet invited
+//   Invited       interview invite sent, awaiting the candidate
+//   Interviewing  AI interview in progress
+//   Scored        interview done, engine produced a score and verdict
+//   Needs human   a gate failed or the candidate is flagged, needs a human look
+//   Shared        sent to the hiring manager, awaiting their picks
+//   Taken forward hiring manager approved, moving to offline rounds
+//   Passed        not selected
+export const STAGES = [
+  'Sourced',
+  'Invited',
+  'Interviewing',
+  'Scored',
+  'Needs human',
+  'Shared',
+  'Taken forward',
+  'Passed',
+]
+
+// The tag colour for each lifecycle state. Needs human is amber (attention);
+// Taken forward green (positive); Passed rose (closed).
+export const STAGE_META = {
+  Sourced: { color: 'gray' },
+  Invited: { color: 'blue' },
+  Interviewing: { color: 'purple' },
+  Scored: { color: 'gray' },
+  'Needs human': { color: 'amber' },
+  Shared: { color: 'blue' },
+  'Taken forward': { color: 'green' },
+  Passed: { color: 'rose' },
+}
+
+// The linear milestone track shown in the detail StageTracker. The branch and
+// terminal states map onto a milestone: Needs human sits at Scored, and both
+// Taken forward and Passed land on the final Decision step.
+export const STAGE_TRACK = ['Sourced', 'Invited', 'Interviewing', 'Scored', 'Shared', 'Decision']
+const TRACK_INDEX = {
+  Sourced: 0,
+  Invited: 1,
+  Interviewing: 2,
+  Scored: 3,
+  'Needs human': 3,
+  Shared: 4,
+  'Taken forward': 5,
+  Passed: 5,
+}
+export const stageTrackIndex = (stage) => TRACK_INDEX[stage] ?? 0
 
 // Sources carry a functional colour (where the candidate came from).
 export const SOURCES = {
@@ -22,7 +70,7 @@ export const candidates = [
     experience: '8 yrs',
     score: 86,
     verdict: 'strong',
-    stage: 'Judged',
+    stage: 'Taken forward',
     source: 'referral',
     applied: 'Jun 18',
     appliedSort: 18,
@@ -43,7 +91,7 @@ export const candidates = [
       },
       {
         quote:
-          'I paired with two new hires for their first month — both shipped to production in week two.',
+          'I paired with two new hires for their first month, and both shipped to production in week two.',
         competency: 'Ownership',
         source: 'Interview · Round 1',
       },
@@ -57,7 +105,7 @@ export const candidates = [
     experience: '6 yrs',
     score: 90,
     verdict: 'strong',
-    stage: 'Decided',
+    stage: 'Taken forward',
     source: 'linkedin',
     applied: 'Jun 21',
     appliedSort: 21,
@@ -92,7 +140,7 @@ export const candidates = [
     experience: '7 yrs',
     score: 82,
     verdict: 'strong',
-    stage: 'Judged',
+    stage: 'Shared',
     source: 'careers',
     applied: 'Jun 15',
     appliedSort: 15,
@@ -113,7 +161,7 @@ export const candidates = [
       },
       {
         quote:
-          'I write the empty and error states first — they tell you the most about a feature.',
+          'I write the empty and error states first, because they tell you the most about a feature.',
         competency: 'Communication',
         source: 'Interview · Round 1',
       },
@@ -127,7 +175,7 @@ export const candidates = [
     experience: '9 yrs',
     score: 79,
     verdict: 'strong',
-    stage: 'Interviewed',
+    stage: 'Scored',
     source: 'agency',
     applied: 'Jun 12',
     appliedSort: 12,
@@ -162,7 +210,7 @@ export const candidates = [
     experience: '5 yrs',
     score: 64,
     verdict: 'look-closer',
-    stage: 'Interviewed',
+    stage: 'Needs human',
     source: 'linkedin',
     applied: 'Jun 09',
     appliedSort: 9,
@@ -183,7 +231,7 @@ export const candidates = [
       },
       {
         quote:
-          'I tend to go quiet when I am deep in a problem — something I am working on with my current lead.',
+          'I tend to go quiet when I am deep in a problem, something I am working on with my current lead.',
         competency: 'Communication',
         source: 'Interview · Round 1',
       },
@@ -197,7 +245,7 @@ export const candidates = [
     experience: '4 yrs',
     score: 58,
     verdict: 'look-closer',
-    stage: 'Defined',
+    stage: 'Passed',
     source: 'careers',
     applied: 'Jun 05',
     appliedSort: 5,
@@ -223,6 +271,93 @@ export const candidates = [
         source: 'Take-home review',
       },
     ],
+  },
+
+  // Early-lifecycle candidates: not yet scored, so no score or verdict.
+  {
+    id: 'noah-becker',
+    name: 'Noah Becker',
+    role: 'Backend Engineer',
+    location: 'Berlin',
+    experience: '6 yrs',
+    score: null,
+    verdict: null,
+    stage: 'Sourced',
+    source: 'referral',
+    applied: 'Jun 26',
+    appliedSort: 26,
+    skills: ['Go', 'gRPC', 'Postgres', 'Redis'],
+    avatar: avatar(13),
+    competencies: [],
+    evidence: [],
+  },
+  {
+    id: 'omar-haddad',
+    name: 'Omar Haddad',
+    role: 'Platform Engineer',
+    location: 'Dubai',
+    experience: '7 yrs',
+    score: null,
+    verdict: null,
+    stage: 'Sourced',
+    source: 'agency',
+    applied: 'Jun 25',
+    appliedSort: 25,
+    skills: ['Kubernetes', 'Terraform', 'AWS', 'Observability'],
+    avatar: avatar(15),
+    competencies: [],
+    evidence: [],
+  },
+  {
+    id: 'grace-liang',
+    name: 'Grace Liang',
+    role: 'Data Engineer',
+    location: 'Singapore',
+    experience: '5 yrs',
+    score: null,
+    verdict: null,
+    stage: 'Sourced',
+    source: 'linkedin',
+    applied: 'Jun 24',
+    appliedSort: 24,
+    skills: ['Python', 'Spark', 'dbt', 'Airflow'],
+    avatar: avatar(45),
+    competencies: [],
+    evidence: [],
+  },
+  {
+    id: 'amara-diallo',
+    name: 'Amara Diallo',
+    role: 'Frontend Engineer',
+    location: 'Dakar',
+    experience: '6 yrs',
+    score: null,
+    verdict: null,
+    stage: 'Invited',
+    source: 'careers',
+    applied: 'Jun 23',
+    appliedSort: 23,
+    skills: ['React', 'TypeScript', 'CSS', 'Testing'],
+    avatar: avatar(44),
+    competencies: [],
+    evidence: [],
+  },
+  {
+    id: 'yuki-tanaka',
+    name: 'Yuki Tanaka',
+    role: 'Product Engineer',
+    location: 'Tokyo',
+    experience: '7 yrs',
+    score: null,
+    verdict: null,
+    stage: 'Interviewing',
+    source: 'referral',
+    applied: 'Jun 22',
+    appliedSort: 22,
+    skills: ['React', 'Node.js', 'Product', 'GraphQL'],
+    avatar: avatar(33),
+    competencies: [],
+    evidence: [],
   },
 ]
 

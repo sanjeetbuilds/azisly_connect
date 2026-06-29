@@ -16,7 +16,7 @@ function sortCandidates(list, { key, dir }) {
   const sorted = [...list].sort((a, b) => {
     let cmp = 0
     if (key === 'name') cmp = a.name.localeCompare(b.name)
-    else if (key === 'score') cmp = a.score - b.score
+    else if (key === 'score') cmp = (a.score ?? -1) - (b.score ?? -1)
     else if (key === 'applied') cmp = a.appliedSort - b.appliedSort
     return dir === 'asc' ? cmp : -cmp
   })

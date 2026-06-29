@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Button, Avatar, VerdictTag } from '../components'
+import { Button, Avatar, Tag } from '../components'
 import { ArrowLeftIcon, CheckIcon, ClockIcon } from '../components/icons.jsx'
-import { candidates } from '../data/candidates.js'
+import { candidates, SOURCES } from '../data/candidates.js'
 
-// Candidates ready to interview for this role (judged / decided).
-const POOL = candidates.filter((c) => ['Judged', 'Decided'].includes(c.stage))
+// Sourced candidates: added, not yet invited. These are the ones to invite.
+const POOL = candidates.filter((c) => c.stage === 'Sourced')
 
 function Checkbox({ checked, disabled }) {
   return (
@@ -24,7 +24,7 @@ function Checkbox({ checked, disabled }) {
 
 export default function InviteScreen({ roleTitle = 'Senior Product Engineer', onBack }) {
   // Pre-invited candidate to show the "already invited" disabled state.
-  const [invited, setInvited] = useState({ 'sofia-almeida': 18 })
+  const [invited, setInvited] = useState({ 'omar-haddad': 18 })
   const [selected, setSelected] = useState(new Set())
   const [confirming, setConfirming] = useState(false)
   const [justSent, setJustSent] = useState(0)
@@ -116,16 +116,15 @@ export default function InviteScreen({ roleTitle = 'Senior Product Engineer', on
                     <div className="truncate text-sm font-medium text-ink">{c.name}</div>
                     <div className="truncate text-[13px] text-secondary">{c.role}</div>
                   </div>
-                  <span className="hidden font-mono text-sm text-ink tabular-nums sm:block">
-                    {c.score}
-                  </span>
                   {isInvited ? (
                     <span className="inline-flex items-center gap-1.5 text-[13px] text-secondary">
                       <ClockIcon className="h-3.5 w-3.5" />
                       Invited · {invited[c.id]}h left
                     </span>
                   ) : (
-                    <VerdictTag verdict={c.verdict} />
+                    SOURCES[c.source] && (
+                      <Tag color={SOURCES[c.source].color}>{SOURCES[c.source].label}</Tag>
+                    )
                   )}
                 </button>
               )

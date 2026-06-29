@@ -9,7 +9,7 @@ import StageTracker from './StageTracker.jsx'
 import Tag, { skillColor } from './Tag.jsx'
 import Kbd from './Kbd.jsx'
 import { XIcon, PlayIcon, CheckIcon } from './icons.jsx'
-import { SOURCES } from '../data/candidates.js'
+import { SOURCES, STAGE_META, stageTrackIndex } from '../data/candidates.js'
 
 // A plain <p>, not a heading — headings inherit the global ink colour and
 // tighter tracking; section labels must stay small, grey, and normally spaced.
@@ -63,7 +63,7 @@ export default function CandidateDetail({
     <div className="flex flex-col">
       {/* Stage tracker + close — top of the floating detail panel */}
       <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-hairline bg-surface px-6 py-4 lg:px-8">
-        <StageTracker current={candidate.stage} className="min-w-0" />
+        <StageTracker current={stageTrackIndex(candidate.stage)} className="min-w-0" />
         {onBack && (
           <button
             type="button"
@@ -88,7 +88,8 @@ export default function CandidateDetail({
                   <p className="text-sm text-secondary">{candidate.role}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-[13px] text-secondary">
-                  <VerdictTag verdict={candidate.verdict} />
+                  <Tag color={STAGE_META[candidate.stage]?.color ?? 'gray'}>{candidate.stage}</Tag>
+                  {candidate.verdict && <VerdictTag verdict={candidate.verdict} />}
                   <span>·</span>
                   <span>{candidate.location}</span>
                   <span>·</span>
@@ -99,7 +100,11 @@ export default function CandidateDetail({
                 </div>
               </div>
             </div>
-            <ScoreDisplay score={candidate.score} label="Overall" />
+            {candidate.score != null ? (
+              <ScoreDisplay score={candidate.score} label="Overall" />
+            ) : (
+              <span className="shrink-0 text-sm text-secondary">Not scored yet</span>
+            )}
           </div>
 
           {/* Skills */}
@@ -118,24 +123,32 @@ export default function CandidateDetail({
         {/* Competencies */}
         <section className="flex flex-col gap-4">
           <SectionLabel>Competencies</SectionLabel>
-          <Card className="flex flex-col gap-6 p-6">
-            {candidate.competencies.map((c) => (
-              <CompetencyBar key={c.name} name={c.name} score={c.score} />
-            ))}
-          </Card>
+          {candidate.competencies.length > 0 ? (
+            <Card className="flex flex-col gap-6 p-6">
+              {candidate.competencies.map((c) => (
+                <CompetencyBar key={c.name} name={c.name} score={c.score} />
+              ))}
+            </Card>
+          ) : (
+            <Card className="p-6 text-sm text-secondary">
+              Competency scores appear once the interview is complete.
+            </Card>
+          )}
         </section>
 
         {/* Evidence */}
-        <section className="flex flex-col gap-4">
-          <SectionLabel>Evidence</SectionLabel>
-          <div className="flex flex-col gap-4">
-            {candidate.evidence.map((e, i) => (
-              <Card key={i} className="p-6">
-                <EvidenceQuote quote={e.quote} competency={e.competency} source={e.source} />
-              </Card>
-            ))}
-          </div>
-        </section>
+        {candidate.evidence.length > 0 && (
+          <section className="flex flex-col gap-4">
+            <SectionLabel>Evidence</SectionLabel>
+            <div className="flex flex-col gap-4">
+              {candidate.evidence.map((e, i) => (
+                <Card key={i} className="p-6">
+                  <EvidenceQuote quote={e.quote} competency={e.competency} source={e.source} />
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Actions */}
         <div className="sticky bottom-0 -mx-6 flex flex-wrap items-center gap-3 border-t border-hairline bg-surface px-6 py-5 lg:-mx-8 lg:px-8">

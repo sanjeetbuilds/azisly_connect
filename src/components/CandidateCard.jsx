@@ -2,7 +2,7 @@ import Avatar from './Avatar.jsx'
 import VerdictTag from './VerdictTag.jsx'
 import Tag from './Tag.jsx'
 import { SkillTags } from './CandidateTable.jsx'
-import { SOURCES } from '../data/candidates.js'
+import { SOURCES, STAGE_META } from '../data/candidates.js'
 
 /**
  * CandidateCard — the grid-view tile. Lifts on hover (elevation) to read as a
@@ -27,7 +27,11 @@ export default function CandidateCard({ candidate, selected = false, onSelect })
             <div className="truncate text-[13px] text-secondary">{candidate.role}</div>
           </div>
         </div>
-        <VerdictTag verdict={candidate.verdict} />
+        {candidate.verdict ? (
+          <VerdictTag verdict={candidate.verdict} />
+        ) : (
+          <Tag color={STAGE_META[candidate.stage]?.color ?? 'gray'}>{candidate.stage}</Tag>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-1">
@@ -39,7 +43,9 @@ export default function CandidateCard({ candidate, selected = false, onSelect })
           {src && <Tag color={src.color}>{src.label}</Tag>}
           <span>{candidate.location}</span>
         </div>
-        <span className="font-mono text-lg leading-none text-ink tabular-nums">{candidate.score}</span>
+        <span className="font-mono text-lg leading-none text-ink tabular-nums">
+          {candidate.score ?? <span className="text-base text-secondary">·</span>}
+        </span>
       </div>
     </button>
   )

@@ -2,7 +2,7 @@ import Avatar from './Avatar.jsx'
 import VerdictTag from './VerdictTag.jsx'
 import Tag, { skillColor } from './Tag.jsx'
 import { SortIcon, CheckIcon } from './icons.jsx'
-import { SOURCES } from '../data/candidates.js'
+import { SOURCES, STAGE_META } from '../data/candidates.js'
 
 /* A square checkbox used in select mode. */
 function CheckBox({ checked }) {
@@ -139,13 +139,15 @@ export default function CandidateTable({
               <div className="hidden w-[112px] shrink-0 lg:block">
                 {src && <Tag color={src.color}>{src.label}</Tag>}
               </div>
-              <div className="hidden w-[110px] shrink-0 text-[13px] text-secondary md:block">{c.stage}</div>
+              <div className="hidden w-[110px] shrink-0 md:block">
+                <Tag color={STAGE_META[c.stage]?.color ?? 'gray'}>{c.stage}</Tag>
+              </div>
               <div className="hidden w-[78px] shrink-0 text-[13px] text-secondary lg:block">{c.applied}</div>
               <div className="w-[60px] shrink-0 text-right font-mono text-sm text-ink tabular-nums">
-                {c.score}
+                {c.score ?? <span className="text-secondary">·</span>}
               </div>
               <div className="w-[116px] shrink-0">
-                <VerdictTag verdict={c.verdict} />
+                {c.verdict && <VerdictTag verdict={c.verdict} />}
               </div>
             </button>
           )
