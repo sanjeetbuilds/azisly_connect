@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Button, SearchInput, CandidateTable, CandidateDetail } from '../components'
 import ShareWithManagerModal from '../components/ShareWithManagerModal.jsx'
-import { CheckIcon } from '../components/icons.jsx'
+import { CheckIcon, XIcon } from '../components/icons.jsx'
 import { candidates, isReadyToReview, roleTotals } from '../data/candidates.js'
+import { interviews } from '../data/interviews.js'
 
 // Workflow tabs. Each maps to one or more lifecycle states; "All" matches every
 // state. The active tab decides the single bulk action and what is selectable.
@@ -40,6 +41,7 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
   const [picked, setPicked] = useState(() => new Set())
   const [opened, setOpened] = useState(() => new Set())
   const [shareOpen, setShareOpen] = useState(false)
+  const [noticeOpen, setNoticeOpen] = useState(true)
 
   // The active action and what it accepts.
   const action = tab === 'to-interview' ? 'invite' : 'share'
@@ -140,22 +142,29 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 lg:px-8">
-        {/* The hiring manager has responded */}
-        {managerResponse && (
+        {/* The hiring manager has responded — a dismissible notification */}
+        {managerResponse && noticeOpen && (
           <div className="mb-4 flex flex-wrap items-center gap-4 rounded-xl border border-strong/25 bg-strong/[0.05] px-5 py-3.5">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-strong/10 text-strong">
               <CheckIcon className="h-5 w-5" />
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-sm text-ink">
-                <span className="font-medium">{managerResponse.manager}</span> responded to your{' '}
-                {managerResponse.roleTitle} shortlist
+                <span className="font-medium">{managerResponse.manager}</span> took{' '}
+                {managerResponse.approvedCount} candidate
+                {managerResponse.approvedCount === 1 ? '' : 's'} forward
               </p>
-              <p className="text-[13px] text-secondary">
-                {managerResponse.approvedCount} taken forward · just now
-              </p>
+              <p className="text-[13px] text-secondary">just now</p>
             </div>
             <Button onClick={managerResponse.onView}>See the picks</Button>
+            <button
+              type="button"
+              onClick={() => setNoticeOpen(false)}
+              aria-label="Dismiss notification"
+              className="shrink-0 rounded-lg p-1.5 text-secondary transition-colors hover:bg-strong/10 hover:text-ink"
+            >
+              <XIcon className="h-3.5 w-3.5" />
+            </button>
           </div>
         )}
 
@@ -235,8 +244,16 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
             onClick={() => setSelectedId(null)}
             className="absolute inset-0 z-20 animate-fade-in cursor-default bg-ink/20 backdrop-blur-[1px]"
           />
-          <div className="absolute inset-y-0 right-0 z-30 flex w-full max-w-xl animate-slide-in-right flex-col overflow-y-auto border-l border-hairline bg-surface shadow-overlay">
-            <CandidateDetail candidate={selected} onBack={() => setSelectedId(null)} onDecide={onDecide} />
+          <div
+            key={selected.id}
+            className="absolute inset-y-0 right-0 z-30 flex w-full max-w-xl animate-slide-in-right flex-col overflow-y-auto border-l border-hairline bg-surface shadow-overlay"
+          >
+            <CandidateDetail
+              candidate={selected}
+              onBack={() => setSelectedId(null)}
+              onDecide={onDecide}
+              interview={interviews[selected.id]}
+            />
           </div>
         </>
       )}

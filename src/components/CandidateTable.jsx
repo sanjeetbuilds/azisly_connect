@@ -169,7 +169,13 @@ export default function CandidateTable({
               }}
               aria-current={open ? 'true' : undefined}
               className={`flex w-full cursor-pointer items-center gap-4 border-b border-hairline px-5 py-2 text-left transition-colors last:border-b-0 ${
-                open ? 'bg-accent/[0.05]' : isPicked ? 'bg-accent/[0.03]' : 'hover:bg-background'
+                open
+                  ? 'bg-accent/[0.05]'
+                  : isPicked
+                    ? 'bg-accent/[0.03]'
+                    : c.stage === 'Taken forward'
+                      ? 'bg-strong/[0.04] hover:bg-strong/[0.07]'
+                      : 'hover:bg-background'
               }`}
             >
               <CheckBox

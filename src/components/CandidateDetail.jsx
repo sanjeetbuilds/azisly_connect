@@ -8,7 +8,7 @@ import EvidenceQuote from './EvidenceQuote.jsx'
 import StageTracker from './StageTracker.jsx'
 import Tag, { skillColor } from './Tag.jsx'
 import Kbd from './Kbd.jsx'
-import { XIcon, PlayIcon, CheckIcon } from './icons.jsx'
+import { XIcon, PlayIcon, CheckIcon, MailIcon, PhoneIcon } from './icons.jsx'
 import { SOURCES, stageTrackIndex, GATE } from '../data/candidates.js'
 
 // A plain <p>, not a heading — headings inherit the global ink colour and
@@ -16,6 +16,12 @@ import { SOURCES, stageTrackIndex, GATE } from '../data/candidates.js'
 const SectionLabel = ({ children }) => (
   <p className="text-sm font-medium tracking-normal text-secondary">{children}</p>
 )
+
+// Mocked contact details, unlocked once a candidate is taken forward.
+function contactsFor(name) {
+  const slug = name.toLowerCase().replace(/[^a-z]+/g, '.')
+  return { email: `${slug}@gmail.com`, phone: '+351 912 345 678' }
+}
 
 /* A mocked interview video poster + transcript summary. */
 function InterviewVideo({ candidate, summary }) {
@@ -59,6 +65,9 @@ export default function CandidateDetail({
 }) {
   const src = SOURCES[candidate.source]
   const managerMode = Boolean(onTakeForward)
+  const scored = Boolean(candidate.verdict)
+  const takenForward = candidate.stage === 'Taken forward'
+  const contacts = takenForward ? contactsFor(candidate.name) : null
   return (
     <div className="flex flex-col">
       {/* Stage tracker + close — top of the floating detail panel */}
@@ -129,8 +138,8 @@ export default function CandidateDetail({
           )}
         </div>
 
-        {/* Interview video (manager review) */}
-        {interview && <InterviewVideo candidate={candidate} summary={interview} />}
+        {/* Interview video — shown to recruiter and manager alike, once scored */}
+        {scored && <InterviewVideo candidate={candidate} summary={interview} />}
 
         {/* Competencies */}
         <section className="flex flex-col gap-4">
@@ -162,13 +171,33 @@ export default function CandidateDetail({
           </section>
         )}
 
+        {/* Contact details — unlocked once the manager takes the candidate forward */}
+        {takenForward && contacts && (
+          <section className="flex flex-col gap-4">
+            <SectionLabel>Contact details</SectionLabel>
+            <Card className="flex flex-col gap-3 p-6">
+              <a
+                href={`mailto:${contacts.email}`}
+                className="flex items-center gap-3 text-sm text-ink transition-colors hover:text-accent"
+              >
+                <MailIcon className="h-4 w-4 text-secondary" />
+                {contacts.email}
+              </a>
+              <div className="flex items-center gap-3 text-sm text-ink">
+                <PhoneIcon className="h-4 w-4 text-secondary" />
+                {contacts.phone}
+              </div>
+            </Card>
+          </section>
+        )}
+
         {/* Actions */}
         <div className="sticky bottom-0 -mx-6 flex flex-wrap items-center gap-3 border-t border-hairline bg-surface px-6 py-5 lg:-mx-8 lg:px-8">
           {managerMode ? (
             decided ? (
               <>
                 <span className="flex items-center gap-2 text-sm font-medium text-strong">
-                  <CheckIcon className="h-4 w-4" /> Marked to take forward
+                  <CheckIcon className="h-4 w-4" /> Taken forward
                 </span>
                 <Button variant="secondary" className="ml-auto" onClick={() => onUndo?.(candidate)}>
                   Undo
@@ -182,6 +211,12 @@ export default function CandidateDetail({
                 <Kbd className="ml-auto">⌘↵</Kbd>
               </>
             )
+          ) : takenForward ? (
+            // Already approved by the manager — no second gatekeeping by the recruiter.
+            <span className="flex items-center gap-2 text-sm font-medium text-strong">
+              <CheckIcon className="h-4 w-4" /> Taken forward by the hiring manager. Reach out to start
+              the offline rounds.
+            </span>
           ) : (
             <>
               <Button variant="primary" onClick={() => onDecide?.(candidate)}>

@@ -9,7 +9,7 @@ export const interviews = {
   'daniel-reyes':
     'Booked 22 Jun · 50 min. Clear on decoupling the API from workers with a queue, and on the 2am rollback and postmortem. Direct and pragmatic; communication a notch behind the rest.',
   'priya-nair':
-    'Booked 21 Jun · 40 min. Standardised the Terraform modules but leaned on existing patterns. Honest that she goes quiet under pressure — and is actively working on it with her lead.',
+    'Booked 21 Jun · 40 min. Standardised the Terraform modules but leaned on existing patterns. Honest that she goes quiet under pressure, and is actively working on it with her lead.',
   'liam-patel':
     'Booked 20 Jun · 35 min. Kept clusters healthy through a noisy quarter, mostly reactively. The runbook helped, though a teammate filled the gaps on the database section.',
 }

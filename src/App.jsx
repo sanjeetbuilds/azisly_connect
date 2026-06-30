@@ -64,8 +64,12 @@ export default function App() {
     ? 'Candidates'
     : 'Roles'
 
-  const shortlist = candidates.filter((c) => c.verdict === 'strong')
-  const approvedIds = ['maya-okonkwo', 'hana-kim'] // the manager's picks
+  // What the manager reviewed and decided, derived from the lifecycle so the
+  // decision screen always shows every pick (any verdict can be taken forward).
+  const reviewed = candidates.filter((c) =>
+    ['Shared', 'Taken forward', 'Passed'].includes(c.stage),
+  )
+  const approvedIds = candidates.filter((c) => c.stage === 'Taken forward').map((c) => c.id)
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-ink">
@@ -164,7 +168,7 @@ export default function App() {
         <ManagerDecisionScreen
           manager="Anjali Rao"
           roleTitle="Senior Product Engineer"
-          candidates={shortlist}
+          candidates={reviewed}
           approvedIds={approvedIds}
           interviews={interviews}
         />

@@ -49,7 +49,7 @@ export const assessedAverage = (comps = []) => {
 
 // The linear milestone track shown in the detail StageTracker. Branch and
 // terminal states map onto a milestone.
-export const STAGE_TRACK = ['Sourced', 'Invited', 'Interviewing', 'Scored', 'Shared', 'Decision']
+export const STAGE_TRACK = ['Sourced', 'Invited', 'Interviewing', 'Scored', 'Shared', 'Decided']
 const TRACK_INDEX = {
   Sourced: 0,
   Invited: 1,

@@ -1,14 +1,4 @@
-import { useState } from 'react'
-import {
-  Button,
-  Card,
-  Avatar,
-  ScoreDisplay,
-  CompetencyBar,
-  VerdictTag,
-  EvidenceQuote,
-  Tag,
-} from '../components'
+import { Card, Avatar, ScoreDisplay, CompetencyBar, EvidenceQuote, Tag } from '../components'
 import { PlayIcon, CheckIcon } from '../components/icons.jsx'
 
 const SectionLabel = ({ children }) => (
@@ -51,9 +41,8 @@ function ApprovedCard({ candidate, interview }) {
             </div>
             <div className="flex items-center gap-2">
               <Tag color="green">
-                <CheckIcon className="mr-1 h-3 w-3" /> Approved by HM
+                <CheckIcon className="mr-1 h-3 w-3" /> Taken forward
               </Tag>
-              <span className="text-[12px] text-secondary">Info open</span>
             </div>
           </div>
         </div>
@@ -124,7 +113,6 @@ export default function ManagerDecisionScreen({
   approvedIds = [],
   interviews = {},
 }) {
-  const [moved, setMoved] = useState(false)
   const approved = new Set(approvedIds)
   const approvedCount = candidates.filter((c) => approved.has(c.id)).length
 
@@ -149,19 +137,12 @@ export default function ManagerDecisionScreen({
             <Avatar name={manager} size={40} />
             <div className="min-w-0 flex-1">
               <p className="text-sm text-ink">
-                <span className="font-medium">{manager}</span> reviewed your shortlist
+                <span className="font-medium">{manager}</span> reviewed the candidates you shared
               </p>
               <p className="text-[13px] text-secondary">
                 {roleTitle} · {approvedCount} of {candidates.length} taken forward · just now
               </p>
             </div>
-            {moved ? (
-              <span className="flex items-center gap-2 text-sm font-medium text-strong">
-                <CheckIcon className="h-4 w-4" /> Moved to offline rounds
-              </span>
-            ) : (
-              <Button onClick={() => setMoved(true)}>Move to offline rounds</Button>
-            )}
           </div>
 
           {/* The list — approved expanded, others compact */}

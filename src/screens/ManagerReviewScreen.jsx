@@ -52,7 +52,7 @@ function RichRow({ candidate, forwarded, selected, onClick }) {
         <span className="font-mono text-sm text-ink tabular-nums">{candidate.score}</span>
         {forwarded ? (
           <Tag color="green">
-            <CheckIcon className="mr-1 h-3 w-3" /> Taking forward
+            <CheckIcon className="mr-1 h-3 w-3" /> Taken forward
           </Tag>
         ) : (
           <VerdictTag verdict={candidate.verdict} />
@@ -174,7 +174,10 @@ export default function ManagerReviewScreen({
             onClick={() => setSelectedId(null)}
             className="absolute inset-0 z-20 animate-fade-in cursor-default bg-ink/20 backdrop-blur-[1px]"
           />
-          <div className="absolute inset-y-0 right-0 z-30 flex w-full max-w-xl animate-slide-in-right flex-col overflow-y-auto border-l border-hairline bg-surface shadow-overlay">
+          <div
+            key={selected.id}
+            className="absolute inset-y-0 right-0 z-30 flex w-full max-w-xl animate-slide-in-right flex-col overflow-y-auto border-l border-hairline bg-surface shadow-overlay"
+          >
             <CandidateDetail
               candidate={selected}
               onBack={() => setSelectedId(null)}
