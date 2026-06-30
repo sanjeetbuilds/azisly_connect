@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button, Tag, Avatar } from '../components'
-import { ChevronRightIcon } from '../components/icons.jsx'
+import { ChevronRightIcon, CheckIcon, XIcon } from '../components/icons.jsx'
+import { ROLE_STATES } from '../data/roles.js'
 
 function EmptyState({ onCreateRole }) {
   return (
@@ -64,9 +65,36 @@ function AvatarStack({ role, index }) {
   )
 }
 
-function RoleRow({ role, index, onClick }) {
-  const ready = role.candidatesReady > 0
+/* One status per role, derived from its lifecycle state. Ready to review leads
+   with the info-accent count; the other states read as plain grey. */
+function RoleStatus({ role }) {
+  if (role.state === 'ready') {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-info">
+        <span className="h-1.5 w-1.5 rounded-full bg-info" />
+        {role.candidatesReady} ready to review
+      </span>
+    )
+  }
+  if (role.state === 'defined') {
+    return (
+      <span className="text-right text-[13px] text-secondary">
+        Defined by {role.definedBy ?? 'the hiring manager'}, ready to submit
+      </span>
+    )
+  }
+  if (role.state === 'being_defined') {
+    return (
+      <Tag color="gray">
+        {role.define_by === 'hiring_manager' ? 'Being defined by hiring manager' : 'Being defined by you'}
+      </Tag>
+    )
+  }
+  // created | matching | closed
+  return <Tag color="gray">{role.state === 'matching' ? 'Matching' : ROLE_STATES[role.state]}</Tag>
+}
 
+function RoleRow({ role, index, onClick }) {
   return (
     <button
       type="button"
@@ -86,20 +114,9 @@ function RoleRow({ role, index, onClick }) {
         <AvatarStack role={role} index={index} />
       </div>
 
-      {/* One status per role: awaiting the manager, the ready count, or the sourcing count */}
-      <div className="flex w-[190px] shrink-0 justify-end">
-        {role.awaitingManager ? (
-          <Tag color="gray">Awaiting hiring manager</Tag>
-        ) : ready ? (
-          <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-info">
-            <span className="h-1.5 w-1.5 rounded-full bg-info" />
-            {role.candidatesReady} ready to review
-          </span>
-        ) : (
-          <span className="text-[13px] text-secondary">
-            {role.totalCandidates > 0 ? `${role.totalCandidates} sourced` : 'Not sourcing yet'}
-          </span>
-        )}
+      {/* One status per role, from its lifecycle state */}
+      <div className="flex w-[210px] shrink-0 justify-end">
+        <RoleStatus role={role} />
       </div>
 
       <ChevronRightIcon className="h-4 w-4 shrink-0 text-secondary" />
@@ -112,8 +129,9 @@ function RoleRow({ role, index, onClick }) {
  * The count lives in the title; each row says its status once (lead with the
  * count) and fills the middle with a stack of its candidate faces.
  */
-export default function RolesScreen({ roles, onCreateRole, onOpenRole }) {
+export default function RolesScreen({ roles, onCreateRole, onOpenRole, defineNotice }) {
   const [loading, setLoading] = useState(true)
+  const [noticeOpen, setNoticeOpen] = useState(true)
 
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 850)
@@ -156,6 +174,33 @@ export default function RolesScreen({ roles, onCreateRole, onOpenRole }) {
         <EmptyState onCreateRole={onCreateRole} />
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-10 lg:px-8">
+          {/* A hiring manager finished a definition — a dismissible notification */}
+          {defineNotice && noticeOpen && (
+            <div className="mb-4 flex flex-wrap items-center gap-4 rounded-xl border border-strong/25 bg-strong/[0.05] px-5 py-3.5">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-strong/10 text-strong">
+                <CheckIcon className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-ink">
+                  <span className="font-medium">{defineNotice.manager}</span> defined{' '}
+                  {defineNotice.roleTitle}
+                </p>
+                <p className="text-[13px] text-secondary">Ready to submit for matching · just now</p>
+              </div>
+              {defineNotice.onReview && (
+                <Button onClick={defineNotice.onReview}>Review and submit</Button>
+              )}
+              <button
+                type="button"
+                onClick={() => setNoticeOpen(false)}
+                aria-label="Dismiss notification"
+                className="shrink-0 rounded-lg p-1.5 text-secondary transition-colors hover:bg-strong/10 hover:text-ink"
+              >
+                <XIcon className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
           <div className="overflow-hidden rounded-xl border border-hairline bg-surface shadow-card">
             {loading ? (
               <div className="animate-pulse divide-y divide-hairline">

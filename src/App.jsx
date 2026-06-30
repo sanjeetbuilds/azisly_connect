@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Sidebar } from './components'
 import { candidates, workspace, roleTotals } from './data/candidates.js'
 import { interviews } from './data/interviews.js'
-import { seedRoles, makeApprovedRole } from './data/roles.js'
+import { seedRoles, makeRole } from './data/roles.js'
 import LoginScreen from './screens/LoginScreen.jsx'
 import RolesScreen from './screens/RolesScreen.jsx'
 import CreateRoleScreen from './screens/CreateRoleScreen.jsx'
@@ -27,7 +27,7 @@ export default function App() {
   const [authed, setAuthed] = useState(false)
   const [view, setView] = useState('roles') // roles | create | define | review | candidates | invite | decision
   const [roles, setRoles] = useState(seedRoles)
-  const [draft, setDraft] = useState(null) // { title, openings, method } from Create Role
+  const [draft, setDraft] = useState(null) // { title, openings, define_by, approve_by, manager }
   const [decisionCandidate, setDecisionCandidate] = useState(null)
 
   // Hiring-manager magic-link flows (no account, no sidebar).
@@ -56,8 +56,8 @@ export default function App() {
   }
 
   const addRole = () => {
-    const cfg = draft ?? { title: 'New role', openings: 1, method: 'self' }
-    setRoles((prev) => [makeApprovedRole(`role-${prev.length + 1}`, cfg.title), ...prev])
+    const cfg = draft ?? { title: 'New role', define_by: 'recruiter', approve_by: 'hiring_manager' }
+    setRoles((prev) => [makeRole(`role-${prev.length + 1}`, cfg), ...prev])
   }
 
   const activeNav = ['candidates', 'invite', 'decision', 'manager-decision'].includes(view)
@@ -91,6 +91,20 @@ export default function App() {
           )}
           onCreateRole={() => setView('create')}
           onOpenRole={() => setView('candidates')}
+          defineNotice={{
+            // A hiring manager finished defining a role via magic link.
+            manager: 'Tom',
+            roleTitle: 'Engineering Manager',
+            onReview: () => {
+              setDraft({
+                title: 'Engineering Manager',
+                openings: 1,
+                define_by: 'hiring_manager',
+                approve_by: 'hiring_manager',
+              })
+              setView('review')
+            },
+          }}
         />
       )}
 
@@ -99,7 +113,8 @@ export default function App() {
           onCancel={() => setView('roles')}
           onContinue={(cfg) => {
             setDraft(cfg)
-            setView(cfg.method === 'invite' ? 'invite-manager' : 'define')
+            // The define_by switch decides who writes the definition.
+            setView(cfg.define_by === 'hiring_manager' ? 'invite-manager' : 'define')
           }}
         />
       )}

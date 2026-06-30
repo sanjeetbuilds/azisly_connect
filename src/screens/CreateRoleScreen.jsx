@@ -18,16 +18,31 @@ const ROLE_SUGGESTIONS = [
   'Designer',
 ]
 
-const METHODS = [
+// Switch 1 — who writes the definition.
+const DEFINE_OPTIONS = [
   {
-    key: 'self',
+    key: 'recruiter',
     title: "I'll define it now",
-    desc: 'Continue to build the competency profile with AI by chat or voice.',
+    desc: 'Build the competency profile with AI by chat or voice.',
   },
   {
-    key: 'invite',
+    key: 'hiring_manager',
     title: 'Invite a hiring manager',
     desc: 'Send a magic link so they can define it. You review it after.',
+  },
+]
+
+// Switch 2 — who approves candidates. Independent of who defines.
+const APPROVE_OPTIONS = [
+  {
+    key: 'hiring_manager',
+    title: 'A hiring manager approves',
+    desc: 'Share the scored candidates so they take people forward.',
+  },
+  {
+    key: 'recruiter_alone',
+    title: "I'll approve alone",
+    desc: 'You decide who moves to offline rounds, no second sign-off.',
   },
 ]
 
@@ -54,6 +69,24 @@ function RadioDot({ selected }) {
   )
 }
 
+function OptionButton({ selected, title, desc, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-colors ${
+        selected ? 'border-accent bg-accent/[0.03] ring-1 ring-accent/20' : 'border-hairline hover:border-ink/20'
+      }`}
+    >
+      <RadioDot selected={selected} />
+      <div className="min-w-0">
+        <div className="text-sm font-medium text-ink">{title}</div>
+        <p className="mt-0.5 text-[13px] leading-relaxed text-secondary">{desc}</p>
+      </div>
+    </button>
+  )
+}
+
 const inputClass =
   'w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 text-sm text-ink shadow-card transition-colors placeholder:text-secondary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15'
 
@@ -62,9 +95,12 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
   const [chosen, setChosen] = useState(null) // a role is only "chosen" when picked from the list
   const [open, setOpen] = useState(false)
   const [openings, setOpenings] = useState(1)
-  const [method, setMethod] = useState('self')
 
-  // Inline hiring-manager pick (only used when method === 'invite').
+  // The two independent involvement switches.
+  const [defineBy, setDefineBy] = useState('recruiter')
+  const [approveBy, setApproveBy] = useState('hiring_manager')
+
+  // Inline hiring-manager pick (only used when defineBy === 'hiring_manager').
   const [managers, setManagers] = useState(SEED_MANAGERS)
   const [managerId, setManagerId] = useState(null)
   const [mName, setMName] = useState('')
@@ -77,9 +113,9 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
   const pickedManager = managers.find((m) => m.id === managerId) ?? null
   const newManager = isEmail(mEmail) ? { name: mName.trim() || mEmail.trim(), email: mEmail.trim() } : null
   const manager = pickedManager ?? newManager
+  const needsManager = defineBy === 'hiring_manager'
 
-  const valid =
-    Boolean(chosen) && openings >= 1 && (method === 'self' || Boolean(manager))
+  const valid = Boolean(chosen) && openings >= 1 && (!needsManager || Boolean(manager))
 
   const handleType = (v) => {
     setQuery(v)
@@ -99,8 +135,13 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
 
   const submit = () => {
     if (!valid) return
-    if (method === 'invite') onContinue({ title: chosen, openings, method, manager })
-    else onContinue({ title: chosen, openings, method })
+    onContinue({
+      title: chosen,
+      openings,
+      define_by: defineBy,
+      approve_by: approveBy,
+      manager: needsManager ? manager : null,
+    })
   }
 
   return (
@@ -116,7 +157,9 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
       <div className="shrink-0 px-6 pt-8 lg:px-8">
         <p className="text-sm text-secondary">Roles · New · Step 1 of 2</p>
         <h1 className="mt-1.5 text-2xl text-ink">Create a role</h1>
-        <p className="mt-1.5 text-sm text-secondary">Basic setup. Next, you&rsquo;ll define it with AI.</p>
+        <p className="mt-1.5 text-sm text-secondary">
+          Basic setup and who is involved. You can change these later.
+        </p>
       </div>
 
       {/* Scrollable form */}
@@ -214,35 +257,23 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
               </div>
             </div>
 
-            {/* Who defines it */}
+            {/* Switch 1 — who defines the role */}
             <div>
               <FieldLabel>Who will define this role?</FieldLabel>
               <div className="flex flex-col gap-3">
-                {METHODS.map((m) => {
-                  const selected = method === m.key
-                  return (
-                    <button
-                      key={m.key}
-                      type="button"
-                      onClick={() => setMethod(m.key)}
-                      className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-colors ${
-                        selected
-                          ? 'border-accent bg-accent/[0.03] ring-1 ring-accent/20'
-                          : 'border-hairline hover:border-ink/20'
-                      }`}
-                    >
-                      <RadioDot selected={selected} />
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-ink">{m.title}</div>
-                        <p className="mt-0.5 text-[13px] leading-relaxed text-secondary">{m.desc}</p>
-                      </div>
-                    </button>
-                  )
-                })}
+                {DEFINE_OPTIONS.map((o) => (
+                  <OptionButton
+                    key={o.key}
+                    selected={defineBy === o.key}
+                    title={o.title}
+                    desc={o.desc}
+                    onClick={() => setDefineBy(o.key)}
+                  />
+                ))}
               </div>
 
               {/* Inline hiring-manager pick — revealed right under the invite option */}
-              {method === 'invite' && (
+              {needsManager && (
                 <div className="mt-3 flex flex-col gap-4 rounded-xl border border-hairline bg-background/60 p-4">
                   {managers.length > 0 && (
                     <div className="flex flex-col gap-2">
@@ -304,6 +335,22 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Switch 2 — who approves candidates */}
+            <div>
+              <FieldLabel>Who approves candidates?</FieldLabel>
+              <div className="flex flex-col gap-3">
+                {APPROVE_OPTIONS.map((o) => (
+                  <OptionButton
+                    key={o.key}
+                    selected={approveBy === o.key}
+                    title={o.title}
+                    desc={o.desc}
+                    onClick={() => setApproveBy(o.key)}
+                  />
+                ))}
+              </div>
             </div>
           </Card>
         </div>
