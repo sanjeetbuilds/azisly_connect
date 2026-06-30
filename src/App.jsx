@@ -16,7 +16,7 @@ import SubmitMatchScreen from './screens/SubmitMatchScreen.jsx'
 import DecisionScreen from './screens/DecisionScreen.jsx'
 import ManagerFlow from './screens/ManagerFlow.jsx'
 import ManagerReviewFlow from './screens/ManagerReviewFlow.jsx'
-import CandidateInterviewLanding from './screens/CandidateInterviewLanding.jsx'
+import CandidateInterviewFlow from './screens/CandidateInterviewFlow.jsx'
 
 // Magic-link entries: a hiring manager reaches the app via ?invite=<token>
 // (define a role) or ?review=<token> (review the shortlist). Resolved once at
@@ -35,15 +35,13 @@ export default function App() {
   const [submitRole, setSubmitRole] = useState(null) // the defined role being submitted for matching
   const [openRole, setOpenRole] = useState(null) // the role whose candidate pipeline is open
 
-  // Candidate interview landing (public, no account). The token value selects the
-  // state for preview; a real token would be decoded to the same set.
+  // Candidate interview flow (public, no account): landing then pre-interview
+  // setup. The token value selects the state for preview; a real token would be
+  // decoded to the same set.
   if (interviewToken !== null) {
-    const status = ['expired', 'filled', 'completed'].includes(interviewToken)
-      ? interviewToken
-      : 'valid'
     return (
-      <CandidateInterviewLanding
-        status={status}
+      <CandidateInterviewFlow
+        token={interviewToken}
         role="Senior Product Engineer"
         company="Acme"
         expiresOn="Jul 12, 2026"
