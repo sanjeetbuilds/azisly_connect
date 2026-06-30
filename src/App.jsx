@@ -12,6 +12,7 @@ import CandidatesScreen from './screens/CandidatesScreen.jsx'
 import ManagerDecisionScreen from './screens/ManagerDecisionScreen.jsx'
 import InviteScreen from './screens/InviteScreen.jsx'
 import InviteManagerScreen from './screens/InviteManagerScreen.jsx'
+import SubmitMatchScreen from './screens/SubmitMatchScreen.jsx'
 import DecisionScreen from './screens/DecisionScreen.jsx'
 import ManagerFlow from './screens/ManagerFlow.jsx'
 import ManagerReviewFlow from './screens/ManagerReviewFlow.jsx'
@@ -29,6 +30,7 @@ export default function App() {
   const [roles, setRoles] = useState(seedRoles)
   const [draft, setDraft] = useState(null) // { title, openings, define_by, approve_by, manager }
   const [decisionCandidate, setDecisionCandidate] = useState(null)
+  const [submitRole, setSubmitRole] = useState(null) // the defined role being submitted for matching
 
   // Hiring-manager magic-link flows (no account, no sidebar).
   if (reviewToken !== null) {
@@ -90,19 +92,24 @@ export default function App() {
               : r,
           )}
           onCreateRole={() => setView('create')}
-          onOpenRole={() => setView('candidates')}
+          onOpenRole={(role) => {
+            // A defined role goes to submit-and-match; everything else opens its
+            // candidate pipeline.
+            if (role.state === 'defined') {
+              setSubmitRole(role)
+              setView('submit-match')
+            } else {
+              setView('candidates')
+            }
+          }}
           defineNotice={{
             // A hiring manager finished defining a role via magic link.
             manager: 'Tom',
             roleTitle: 'Engineering Manager',
             onReview: () => {
-              setDraft({
-                title: 'Engineering Manager',
-                openings: 1,
-                define_by: 'hiring_manager',
-                approve_by: 'hiring_manager',
-              })
-              setView('review')
+              const em = roles.find((r) => r.id === 'r-em')
+              if (em) setSubmitRole(em)
+              setView('submit-match')
             },
           }}
         />
@@ -137,6 +144,25 @@ export default function App() {
             />
           )
         })()}
+
+      {view === 'submit-match' && submitRole && (
+        <SubmitMatchScreen
+          role={submitRole}
+          candidates={candidates.filter((c) => c.verdict)}
+          onBack={() => setView('roles')}
+          onComplete={() => {
+            const matched = candidates.filter((c) => c.verdict).length
+            setRoles((prev) =>
+              prev.map((r) =>
+                r.id === submitRole.id
+                  ? { ...r, state: 'ready', candidatesReady: matched, totalCandidates: matched }
+                  : r,
+              ),
+            )
+          }}
+          onReviewCandidates={() => setView('candidates')}
+        />
+      )}
 
       {view === 'define' && (
         <DefineRoleScreen
