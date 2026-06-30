@@ -8,6 +8,7 @@ import EvidenceQuote from './EvidenceQuote.jsx'
 import StageTracker from './StageTracker.jsx'
 import Tag, { skillColor } from './Tag.jsx'
 import Kbd from './Kbd.jsx'
+import JudgeControls from './JudgeControls.jsx'
 import { XIcon, PlayIcon, CheckIcon, MailIcon, PhoneIcon } from './icons.jsx'
 import { SOURCES, stageTrackIndex, GATE } from '../data/candidates.js'
 
@@ -57,11 +58,11 @@ function InterviewVideo({ candidate, summary }) {
 export default function CandidateDetail({
   candidate,
   onBack,
-  onDecide,
   interview,
   decided,
   onTakeForward,
   onUndo,
+  judge,
 }) {
   const src = SOURCES[candidate.source]
   const managerMode = Boolean(onTakeForward)
@@ -217,14 +218,25 @@ export default function CandidateDetail({
               <CheckIcon className="h-4 w-4" /> Taken forward by the hiring manager. Reach out to start
               the offline rounds.
             </span>
+          ) : judge?.eligible ? (
+            <div className="flex w-full items-center gap-4">
+              <JudgeControls
+                size="lg"
+                picked={judge.picked}
+                skipped={judge.skipped}
+                onTick={judge.onTick}
+                onCross={judge.onCross}
+              />
+              <span className="text-sm text-secondary">
+                {judge.picked
+                  ? 'Selected to move forward'
+                  : judge.skipped
+                    ? 'Skipped'
+                    : 'Select to move forward, or skip'}
+              </span>
+            </div>
           ) : (
-            <>
-              <Button variant="primary" onClick={() => onDecide?.(candidate)}>
-                Shortlist or pass
-              </Button>
-              <Button variant="secondary">Save for later</Button>
-              <Kbd className="ml-auto">⌘↵</Kbd>
-            </>
+            <span className="text-sm text-secondary">{candidate.stage}</span>
           )}
         </div>
       </div>

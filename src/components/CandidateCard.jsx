@@ -1,23 +1,64 @@
 import Avatar from './Avatar.jsx'
 import VerdictTag from './VerdictTag.jsx'
 import Tag from './Tag.jsx'
-import { SkillTags } from './CandidateTable.jsx'
-import { SOURCES } from '../data/candidates.js'
+import JudgeControls from './JudgeControls.jsx'
+import { GATE } from '../data/candidates.js'
+
+/* The candidate's strongest assessed competencies, as compact bars. */
+function TopCompetencies({ competencies = [] }) {
+  const top = competencies
+    .filter((c) => c.score != null)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+  if (top.length === 0) return null
+  return (
+    <div className="flex flex-col gap-1.5">
+      {top.map((c) => (
+        <div key={c.name} className="flex items-center gap-2 text-[13px]">
+          <span className="w-28 shrink-0 truncate text-secondary">{c.name}</span>
+          <span className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-ink/[0.06]">
+            <span
+              className={`absolute inset-y-0 left-0 rounded-full ${c.score < GATE ? 'bg-attention' : 'bg-strong'}`}
+              style={{ width: `${c.score}%` }}
+            />
+          </span>
+          <span className="w-6 shrink-0 text-right font-mono text-ink tabular-nums">{c.score}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 /**
- * CandidateCard — the grid-view tile. Lifts on hover (elevation) to read as a
- * surface that floats above the canvas.
+ * CandidateCard — the card-view tile. Shows avatar, score, verdict, and the top
+ * competencies, and carries the same tick and cross controls as the list.
  */
-export default function CandidateCard({ candidate, selected = false, onSelect }) {
-  const src = SOURCES[candidate.source]
+export default function CandidateCard({
+  candidate,
+  selected = false,
+  onSelect,
+  picked,
+  skipped,
+  disabled,
+  reason,
+  onTick,
+  onCross,
+}) {
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(candidate.id)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onSelect(candidate.id)
+        }
+      }}
       aria-current={selected ? 'true' : undefined}
-      className={`group flex flex-col gap-4 rounded-xl border bg-surface p-5 text-left shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-panel ${
+      className={`group flex cursor-pointer flex-col gap-4 rounded-xl border bg-surface p-5 text-left shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-panel ${
         selected ? 'border-accent/40 ring-1 ring-accent/20' : 'border-hairline'
-      }`}
+      } ${skipped ? 'opacity-60' : ''}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
@@ -34,19 +75,24 @@ export default function CandidateCard({ candidate, selected = false, onSelect })
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-1">
-        <SkillTags skills={candidate.skills} max={3} />
-      </div>
+      <TopCompetencies competencies={candidate.competencies} />
 
       <div className="flex items-center justify-between border-t border-hairline pt-3.5">
-        <div className="flex items-center gap-2 text-[13px] text-secondary">
-          {src && <Tag color={src.color}>{src.label}</Tag>}
-          <span>{candidate.location}</span>
+        <div className="flex items-baseline gap-1.5">
+          <span className="font-mono text-lg leading-none text-ink tabular-nums">
+            {candidate.score ?? <span className="text-base text-secondary">·</span>}
+          </span>
+          {candidate.score != null && <span className="text-[12px] text-secondary">match</span>}
         </div>
-        <span className="font-mono text-lg leading-none text-ink tabular-nums">
-          {candidate.score ?? <span className="text-base text-secondary">·</span>}
-        </span>
+        <JudgeControls
+          picked={picked}
+          skipped={skipped}
+          disabled={disabled}
+          reason={reason}
+          onTick={onTick}
+          onCross={onCross}
+        />
       </div>
-    </button>
+    </div>
   )
 }

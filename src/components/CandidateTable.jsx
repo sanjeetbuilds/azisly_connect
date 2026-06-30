@@ -1,27 +1,28 @@
 import Avatar from './Avatar.jsx'
 import VerdictTag from './VerdictTag.jsx'
 import Tag, { skillColor } from './Tag.jsx'
+import JudgeControls from './JudgeControls.jsx'
 import { SortIcon, CheckIcon } from './icons.jsx'
 
-/* A square checkbox. As a button so it can sit inside a clickable row. */
-function CheckBox({ checked, disabled, onClick, label, title }) {
+/* The header select-all tick. */
+function SelectAll({ checked, disabled, onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      aria-label={label}
       aria-pressed={checked}
-      title={title}
-      className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md border transition-colors ${
+      aria-label="Select all eligible"
+      title="Select all"
+      className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border transition-colors ${
         disabled
-          ? 'cursor-not-allowed border-hairline bg-background'
+          ? 'cursor-not-allowed border-hairline bg-background text-secondary/40'
           : checked
             ? 'border-accent bg-accent text-surface'
-            : 'border-hairline bg-surface hover:border-ink/30'
+            : 'border-hairline bg-surface text-secondary hover:border-accent hover:text-accent'
       }`}
     >
-      {checked && !disabled && <CheckIcon className="h-3 w-3" />}
+      <CheckIcon className="h-3 w-3" />
     </button>
   )
 }
@@ -111,7 +112,9 @@ export default function CandidateTable({
   sort,
   onSort,
   picked,
-  onToggle,
+  skipped,
+  onTick,
+  onCross,
   onToggleAll,
   eligibility = () => ({ ok: true }),
   isNew = () => false,
@@ -120,15 +123,12 @@ export default function CandidateTable({
   const allChecked = eligible.length > 0 && eligible.every((c) => picked.has(c.id))
 
   return (
-    <div className="min-w-[760px]">
+    <div className="min-w-[780px]">
       {/* Header row */}
       <div className="flex items-center gap-4 border-b border-hairline bg-background/60 px-5 py-2">
-        <CheckBox
-          checked={allChecked}
-          disabled={eligible.length === 0}
-          onClick={onToggleAll}
-          label="Select all eligible"
-        />
+        <div className="w-[58px] shrink-0">
+          <SelectAll checked={allChecked} disabled={eligible.length === 0} onClick={onToggleAll} />
+        </div>
         <HeaderCell className="min-w-0 flex-1" sortable sortKey="name" sort={sort} onSort={onSort}>
           Candidate
         </HeaderCell>
@@ -150,9 +150,10 @@ export default function CandidateTable({
 
       {/* Rows */}
       <div>
-        {candidates.map((c) => {
+        {candidates.map((c, index) => {
           const elig = eligibility(c)
           const isPicked = picked.has(c.id)
+          const isSkipped = skipped.has(c.id)
           const open = c.id === selectedId
           const extra = c.skills.length - 2
           return (
@@ -173,21 +174,21 @@ export default function CandidateTable({
                   ? 'bg-accent/[0.05]'
                   : isPicked
                     ? 'bg-accent/[0.03]'
-                    : c.stage === 'Taken forward'
-                      ? 'bg-strong/[0.04] hover:bg-strong/[0.07]'
+                    : isSkipped
+                      ? 'bg-background opacity-55'
                       : 'hover:bg-background'
               }`}
             >
-              <CheckBox
-                checked={isPicked}
-                disabled={!elig.ok}
-                title={elig.ok ? undefined : elig.reason}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (elig.ok) onToggle(c.id)
-                }}
-                label={`Select ${c.name}`}
-              />
+              <div className="w-[58px] shrink-0">
+                <JudgeControls
+                  picked={isPicked}
+                  skipped={isSkipped}
+                  disabled={!elig.ok}
+                  reason={elig.reason}
+                  onTick={(e) => onTick(c.id, index, e.shiftKey)}
+                  onCross={() => onCross(c.id)}
+                />
+              </div>
 
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 <Avatar src={c.avatar} name={c.name} size={32} />

@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react'
-import { Button, SearchInput, CandidateTable, CandidateDetail } from '../components'
+import { Button, CandidateTable, CandidateCard, CandidateDetail, ViewToggle } from '../components'
 import ShareWithManagerModal from '../components/ShareWithManagerModal.jsx'
-import { CheckIcon, XIcon } from '../components/icons.jsx'
+import { CheckIcon, XIcon, SearchIcon } from '../components/icons.jsx'
 import { candidates, isReadyToReview, roleTotals } from '../data/candidates.js'
 import { interviews } from '../data/interviews.js'
 
-// Workflow tabs. Each maps to one or more lifecycle states; "All" matches every
-// state. The active tab decides the single bulk action and what is selectable.
+// Stage tabs filter the list; they do not change the action.
 const TABS = [
   { key: 'all', label: 'All' },
   { key: 'to-interview', label: 'To interview', stages: ['Sourced'] },
@@ -15,6 +14,15 @@ const TABS = [
   { key: 'shared', label: 'Shared', stages: ['Shared'] },
   { key: 'decided', label: 'Decided', stages: ['Taken forward', 'Passed'] },
 ]
+
+// Only scored, not-yet-decided candidates can be ticked.
+function eligibility(c) {
+  if (isReadyToReview(c)) return { ok: true }
+  if (c.stage === 'Shared') return { ok: false, reason: 'Already sent to the hiring manager' }
+  if (c.stage === 'Taken forward' || c.stage === 'Passed')
+    return { ok: false, reason: 'Already decided' }
+  return { ok: false, reason: 'Not scored yet' }
+}
 
 function sortCandidates(list, { key, dir }) {
   const sorted = [...list].sort((a, b) => {
@@ -28,36 +36,24 @@ function sortCandidates(list, { key, dir }) {
 }
 
 /**
- * CandidatesScreen — a workflow-led review for one role (Senior Product
- * Engineer). The count and ready signal live in the title and derive from one
- * list. Stage tabs, a relocated search field, and a single discoverable primary
- * action that is disabled until eligible rows are selected.
+ * CandidatesScreen — the recruiter's judging surface for one role. Every row has
+ * a tick (select to move forward) and a cross (skip). One top action, labelled
+ * by the role's approve_by flag, operates on everything ticked.
  */
-export default function CandidatesScreen({ onInvite, onDecide, managerResponse }) {
+export default function CandidatesScreen({ approveBy = 'hiring_manager', managerResponse }) {
   const [search, setSearch] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
   const [tab, setTab] = useState('all')
+  const [view, setView] = useState('list')
   const [sort, setSort] = useState({ key: 'score', dir: 'desc' })
   const [selectedId, setSelectedId] = useState(null)
   const [picked, setPicked] = useState(() => new Set())
+  const [skipped, setSkipped] = useState(() => new Set())
+  const [lastTick, setLastTick] = useState(null)
   const [opened, setOpened] = useState(() => new Set())
   const [shareOpen, setShareOpen] = useState(false)
   const [noticeOpen, setNoticeOpen] = useState(true)
-
-  // The active action and what it accepts.
-  const action = tab === 'to-interview' ? 'invite' : 'share'
-  const eligibility = (c) => {
-    if (action === 'invite') {
-      return c.stage === 'Sourced' ? { ok: true } : { ok: false, reason: 'Already in the pipeline' }
-    }
-    if (isReadyToReview(c)) return { ok: true }
-    if (c.stage === 'Shared') return { ok: false, reason: 'Already shared' }
-    if (c.stage === 'Taken forward' || c.stage === 'Passed') return { ok: false, reason: 'Already decided' }
-    return { ok: false, reason: 'Not scored yet' }
-  }
-  const primary =
-    action === 'invite'
-      ? { label: 'Invite to interview', helper: 'Select sourced candidates to invite', run: () => onInvite?.() }
-      : { label: 'Share with hiring manager', helper: 'Select scored candidates to share', run: () => setShareOpen(true) }
+  const [movedCount, setMovedCount] = useState(0)
 
   const isFresh = (c) => Boolean(c.isNew) && !opened.has(c.id)
 
@@ -73,13 +69,32 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
       return true
     })
     const sorted = sortCandidates(filtered, sort)
-    // New, unopened candidates float to the top (stable within each group).
     return [...sorted].sort((a, b) => (isFresh(b) ? 1 : 0) - (isFresh(a) ? 1 : 0))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, tab, sort, opened])
 
   const selected = candidates.find((c) => c.id === selectedId) ?? null
   const pickedEligible = candidates.filter((c) => picked.has(c.id) && eligibility(c).ok)
+  const n = pickedEligible.length
+
+  // One top action, label driven by approve_by.
+  const moveForward = () => {
+    if (!n) return
+    setMovedCount(n)
+    clearPicked()
+  }
+  const primary =
+    approveBy === 'recruiter_alone'
+      ? {
+          label: n > 0 ? `Move ${n} forward` : 'Move forward',
+          helper: 'Tick scored candidates to move them forward',
+          run: moveForward,
+        }
+      : {
+          label: n > 0 ? `Send ${n} to hiring manager` : 'Send to hiring manager',
+          helper: 'Tick scored candidates to send to the hiring manager',
+          run: () => setShareOpen(true),
+        }
 
   const handleSort = (key) =>
     setSort((prev) =>
@@ -91,6 +106,8 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
   const switchTab = (key) => {
     setTab(key)
     setPicked(new Set())
+    setSkipped(new Set())
+    setLastTick(null)
     setSelectedId(null)
   }
 
@@ -99,13 +116,60 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
     setOpened((prev) => (prev.has(id) ? prev : new Set(prev).add(id)))
   }
 
-  const toggle = (id) =>
-    setPicked((prev) => {
+  // Tick: select to move forward. Shift-tick selects the range from the last tick.
+  const tick = (id, index, shiftKey) => {
+    const c = candidates.find((x) => x.id === id)
+    if (!c || !eligibility(c).ok) return
+    if (shiftKey && lastTick != null) {
+      const [a, b] = lastTick <= index ? [lastTick, index] : [index, lastTick]
+      setPicked((prev) => {
+        const next = new Set(prev)
+        for (let i = a; i <= b; i += 1) {
+          const cc = visible[i]
+          if (cc && eligibility(cc).ok) next.add(cc.id)
+        }
+        return next
+      })
+      setSkipped((prev) => {
+        const next = new Set(prev)
+        for (let i = a; i <= b; i += 1) {
+          const cc = visible[i]
+          if (cc) next.delete(cc.id)
+        }
+        return next
+      })
+    } else {
+      setPicked((prev) => {
+        const next = new Set(prev)
+        if (next.has(id)) next.delete(id)
+        else next.add(id)
+        return next
+      })
+      setSkipped((prev) => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+    }
+    setLastTick(index)
+  }
+  const cross = (id) => {
+    const c = candidates.find((x) => x.id === id)
+    if (!c || !eligibility(c).ok) return
+    setSkipped((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
       return next
     })
+    setPicked((prev) => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+  }
+  const tickById = (id) => tick(id, visible.findIndex((c) => c.id === id), false)
+
   const toggleAll = () =>
     setPicked((prev) => {
       const eligibleVisible = visible.filter((c) => eligibility(c).ok)
@@ -114,7 +178,10 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
       eligibleVisible.forEach((c) => (allIn ? next.delete(c.id) : next.add(c.id)))
       return next
     })
-  const clearPicked = () => setPicked(new Set())
+  const clearPicked = () => {
+    setPicked(new Set())
+    setSkipped(new Set())
+  }
 
   return (
     <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -125,7 +192,7 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
         </span>
       </header>
 
-      {/* Page header — count and ready signal derive from one list */}
+      {/* Page header */}
       <div className="shrink-0 px-6 pb-4 pt-8 lg:px-8">
         <p className="text-sm text-secondary">Pipeline · Senior Product Engineer</p>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -168,13 +235,29 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
           </div>
         )}
 
-        {/* Search — its own line, a full, clearly styled field */}
-        <div className="mb-3">
-          <SearchInput value={search} onChange={setSearch} placeholder="Search candidates by name, skill, or location" />
-        </div>
+        {/* Recruiter-alone confirmation */}
+        {movedCount > 0 && (
+          <div className="mb-4 flex flex-wrap items-center gap-4 rounded-xl border border-strong/25 bg-strong/[0.05] px-5 py-3.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-strong/10 text-strong">
+              <CheckIcon className="h-5 w-5" />
+            </span>
+            <p className="min-w-0 flex-1 text-sm text-ink">
+              <span className="font-medium">{movedCount}</span> candidate{movedCount === 1 ? '' : 's'}{' '}
+              moved forward to offline rounds
+            </p>
+            <button
+              type="button"
+              onClick={() => setMovedCount(0)}
+              aria-label="Dismiss notification"
+              className="shrink-0 rounded-lg p-1.5 text-secondary transition-colors hover:bg-strong/10 hover:text-ink"
+            >
+              <XIcon className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
 
         <div className="overflow-hidden rounded-xl border border-hairline bg-surface shadow-card">
-          {/* Toolbar — stage tabs and ONE primary action, always visible */}
+          {/* Toolbar — tabs left, restrained search and the view toggle right */}
           <div className="flex flex-wrap items-center gap-3 border-b border-hairline px-4 py-2.5">
             <div className="flex flex-wrap items-center gap-1">
               {TABS.map((t) => (
@@ -190,33 +273,78 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
                 </button>
               ))}
             </div>
-            <div className="ml-auto flex items-center gap-3">
-              {pickedEligible.length > 0 ? (
-                <span className="text-[13px] text-secondary">
-                  <span className="font-medium text-ink">{pickedEligible.length}</span> selected ·{' '}
+            <div className="ml-auto flex items-center gap-2">
+              {searchOpen ? (
+                <div className="relative flex items-center">
+                  <SearchIcon className="pointer-events-none absolute left-2.5 h-4 w-4 text-secondary" />
+                  <input
+                    autoFocus
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        setSearch('')
+                        setSearchOpen(false)
+                      }
+                    }}
+                    placeholder="Search"
+                    className="w-52 rounded-lg border border-hairline bg-surface py-1.5 pl-8 pr-8 text-sm text-ink shadow-card transition-colors placeholder:text-secondary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+                  />
                   <button
                     type="button"
-                    onClick={clearPicked}
-                    className="font-medium text-info transition-colors hover:underline"
+                    onClick={() => {
+                      setSearch('')
+                      setSearchOpen(false)
+                    }}
+                    aria-label="Close search"
+                    className="absolute right-1.5 flex h-5 w-5 items-center justify-center rounded text-secondary transition-colors hover:text-ink"
                   >
-                    Clear
+                    <XIcon className="h-3.5 w-3.5" />
                   </button>
-                </span>
+                </div>
               ) : (
-                <span className="hidden text-[13px] text-secondary sm:inline">{primary.helper}</span>
+                <button
+                  type="button"
+                  onClick={() => setSearchOpen(true)}
+                  aria-label="Search"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-hairline text-secondary transition-colors hover:border-ink/20 hover:text-ink"
+                >
+                  <SearchIcon className="h-4 w-4" />
+                </button>
               )}
-              <Button disabled={pickedEligible.length === 0} onClick={primary.run}>
+              <ViewToggle value={view} onChange={setView} />
+            </div>
+          </div>
+
+          {/* Action bar — one top action, always visible */}
+          <div className="flex flex-wrap items-center gap-3 border-b border-hairline bg-background/40 px-4 py-2.5">
+            {n > 0 ? (
+              <span className="text-[13px] text-secondary">
+                <span className="font-medium text-ink">{n}</span> selected ·{' '}
+                <button
+                  type="button"
+                  onClick={clearPicked}
+                  className="font-medium text-info transition-colors hover:underline"
+                >
+                  Clear
+                </button>
+              </span>
+            ) : (
+              <span className="text-[13px] text-secondary">{primary.helper}</span>
+            )}
+            <div className="ml-auto">
+              <Button disabled={n === 0} onClick={primary.run}>
                 {primary.label}
               </Button>
             </div>
           </div>
 
-          {/* Results — list only */}
+          {/* Results — list or cards */}
           {visible.length === 0 ? (
             <div className="px-6 py-16 text-center text-sm text-secondary">
               No candidates in this view.
             </div>
-          ) : (
+          ) : view === 'list' ? (
             <div className="overflow-x-auto">
               <CandidateTable
                 candidates={visible}
@@ -225,11 +353,33 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
                 sort={sort}
                 onSort={handleSort}
                 picked={picked}
-                onToggle={toggle}
+                skipped={skipped}
+                onTick={tick}
+                onCross={cross}
                 onToggleAll={toggleAll}
                 eligibility={eligibility}
                 isNew={isFresh}
               />
+            </div>
+          ) : (
+            <div className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-3">
+              {visible.map((c) => {
+                const elig = eligibility(c)
+                return (
+                  <CandidateCard
+                    key={c.id}
+                    candidate={c}
+                    selected={c.id === selectedId}
+                    onSelect={openDetail}
+                    picked={picked.has(c.id)}
+                    skipped={skipped.has(c.id)}
+                    disabled={!elig.ok}
+                    reason={elig.reason}
+                    onTick={() => tickById(c.id)}
+                    onCross={() => cross(c.id)}
+                  />
+                )
+              })}
             </div>
           )}
         </div>
@@ -251,14 +401,20 @@ export default function CandidatesScreen({ onInvite, onDecide, managerResponse }
             <CandidateDetail
               candidate={selected}
               onBack={() => setSelectedId(null)}
-              onDecide={onDecide}
               interview={interviews[selected.id]}
+              judge={{
+                eligible: eligibility(selected).ok,
+                picked: picked.has(selected.id),
+                skipped: skipped.has(selected.id),
+                onTick: () => tickById(selected.id),
+                onCross: () => cross(selected.id),
+              }}
             />
           </div>
         </>
       )}
 
-      {/* Share with hiring manager: only ever the eligible selection */}
+      {/* Send to hiring manager: only ever the eligible selection */}
       {shareOpen && (
         <ShareWithManagerModal
           candidates={pickedEligible}

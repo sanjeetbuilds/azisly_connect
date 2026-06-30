@@ -192,11 +192,7 @@ export default function App() {
 
       {view === 'candidates' && (
         <CandidatesScreen
-          onInvite={() => setView('invite')}
-          onDecide={(candidate) => {
-            setDecisionCandidate(candidate)
-            setView('decision')
-          }}
+          approveBy={roles.find((r) => r.id === 'r-spe')?.approve_by ?? 'hiring_manager'}
           managerResponse={{
             manager: 'Anjali Rao',
             roleTitle: 'Senior Product Engineer',
