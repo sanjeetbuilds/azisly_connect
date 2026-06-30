@@ -174,3 +174,12 @@ export const EyeIcon = ({ className = 'h-4 w-4' }) => (
     <circle cx="8" cy="8" r="1.7" />
   </svg>
 )
+
+export const SmileIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.4" className={className}>
+    <circle cx="8" cy="8" r="5.8" />
+    <path d="M5.6 9.4c.7.8 4.1.8 4.8 0" strokeLinecap="round" />
+    <circle cx="6.1" cy="6.6" r="0.5" fill="currentColor" stroke="none" />
+    <circle cx="9.9" cy="6.6" r="0.5" fill="currentColor" stroke="none" />
+  </svg>
+)

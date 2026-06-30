@@ -6,7 +6,8 @@ import {
   ChatIcon,
   CameraIcon,
   SparkleIcon,
-  EyeIcon,
+  SmileIcon,
+  ChevronRightIcon,
   CheckIcon,
   XIcon,
 } from '../components/icons.jsx'
@@ -40,21 +41,31 @@ function CompanyLogo({ company, size = 44 }) {
   )
 }
 
-function Section({ label, children }) {
+/* One scannable fact: icon plus two or three words. */
+function StatChip({ icon: Icon, children }) {
   return (
-    <div className="flex flex-col gap-2.5 px-6 py-5 lg:px-7">
-      <p className="text-sm font-medium text-secondary">{label}</p>
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-surface px-3 py-1.5 text-[13px] font-medium text-ink shadow-card">
+      <Icon className="h-3.5 w-3.5 text-secondary" />
       {children}
-    </div>
+    </span>
   )
 }
 
-function Fact({ icon: Icon, children }) {
+/* A quiet, closed-by-default disclosure for the nice-to-have detail. */
+function Expander({ label, children }) {
+  const [open, setOpen] = useState(false)
   return (
-    <li className="flex gap-3">
-      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-secondary" />
-      <span className="text-[15px] leading-relaxed text-ink">{children}</span>
-    </li>
+    <div className="flex flex-col">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 self-start text-[13px] font-medium text-secondary transition-colors hover:text-ink"
+      >
+        <ChevronRightIcon className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-90' : ''}`} />
+        {label}
+      </button>
+      {open && <div className="mt-3 pl-5">{children}</div>}
+    </div>
   )
 }
 
@@ -86,8 +97,10 @@ const DECLINE_REASONS = ['Too busy right now', 'Not interested in the role', 'Co
 
 /**
  * CandidateInterviewLanding — the page a candidate reaches from a private magic
- * link. Azisly is the trusted host; the company is context. Trust first, then
- * context, then the ask, then consent. States: valid, expired, filled, completed.
+ * link. Built so a candidate can decide in about ten seconds of scanning: the
+ * title, a compact facts row, and Continue carry the eye; everything else is
+ * secondary or tucked behind a disclosure. States: valid, expired, filled,
+ * completed.
  */
 export default function CandidateInterviewLanding({
   status = 'valid',
@@ -142,14 +155,14 @@ export default function CandidateInterviewLanding({
     )
   }
 
-  // Valid landing
+  // Valid landing — scannable hierarchy, mostly white space.
   return (
     <div className="flex min-h-screen flex-col bg-background text-ink">
       <Header />
 
-      <main className="flex-1 px-6 py-10 lg:px-8">
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-7">
-          {/* 1 + 2: the clear line, the company as guest context, the warm intro */}
+      <main className="flex-1 px-6 py-12 lg:px-8 lg:py-16">
+        <div className="mx-auto flex w-full max-w-xl flex-col gap-8">
+          {/* The clear line + company as guest context + warm one-line intro */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <CompanyLogo company={company} />
@@ -167,64 +180,16 @@ export default function CandidateInterviewLanding({
             </div>
           </div>
 
-          {/* 3 + 4 + 5: about the role, the company, the interview */}
-          <Card className="flex flex-col divide-y divide-hairline p-0">
-            <Section label="About the role">
-              <p className="text-[15px] leading-relaxed text-secondary">
-                As a {role} at {company}, you would own product-facing features end to end, from
-                shaping the problem with design and product to shipping and measuring the result. You
-                would work across two squads and help set the technical direction for your area.
-              </p>
-            </Section>
+          {/* The facts row — scannable at a glance, not paragraphs */}
+          <div className="flex flex-wrap gap-2">
+            <StatChip icon={ClockIcon}>20 to 30 min</StatChip>
+            <StatChip icon={ChatIcon}>a few questions</StatChip>
+            <StatChip icon={CameraIcon}>video</StatChip>
+            <StatChip icon={SparkleIcon}>AI-led</StatChip>
+            <StatChip icon={SmileIcon}>take your time</StatChip>
+          </div>
 
-            <Section label={`About ${company}`}>
-              <p className="text-[15px] leading-relaxed text-secondary">
-                {company} builds tools that help teams plan and ship their work. It is a remote-first
-                company across Europe, around 200 people, behind a product used by thousands of teams
-                every day.
-              </p>
-            </Section>
-
-            <Section label="About this interview">
-              <ul className="flex flex-col gap-3">
-                <Fact icon={ClockIcon}>It takes about 20 to 30 minutes.</Fact>
-                <Fact icon={ChatIcon}>
-                  A short set of questions, asked one at a time. You answer in your own words.
-                </Fact>
-                <Fact icon={CameraIcon}>
-                  It is a video interview, so you will use your camera and microphone.
-                </Fact>
-                <Fact icon={SparkleIcon}>
-                  An AI interviewer runs it. You are judged on what you say, not your CV or your
-                  accent.
-                </Fact>
-                <Fact icon={EyeIcon}>
-                  After you finish, {company}'s hiring team reviews your interview.
-                </Fact>
-              </ul>
-            </Section>
-          </Card>
-
-          {/* 6: recording and privacy, made prominent, not buried */}
-          <Card className="flex flex-col gap-3.5 border-ink/10 bg-ink/[0.02] p-6">
-            <div className="flex items-center gap-2 text-sm font-medium text-ink">
-              <ShieldIcon className="h-4 w-4 text-secondary" />
-              Recording and privacy
-            </div>
-            <ul className="flex flex-col gap-3">
-              <Fact icon={CameraIcon}>This session is recorded, both video and audio.</Fact>
-              <Fact icon={SparkleIcon}>
-                An AI interviewer asks the questions and assesses your answers.
-              </Fact>
-              <Fact icon={EyeIcon}>{company}'s hiring team can view your recorded interview.</Fact>
-              <Fact icon={ShieldIcon}>
-                Your recording is stored securely, used only for this role, and is never sold or used
-                to train public models.
-              </Fact>
-            </ul>
-          </Card>
-
-          {/* 7: two actions of equal weight, or the gentle decline flow */}
+          {/* The ask + consent in one calm block */}
           {phase === 'declined' ? (
             <Card className="flex flex-col items-center gap-3 p-6 text-center">
               <span className="flex h-11 w-11 items-center justify-center rounded-full border border-hairline bg-background text-secondary">
@@ -265,7 +230,7 @@ export default function CandidateInterviewLanding({
                   )
                 })}
               </div>
-              <div className="flex flex-wrap items-center justify-end gap-3 border-t border-hairline pt-5">
+              <div className="flex items-center justify-end gap-3 border-t border-hairline pt-5">
                 <Button variant="secondary" onClick={() => setPhase('landing')}>
                   Back
                 </Button>
@@ -273,21 +238,61 @@ export default function CandidateInterviewLanding({
               </div>
             </Card>
           ) : (
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Button className="flex-1 justify-center" onClick={onContinue}>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <Button onClick={onContinue} className="!px-6">
                   Continue to set up
                 </Button>
-                <Button variant="secondary" className="flex-1 justify-center" onClick={() => setPhase('declining')}>
+                <button
+                  type="button"
+                  onClick={() => setPhase('declining')}
+                  className="px-1 py-1 text-sm font-medium text-secondary transition-colors hover:text-ink"
+                >
                   Not right now
-                </Button>
+                </button>
               </div>
-              {/* 8: housekeeping */}
-              <p className="text-center text-[13px] text-secondary">
-                This link is private to you and expires on {expiresOn}.
-              </p>
+
+              {/* Recording and privacy, collapsed to one plain line + a disclosure */}
+              <div className="flex flex-col gap-2 pt-1">
+                <p className="flex items-start gap-2 text-[13px] leading-relaxed text-secondary">
+                  <ShieldIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                  Recorded and assessed by AI, reviewed by {company}.
+                </p>
+                <Expander label="What we record and why">
+                  <p className="text-[13px] leading-relaxed text-secondary">
+                    Your video and audio are recorded so {company}'s hiring team can review your
+                    answers. The recording is stored securely, used only for this role, and is never
+                    sold or used to train public models.
+                  </p>
+                </Expander>
+              </div>
             </div>
           )}
+
+          {/* Nice-to-have context, tucked away so it does not slow the decision */}
+          <Expander label="More about the role and company">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <p className="text-sm font-medium text-secondary">About the role</p>
+                <p className="text-[14px] leading-relaxed text-secondary">
+                  Own product-facing features end to end at {company}, from shaping the problem to
+                  shipping and measuring. Work across two squads and help set the technical direction.
+                </p>
+              </div>
+              <div className="flex flex-col gap-1">
+                <p className="text-sm font-medium text-secondary">About {company}</p>
+                <p className="text-[14px] leading-relaxed text-secondary">
+                  {company} builds tools that help teams plan and ship their work. Remote-first across
+                  Europe, around 200 people, used by thousands of teams every day.
+                </p>
+              </div>
+            </div>
+          </Expander>
+
+          {/* Housekeeping */}
+          <p className="text-[13px] text-secondary">
+            This link is private to you and expires on {expiresOn}.
+          </p>
         </div>
       </main>
     </div>
