@@ -9,6 +9,7 @@ const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
 export default function InviteManagerScreen({
   roleId,
   roleTitle = 'Senior Product Engineer',
+  preset = null, // a manager chosen inline on the create-role step; skip the picker
   onCancel,
   onDone,
 }) {
@@ -16,9 +17,9 @@ export default function InviteManagerScreen({
   const [selectedId, setSelectedId] = useState(null)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [sent, setSent] = useState(null) // the generated recipient { name, email }
-  const [link, setLink] = useState('')
-  const [expiredLink, setExpiredLink] = useState('')
+  const [sent, setSent] = useState(preset) // the generated recipient { name, email }
+  const [link, setLink] = useState(preset ? buildDefineLink(roleId) : '')
+  const [expiredLink, setExpiredLink] = useState(preset ? buildDefineLink(roleId, { days: -1 }) : '')
   const [copied, setCopied] = useState(false)
 
   const picked = managers.find((m) => m.id === selectedId) ?? null

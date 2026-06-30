@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button, Tag, Avatar } from '../components'
 import { ChevronRightIcon } from '../components/icons.jsx'
-import { ROLE_STATUS } from '../data/roles.js'
 
 function EmptyState({ onCreateRole }) {
   return (
@@ -38,18 +37,18 @@ function SkeletonRow() {
   )
 }
 
-// Stable, distinct faces per role, derived from its id. Up to four shown.
-function roleFaces(role) {
+// Distinct faces per role: each role draws from its own band of photos, so no
+// two rows share the same candidates.
+function roleFaces(role, index) {
   const shown = Math.min(4, role.totalCandidates)
-  let h = 0
-  for (let i = 0; i < role.id.length; i += 1) h = (h * 31 + role.id.charCodeAt(i)) >>> 0
-  return Array.from({ length: shown }, (_, i) => `https://i.pravatar.cc/96?img=${((h + i * 13) % 70) + 1}`)
+  const base = index * 12
+  return Array.from({ length: shown }, (_, i) => `https://i.pravatar.cc/96?img=${((base + i * 3) % 70) + 1}`)
 }
 
 /* A small overlapping stack of a role's candidate faces, plus a "+N" chip. */
-function AvatarStack({ role }) {
+function AvatarStack({ role, index }) {
   if (role.totalCandidates === 0) return null
-  const faces = roleFaces(role)
+  const faces = roleFaces(role, index)
   const extra = role.totalCandidates - faces.length
   return (
     <div className="flex items-center -space-x-2">
@@ -65,12 +64,8 @@ function AvatarStack({ role }) {
   )
 }
 
-function RoleRow({ role, onClick }) {
+function RoleRow({ role, index, onClick }) {
   const ready = role.candidatesReady > 0
-  const defining = role.status === 'defining'
-  const statusLabel = role.awaitingManager
-    ? 'Awaiting hiring manager'
-    : (ROLE_STATUS[role.status]?.label ?? 'Defining')
 
   return (
     <button
@@ -88,13 +83,14 @@ function RoleRow({ role, onClick }) {
 
       {/* Middle — overlapping candidate faces fill the empty space */}
       <div className="hidden flex-1 justify-center sm:flex">
-        <AvatarStack role={role} />
+        <AvatarStack role={role} index={index} />
       </div>
 
-      {/* Status, said once: lead with the count, neutral grey tag only when it adds info */}
-      <div className="flex w-[190px] shrink-0 flex-col items-end gap-1.5">
-        {defining && <Tag color="gray">{statusLabel}</Tag>}
-        {ready ? (
+      {/* One status per role: awaiting the manager, the ready count, or the sourcing count */}
+      <div className="flex w-[190px] shrink-0 justify-end">
+        {role.awaitingManager ? (
+          <Tag color="gray">Awaiting hiring manager</Tag>
+        ) : ready ? (
           <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-info">
             <span className="h-1.5 w-1.5 rounded-full bg-info" />
             {role.candidatesReady} ready to review
@@ -168,7 +164,9 @@ export default function RolesScreen({ roles, onCreateRole, onOpenRole }) {
                 ))}
               </div>
             ) : (
-              roles.map((r) => <RoleRow key={r.id} role={r} onClick={() => onOpenRole(r)} />)
+              roles.map((r, i) => (
+                <RoleRow key={r.id} role={r} index={i} onClick={() => onOpenRole(r)} />
+              ))
             )}
           </div>
         </div>

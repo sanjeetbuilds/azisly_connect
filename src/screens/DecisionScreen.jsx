@@ -76,8 +76,8 @@ export default function DecisionScreen({ candidate = FALLBACK, onBack, onDone })
                 <SectionLabel>Your decision</SectionLabel>
                 <p className="mt-1.5 text-sm leading-relaxed text-secondary">
                   Shortlisting unlocks {candidate.name.split(' ')[0]}&rsquo;s contact details so you
-                  can reach out personally. Passing goes to a person for a considerate response —
-                  nothing is sent automatically.
+                  can reach out personally. Passing goes to a person for a considerate response.
+                  Nothing is sent automatically.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
@@ -98,7 +98,7 @@ export default function DecisionScreen({ candidate = FALLBACK, onBack, onDone })
                 </span>
                 <span>
                   Shortlisted. {candidate.name.split(' ')[0]}&rsquo;s contact details are unlocked
-                  below — reach out personally; a short note goes a long way.
+                  below. Reach out personally; a short note goes a long way.
                 </span>
               </div>
 
@@ -137,7 +137,7 @@ export default function DecisionScreen({ candidate = FALLBACK, onBack, onDone })
               <div>
                 <SectionLabel>Pass on {candidate.name.split(' ')[0]}</SectionLabel>
                 <p className="mt-1.5 text-sm leading-relaxed text-secondary">
-                  A person reviews every pass before the candidate hears anything — no automated
+                  A person reviews every pass before the candidate hears anything. No automated
                   rejection goes out. Add an optional note for the reviewer and the personal reply.
                 </p>
               </div>

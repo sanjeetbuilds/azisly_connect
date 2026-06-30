@@ -16,7 +16,7 @@ const INITIAL_MUST_HAVES = [
   'Clear, structured written communication',
 ]
 
-const INITIAL_JD = `We're hiring a Senior Product Engineer to own product-facing features end to end — from shaping the problem with PM and design to shipping, measuring, and iterating.
+const INITIAL_JD = `We're hiring a Senior Product Engineer to own product-facing features end to end, from shaping the problem with PM and design to shipping, measuring, and iterating.
 
 You'll work across two squads, set the technical direction for your area, and raise the bar on how we design and review systems.
 
@@ -112,7 +112,7 @@ export default function ReviewRoleScreen({
               <h2 className="text-xl text-ink">Role approved</h2>
               <p className="text-sm leading-relaxed text-secondary">
                 The scorecard for <span className="text-ink">{roleTitle}</span> is locked in.
-                Azisly will start sourcing candidates — they&rsquo;ll appear as they come in.
+                Azisly will start sourcing candidates. They&rsquo;ll appear as they come in.
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-3">
@@ -257,7 +257,7 @@ export default function ReviewRoleScreen({
       <div className="absolute inset-x-0 bottom-0 border-t border-hairline bg-background/90 px-6 py-4 backdrop-blur lg:px-8">
         <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3">
           <span className="text-[13px] text-secondary">
-            {editing ? 'Editing — changes save as you go.' : 'Review the scorecard before sourcing.'}
+            {editing ? 'Editing. Changes save as you go.' : 'Review the scorecard before sourcing.'}
           </span>
           <div className="flex items-center gap-3">
             <Button variant="secondary" onClick={() => setEditing((e) => !e)}>

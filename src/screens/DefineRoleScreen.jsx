@@ -124,13 +124,14 @@ function MicButton({ state, onClick }) {
   )
 }
 
-/* The card the AI assembles, shown in the "ready" state. Identical in both modes. */
-function RoleCardPreview({ title, openings, onReview, onKeepEditing, reviewLabel = 'Review role' }) {
+/* The role card the AI assembles. Actions live in the screen footer, not here,
+   so the Save action is always visible. Identical in both modes. */
+function RoleCardPreview({ title, openings }) {
   const competencies = [
-    { name: 'System design', weight: 'High' },
+    { name: 'Problem Solving', weight: 'High' },
     { name: 'Ownership', weight: 'High' },
     { name: 'Communication', weight: 'Medium' },
-    { name: 'Code quality', weight: 'Medium' },
+    { name: 'Execution', weight: 'Medium' },
   ]
   return (
     <Card className="flex w-full flex-col gap-5 p-6">
@@ -163,13 +164,6 @@ function RoleCardPreview({ title, openings, onReview, onKeepEditing, reviewLabel
             </div>
           ))}
         </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
-        <Button onClick={onReview}>{reviewLabel}</Button>
-        <Button variant="secondary" onClick={onKeepEditing}>
-          Keep editing
-        </Button>
       </div>
     </Card>
   )
@@ -260,9 +254,11 @@ export default function DefineRoleScreen({
         ? 'Listening…'
         : 'Azzy is asking'
 
+  const keepEditing = () => setPhase('asking')
+
   return (
     <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-      {/* Header */}
+      {/* Header — mode switch always visible */}
       <div className="flex shrink-0 items-center gap-3 border-b border-hairline px-6 py-4 lg:px-8">
         {onBack && (
           <button
@@ -282,161 +278,63 @@ export default function DefineRoleScreen({
         <ModeToggle value={mode} onChange={setMode} />
       </div>
 
-      {/* ── Chat mode ─────────────────────────────────────────── */}
-      {mode === 'chat' && (
-        <>
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 lg:px-8">
-            <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 py-8">
-              <div className="rounded-xl border border-hairline bg-accent/[0.04] p-5">
-                <div className="flex items-center gap-2 text-sm font-medium text-ink">
-                  <SparkleIcon className="h-4 w-4 text-accent" />
-                  How this works
-                </div>
-                <p className="mt-1.5 text-sm leading-relaxed text-secondary">
-                  I&rsquo;ll ask a few short questions to build a clear, scoreable role card. Answer
-                  in your own words, or paste an existing job description and I&rsquo;ll work from
-                  that.
-                </p>
+      {/* ── Body ──────────────────────────────────────────────── */}
+      {mode === 'chat' ? (
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 lg:px-8">
+          <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 py-6">
+            <div className="rounded-xl border border-hairline bg-accent/[0.04] p-5">
+              <div className="flex items-center gap-2 text-sm font-medium text-ink">
+                <SparkleIcon className="h-4 w-4 text-accent" />
+                How this works
               </div>
-
-              {messages.map((m, i) =>
-                m.from === 'ai' ? <AiRow key={i}>{m.text}</AiRow> : <UserRow key={i}>{m.text}</UserRow>,
-              )}
-
-              {phase === 'building' && (
-                <AiRow>
-                  <span className="flex items-center gap-2.5 text-secondary">
-                    <Spinner /> Building your role card…
-                  </span>
-                </AiRow>
-              )}
-
-              {phase === 'ready' && (
-                <>
-                  <AiRow>Here&rsquo;s the role card I put together. Review it and adjust anything.</AiRow>
-                  <RoleCardPreview
-                    title={roleTitle}
-                    openings={openings}
-                    reviewLabel={reviewLabel}
-                    onReview={onComplete}
-                    onKeepEditing={() => setPhase('asking')}
-                  />
-                </>
-              )}
+              <p className="mt-1.5 text-sm leading-relaxed text-secondary">
+                I&rsquo;ll ask a few short questions to build a clear, scoreable role card. Answer in
+                your own words, or paste an existing job description and I&rsquo;ll work from that.
+              </p>
             </div>
+
+            {messages.map((m, i) =>
+              m.from === 'ai' ? <AiRow key={i}>{m.text}</AiRow> : <UserRow key={i}>{m.text}</UserRow>,
+            )}
+
+            {phase === 'building' && (
+              <AiRow>
+                <span className="flex items-center gap-2.5 text-secondary">
+                  <Spinner /> Building your role card…
+                </span>
+              </AiRow>
+            )}
+
+            {phase === 'ready' && (
+              <>
+                <AiRow>Here&rsquo;s the role card I put together. Review it and adjust anything.</AiRow>
+                <RoleCardPreview title={roleTitle} openings={openings} />
+              </>
+            )}
           </div>
-
-          {phase === 'asking' && (
-            <div className="shrink-0 border-t border-hairline bg-background px-6 py-4 lg:px-8">
-              <div className="mx-auto w-full max-w-2xl">
-                {jdOpen ? (
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-ink">
-                        Paste or upload a job description
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setJdOpen(false)}
-                        className="text-[13px] text-secondary transition-colors hover:text-ink"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                    <textarea
-                      value={jdText}
-                      onChange={(e) => setJdText(e.target.value)}
-                      rows={5}
-                      placeholder="Paste the job description here…"
-                      className="w-full resize-none rounded-lg border border-hairline bg-surface p-3 text-sm leading-relaxed text-ink shadow-card transition-colors placeholder:text-secondary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
-                    />
-                    <div className="flex items-center justify-between gap-3">
-                      <button
-                        type="button"
-                        className="flex items-center gap-2 rounded-lg border border-hairline bg-surface px-3 py-2 text-sm text-secondary shadow-card transition-colors hover:text-ink"
-                      >
-                        <PaperclipIcon className="h-4 w-4" /> Upload file
-                      </button>
-                      <Button onClick={submitJd} disabled={!jdText.trim()}>
-                        Use this JD
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2.5">
-                    <div className="flex items-end gap-2">
-                      <textarea
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault()
-                            submitAnswer()
-                          }
-                        }}
-                        rows={1}
-                        placeholder="Type your answer…"
-                        className="flex-1 resize-none rounded-lg border border-hairline bg-surface px-3 py-2.5 text-sm leading-relaxed text-ink shadow-card transition-colors placeholder:text-secondary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
-                      />
-                      <Button
-                        onClick={submitAnswer}
-                        disabled={!input.trim()}
-                        aria-label="Send"
-                        className="!px-3.5"
-                      >
-                        <SendIcon className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setJdOpen(true)}
-                      className="flex items-center gap-1.5 self-start text-[13px] text-secondary transition-colors hover:text-ink"
-                    >
-                      <PaperclipIcon className="h-3.5 w-3.5" />
-                      Paste or upload a job description instead
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* ── Voice mode (mocked) ───────────────────────────────── */}
-      {mode === 'voice' && (
+        </div>
+      ) : (
         <div className="flex min-h-0 flex-1 flex-col">
           {phase === 'ready' ? (
-            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-10 lg:px-8">
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-8 lg:px-8">
               <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-6">
                 <VoiceAvatar state="idle" />
                 <p className="text-[15px] text-ink">
                   All set. Here&rsquo;s the role card from our conversation.
                 </p>
-                <RoleCardPreview
-                  title={roleTitle}
-                  openings={openings}
-                  reviewLabel={reviewLabel}
-                  onReview={onComplete}
-                  onKeepEditing={() => {
-                    setPhase('asking')
-                    setMode('chat')
-                  }}
-                />
+                <RoleCardPreview title={roleTitle} openings={openings} />
               </div>
             </div>
           ) : (
             <>
-              {/* Stage */}
+              {/* Stage — question front and centre */}
               <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 py-6 text-center">
                 <VoiceAvatar state={phase === 'building' ? 'thinking' : voiceState} />
                 <div className="flex flex-col gap-2">
                   <p className="text-[13px] font-medium uppercase tracking-wide text-accent">
                     {voiceStatus}
                   </p>
-                  <p className="mx-auto max-w-md text-lg leading-relaxed text-ink">
-                    {currentQuestion}
-                  </p>
+                  <p className="mx-auto max-w-md text-lg leading-relaxed text-ink">{currentQuestion}</p>
                   <p className="text-[13px] text-secondary">
                     Question {step + 1} of {QUESTIONS.length}
                   </p>
@@ -449,7 +347,7 @@ export default function DefineRoleScreen({
                   <p className="mb-2 text-xs font-medium uppercase tracking-wide text-secondary">
                     Live transcript
                   </p>
-                  <div className="flex max-h-28 flex-col gap-2 overflow-y-auto">
+                  <div className="flex max-h-24 flex-col gap-2 overflow-y-auto">
                     {messages.map((m, i) => (
                       <p key={i} className="text-sm leading-relaxed">
                         <span className={m.from === 'ai' ? 'text-accent' : 'text-secondary'}>
@@ -467,22 +365,99 @@ export default function DefineRoleScreen({
                   </div>
                 </div>
               </div>
-
-              {/* Mic control */}
-              <div className="flex shrink-0 flex-col items-center gap-2 border-t border-hairline bg-background px-6 py-5">
-                <MicButton state={voiceState} onClick={micTap} />
-                <p className="text-[13px] text-secondary">
-                  {voiceState === 'listening'
-                    ? 'Listening… tap to stop'
-                    : voiceState === 'thinking'
-                      ? 'One moment…'
-                      : 'Tap the mic to answer'}
-                </p>
-              </div>
             </>
           )}
         </div>
       )}
+
+      {/* ── Footer — the input, the build status, or the Save action ── */}
+      <div className="shrink-0 border-t border-hairline bg-background px-6 py-4 lg:px-8">
+        <div className="mx-auto w-full max-w-2xl">
+          {phase === 'ready' ? (
+            <div className="flex items-center justify-end gap-3">
+              <Button variant="secondary" onClick={keepEditing}>
+                Keep editing
+              </Button>
+              <Button onClick={onComplete}>{reviewLabel}</Button>
+            </div>
+          ) : phase === 'building' ? (
+            <div className="flex items-center justify-center gap-2.5 py-1 text-sm text-secondary">
+              <Spinner /> Building your role card…
+            </div>
+          ) : mode === 'voice' ? (
+            <div className="flex flex-col items-center gap-2">
+              <MicButton state={voiceState} onClick={micTap} />
+              <p className="text-[13px] text-secondary">
+                {voiceState === 'listening'
+                  ? 'Listening… tap to stop'
+                  : voiceState === 'thinking'
+                    ? 'One moment…'
+                    : 'Tap the mic to answer'}
+              </p>
+            </div>
+          ) : jdOpen ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-ink">Paste or upload a job description</span>
+                <button
+                  type="button"
+                  onClick={() => setJdOpen(false)}
+                  className="text-[13px] text-secondary transition-colors hover:text-ink"
+                >
+                  Cancel
+                </button>
+              </div>
+              <textarea
+                value={jdText}
+                onChange={(e) => setJdText(e.target.value)}
+                rows={4}
+                placeholder="Paste the job description here…"
+                className="w-full resize-none rounded-lg border border-hairline bg-surface p-3 text-sm leading-relaxed text-ink shadow-card transition-colors placeholder:text-secondary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+              />
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  className="flex items-center gap-2 rounded-lg border border-hairline bg-surface px-3 py-2 text-sm text-secondary shadow-card transition-colors hover:text-ink"
+                >
+                  <PaperclipIcon className="h-4 w-4" /> Upload file
+                </button>
+                <Button onClick={submitJd} disabled={!jdText.trim()}>
+                  Use this JD
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-end gap-2">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      submitAnswer()
+                    }
+                  }}
+                  rows={1}
+                  placeholder="Type your answer…"
+                  className="flex-1 resize-none rounded-lg border border-hairline bg-surface px-3 py-2.5 text-sm leading-relaxed text-ink shadow-card transition-colors placeholder:text-secondary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+                />
+                <Button onClick={submitAnswer} disabled={!input.trim()} aria-label="Send" className="!px-3.5">
+                  <SendIcon className="h-4 w-4" />
+                </Button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setJdOpen(true)}
+                className="flex items-center gap-1.5 self-start text-[13px] text-secondary transition-colors hover:text-ink"
+              >
+                <PaperclipIcon className="h-3.5 w-3.5" />
+                Paste or upload a job description instead
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

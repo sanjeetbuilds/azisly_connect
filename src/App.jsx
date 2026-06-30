@@ -113,6 +113,7 @@ export default function App() {
             <InviteManagerScreen
               roleId={inviteRole.id}
               roleTitle={inviteRole.title}
+              preset={draft?.manager ?? null}
               onCancel={() => setView('create')}
               onDone={() => {
                 setDraft(null)

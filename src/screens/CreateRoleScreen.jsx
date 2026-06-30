@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Button, Card } from '../components'
+import { Button, Card, Avatar } from '../components'
 import { SearchIcon, CheckIcon, PlusIcon, MinusIcon } from '../components/icons.jsx'
+import { previousManagers as SEED_MANAGERS } from '../data/managers.js'
 
 const ROLE_SUGGESTIONS = [
   'Senior Product Engineer',
@@ -21,7 +22,7 @@ const METHODS = [
   {
     key: 'self',
     title: "I'll define it now",
-    desc: 'Continue to build the competency profile with AI — by chat or voice.',
+    desc: 'Continue to build the competency profile with AI by chat or voice.',
   },
   {
     key: 'invite',
@@ -29,6 +30,8 @@ const METHODS = [
     desc: 'Send a magic link so they can define it. You review it after.',
   },
 ]
+
+const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
 
 function FieldLabel({ children, hint }) {
   return (
@@ -51,6 +54,9 @@ function RadioDot({ selected }) {
   )
 }
 
+const inputClass =
+  'w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 text-sm text-ink shadow-card transition-colors placeholder:text-secondary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15'
+
 export default function CreateRoleScreen({ onCancel, onContinue }) {
   const [query, setQuery] = useState('')
   const [chosen, setChosen] = useState(null) // a role is only "chosen" when picked from the list
@@ -58,21 +64,43 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
   const [openings, setOpenings] = useState(1)
   const [method, setMethod] = useState('self')
 
+  // Inline hiring-manager pick (only used when method === 'invite').
+  const [managers, setManagers] = useState(SEED_MANAGERS)
+  const [managerId, setManagerId] = useState(null)
+  const [mName, setMName] = useState('')
+  const [mEmail, setMEmail] = useState('')
+
   const q = query.trim().toLowerCase()
   const matches = q.length >= 2 ? ROLE_SUGGESTIONS.filter((r) => r.toLowerCase().includes(q)) : []
   const showSuggestions = open && q.length >= 2 && !chosen
 
-  const valid = Boolean(chosen) && openings >= 1 && Boolean(method)
+  const pickedManager = managers.find((m) => m.id === managerId) ?? null
+  const newManager = isEmail(mEmail) ? { name: mName.trim() || mEmail.trim(), email: mEmail.trim() } : null
+  const manager = pickedManager ?? newManager
+
+  const valid =
+    Boolean(chosen) && openings >= 1 && (method === 'self' || Boolean(manager))
 
   const handleType = (v) => {
     setQuery(v)
-    setChosen(null) // editing invalidates any prior choice — must re-pick
+    setChosen(null) // editing invalidates any prior choice, must re-pick
     setOpen(true)
   }
   const choose = (r) => {
     setChosen(r)
     setQuery(r)
     setOpen(false)
+  }
+  const pickManager = (id) => {
+    setManagerId(id)
+    setMName('')
+    setMEmail('')
+  }
+
+  const submit = () => {
+    if (!valid) return
+    if (method === 'invite') onContinue({ title: chosen, openings, method, manager })
+    else onContinue({ title: chosen, openings, method })
   }
 
   return (
@@ -91,7 +119,8 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
         <p className="mt-1.5 text-sm text-secondary">Basic setup. Next, you&rsquo;ll define it with AI.</p>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-12 pt-6 lg:px-8">
+      {/* Scrollable form */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-6 lg:px-8">
         <div className="mx-auto w-full max-w-xl">
           <Card className="flex flex-col gap-7 p-7">
             {/* Role title */}
@@ -211,21 +240,84 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
                   )
                 })}
               </div>
+
+              {/* Inline hiring-manager pick — revealed right under the invite option */}
+              {method === 'invite' && (
+                <div className="mt-3 flex flex-col gap-4 rounded-xl border border-hairline bg-background/60 p-4">
+                  {managers.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-[13px] font-medium text-ink">Previously added</p>
+                      {managers.map((m) => {
+                        const sel = m.id === managerId
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => pickManager(m.id)}
+                            className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors ${
+                              sel
+                                ? 'border-accent bg-accent/[0.04] ring-1 ring-accent/20'
+                                : 'border-hairline bg-surface hover:border-ink/20'
+                            }`}
+                          >
+                            <Avatar name={m.name} size={28} />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-medium text-ink">{m.name}</span>
+                              <span className="block truncate text-[13px] text-secondary">{m.email}</span>
+                            </span>
+                            <span
+                              className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border ${
+                                sel ? 'border-accent bg-accent text-surface' : 'border-hairline'
+                              }`}
+                            >
+                              {sel && <CheckIcon className="h-2.5 w-2.5" />}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-2">
+                    <p className="text-[13px] font-medium text-ink">
+                      {managers.length > 0 ? 'Or add someone new' : 'Add the hiring manager'}
+                    </p>
+                    <input
+                      value={mName}
+                      onChange={(e) => {
+                        setMName(e.target.value)
+                        setManagerId(null)
+                      }}
+                      placeholder="Full name"
+                      className={inputClass}
+                    />
+                    <input
+                      value={mEmail}
+                      onChange={(e) => {
+                        setMEmail(e.target.value)
+                        setManagerId(null)
+                      }}
+                      type="email"
+                      placeholder="name@company.com"
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </Card>
+        </div>
+      </div>
 
-          {/* Actions */}
-          <div className="mt-6 flex items-center justify-end gap-3">
-            <Button variant="secondary" onClick={onCancel}>
-              Cancel
-            </Button>
-            <Button
-              disabled={!valid}
-              onClick={() => onContinue({ title: chosen, openings, method })}
-            >
-              Continue
-            </Button>
-          </div>
+      {/* Sticky action bar — Cancel and Continue always visible */}
+      <div className="shrink-0 border-t border-hairline bg-background px-6 py-4 lg:px-8">
+        <div className="mx-auto flex w-full max-w-xl items-center justify-end gap-3">
+          <Button variant="secondary" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button disabled={!valid} onClick={submit}>
+            Continue
+          </Button>
         </div>
       </div>
     </div>
