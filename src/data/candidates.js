@@ -58,6 +58,7 @@ const TRACK_INDEX = {
   'Needs human': 3,
   Shared: 4,
   'Taken forward': 5,
+  'Moving forward': 5,
   Passed: 5,
 }
 export const stageTrackIndex = (stage) => TRACK_INDEX[stage] ?? 0

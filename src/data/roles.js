@@ -71,9 +71,10 @@ export const seedRoles = [
     location: 'Remote · Global',
     type: 'Full-time',
     // A magic link is out; the hiring manager is still writing the definition.
+    // Defined by the hiring manager, but the recruiter decides alone.
     state: 'being_defined',
     define_by: 'hiring_manager',
-    approve_by: 'hiring_manager',
+    approve_by: 'recruiter_alone',
     candidatesReady: 0,
     totalCandidates: 0,
     updated: 'Awaiting hiring manager',

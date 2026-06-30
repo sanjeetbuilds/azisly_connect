@@ -31,6 +31,7 @@ export default function App() {
   const [draft, setDraft] = useState(null) // { title, openings, define_by, approve_by, manager }
   const [decisionCandidate, setDecisionCandidate] = useState(null)
   const [submitRole, setSubmitRole] = useState(null) // the defined role being submitted for matching
+  const [openRole, setOpenRole] = useState(null) // the role whose candidate pipeline is open
 
   // Hiring-manager magic-link flows (no account, no sidebar).
   if (reviewToken !== null) {
@@ -77,7 +78,13 @@ export default function App() {
     <div className="flex h-screen overflow-hidden bg-background text-ink">
       <Sidebar
         active={activeNav}
-        onNavigate={(item) => setView(item === 'Roles' ? 'roles' : 'candidates')}
+        onNavigate={(item) => {
+          if (item === 'Roles') setView('roles')
+          else {
+            setOpenRole(null) // the global pipeline defaults to the Senior Product Engineer role
+            setView('candidates')
+          }
+        }}
         onNewRole={() => setView('create')}
         workspace={workspace}
       />
@@ -94,11 +101,12 @@ export default function App() {
           onCreateRole={() => setView('create')}
           onOpenRole={(role) => {
             // A defined role goes to submit-and-match; everything else opens its
-            // candidate pipeline.
+            // candidate pipeline, which reads the role's approve_by flag.
             if (role.state === 'defined') {
               setSubmitRole(role)
               setView('submit-match')
             } else {
+              setOpenRole(role)
               setView('candidates')
             }
           }}
@@ -190,17 +198,17 @@ export default function App() {
         />
       )}
 
-      {view === 'candidates' && (
-        <CandidatesScreen
-          approveBy={roles.find((r) => r.id === 'r-spe')?.approve_by ?? 'hiring_manager'}
-          managerResponse={{
-            manager: 'Anjali Rao',
-            roleTitle: 'Senior Product Engineer',
-            approvedCount: approvedIds.length,
-            onView: () => setView('manager-decision'),
-          }}
-        />
-      )}
+      {view === 'candidates' &&
+        (() => {
+          const pipelineRole = openRole ?? roles.find((r) => r.id === 'r-spe')
+          return (
+            <CandidatesScreen
+              approveBy={pipelineRole?.approve_by ?? 'hiring_manager'}
+              roleTitle={pipelineRole?.title ?? 'Senior Product Engineer'}
+              managerResponse={{ manager: 'Anjali Rao', approvedCount: approvedIds.length }}
+            />
+          )
+        })()}
 
       {view === 'manager-decision' && (
         <ManagerDecisionScreen

@@ -61,8 +61,8 @@ export default function CandidateDetail({
   const src = SOURCES[candidate.source]
   const managerMode = Boolean(onTakeForward)
   const scored = Boolean(candidate.verdict)
-  const takenForward = candidate.stage === 'Taken forward'
-  const contacts = takenForward ? contactsFor(candidate.name) : null
+  const decidedForward = candidate.stage === 'Taken forward' || candidate.stage === 'Moving forward'
+  const contacts = decidedForward ? contactsFor(candidate.name) : null
   return (
     <div className="flex flex-col">
       {/* Stage tracker + close — top of the floating detail panel */}
@@ -167,7 +167,7 @@ export default function CandidateDetail({
         )}
 
         {/* Contact details — unlocked once the manager takes the candidate forward */}
-        {takenForward && contacts && (
+        {decidedForward && contacts && (
           <section className="flex flex-col gap-4">
             <SectionLabel>Contact details</SectionLabel>
             <Card className="flex flex-col gap-3 p-6">
@@ -206,11 +206,13 @@ export default function CandidateDetail({
                 <Kbd className="ml-auto">⌘↵</Kbd>
               </>
             )
-          ) : takenForward ? (
-            // Already approved by the manager — no second gatekeeping by the recruiter.
+          ) : decidedForward ? (
+            // Decided forward, by the manager or the recruiter. No further judging.
             <span className="flex items-center gap-2 text-sm font-medium text-strong">
-              <CheckIcon className="h-4 w-4" /> Taken forward by the hiring manager. Reach out to start
-              the offline rounds.
+              <CheckIcon className="h-4 w-4" />
+              {candidate.stage === 'Taken forward'
+                ? 'Taken forward by the hiring manager. Reach out to start the offline rounds.'
+                : 'Moving forward, your decision. Reach out to start the offline rounds.'}
             </span>
           ) : judge?.eligible ? (
             <div className="flex w-full items-center gap-4">

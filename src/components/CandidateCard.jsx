@@ -3,7 +3,7 @@ import VerdictTag from './VerdictTag.jsx'
 import Tag from './Tag.jsx'
 import JudgeControls from './JudgeControls.jsx'
 import { ContactCopy } from './CandidateTable.jsx'
-import { ClockIcon } from './icons.jsx'
+import { ClockIcon, CheckIcon } from './icons.jsx'
 import { GATE } from '../data/candidates.js'
 
 /* The candidate's strongest assessed competencies, as compact bars. */
@@ -83,6 +83,12 @@ export default function CandidateCard({
           With hiring manager
         </span>
       )}
+      {candidate.stage === 'Moving forward' && (
+        <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-strong">
+          <CheckIcon className="h-3.5 w-3.5" />
+          Moving forward
+        </span>
+      )}
 
       <TopCompetencies competencies={candidate.competencies} />
 
@@ -95,7 +101,7 @@ export default function CandidateCard({
         </div>
         {!disabled ? (
           <JudgeControls picked={picked} skipped={skipped} onTick={onTick} onCross={onCross} />
-        ) : candidate.stage === 'Taken forward' ? (
+        ) : candidate.stage === 'Taken forward' || candidate.stage === 'Moving forward' ? (
           <ContactCopy candidate={candidate} />
         ) : null}
       </div>

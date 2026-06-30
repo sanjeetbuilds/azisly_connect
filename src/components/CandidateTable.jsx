@@ -109,6 +109,14 @@ function StatusCell({ candidate }) {
       </span>
     )
   }
+  if (candidate.stage === 'Moving forward') {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-strong">
+        <CheckIcon className="h-3.5 w-3.5" />
+        Moving forward
+      </span>
+    )
+  }
   return <span className="text-[13px] text-secondary">{candidate.stage}</span>
 }
 
@@ -209,7 +217,7 @@ export default function CandidateTable({
                     ? 'bg-accent/[0.03]'
                     : isSkipped
                       ? 'bg-background opacity-55'
-                      : c.stage === 'Taken forward'
+                      : c.stage === 'Taken forward' || c.stage === 'Moving forward'
                         ? 'bg-strong/[0.07] hover:bg-strong/[0.1]'
                         : 'hover:bg-background'
               }`}
@@ -222,7 +230,7 @@ export default function CandidateTable({
                     onTick={(e) => onTick(c.id, index, e.shiftKey)}
                     onCross={() => onCross(c.id)}
                   />
-                ) : c.stage === 'Taken forward' ? (
+                ) : c.stage === 'Taken forward' || c.stage === 'Moving forward' ? (
                   <ContactCopy candidate={c} />
                 ) : null}
               </div>

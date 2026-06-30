@@ -32,7 +32,7 @@ function CopyField({ icon, value }) {
   )
 }
 
-function ApprovedCard({ candidate, onOpen }) {
+function ApprovedCard({ candidate, onOpen, label }) {
   const { email, phone } = contactsFor(candidate.name)
   return (
     <div
@@ -59,7 +59,7 @@ function ApprovedCard({ candidate, onOpen }) {
       </div>
 
       <Tag color="green">
-        <CheckIcon className="mr-1 h-3 w-3" /> Taken forward
+        <CheckIcon className="mr-1 h-3 w-3" /> {label}
       </Tag>
 
       <div className="flex flex-col gap-2">
@@ -76,18 +76,18 @@ function ApprovedCard({ candidate, onOpen }) {
  * candidates, with contact details surfaced inline so the recruiter can reach
  * them for offline rounds. No judging controls.
  */
-export default function ApprovedView({ candidates = [], onOpen }) {
+export default function ApprovedView({ candidates = [], onOpen, label = 'Taken forward' }) {
   if (candidates.length === 0) {
     return (
       <div className="px-6 py-16 text-center text-sm text-secondary">
-        No candidates taken forward yet.
+        No candidates {label.toLowerCase()} yet.
       </div>
     )
   }
   return (
     <div className="grid gap-4 p-5 sm:grid-cols-2">
       {candidates.map((c) => (
-        <ApprovedCard key={c.id} candidate={c} onOpen={onOpen} />
+        <ApprovedCard key={c.id} candidate={c} onOpen={onOpen} label={label} />
       ))}
     </div>
   )
