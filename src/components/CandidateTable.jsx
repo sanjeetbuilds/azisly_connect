@@ -2,8 +2,8 @@ import { useState } from 'react'
 import Avatar from './Avatar.jsx'
 import Tag, { skillColor } from './Tag.jsx'
 import JudgeControls from './JudgeControls.jsx'
-import { SortIcon, CheckIcon, MailIcon, ClockIcon } from './icons.jsx'
-import { contactsFor } from '../data/candidates.js'
+import { SortIcon, CheckIcon, MailIcon } from './icons.jsx'
+import { contactsFor, interviewStatus } from '../data/candidates.js'
 
 /* The header select-all tick. */
 function SelectAll({ checked, disabled, onClick }) {
@@ -99,41 +99,13 @@ export function ContactCopy({ candidate }) {
   )
 }
 
-/* Status — one neutral grey style for every state, except the amber Needs human
-   flag and the pending "With hiring manager" marker. */
+/* Interview status — one neutral grey chip for every state, no per-status colour. */
 function StatusCell({ candidate }) {
-  if (candidate.stage === 'Needs human') {
-    return (
-      <div className="flex flex-col gap-0.5">
-        <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-attention">
-          <span className="h-1.5 w-1.5 rounded-full bg-attention" />
-          Needs human
-        </span>
-        {candidate.gate && (
-          <span className="text-[11px] text-secondary">
-            Gate: {candidate.gate.competency} {candidate.gate.score}
-          </span>
-        )}
-      </div>
-    )
-  }
-  if (candidate.stage === 'Shared') {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-[13px] text-secondary">
-        <ClockIcon className="h-3.5 w-3.5" />
-        With hiring manager
-      </span>
-    )
-  }
-  if (candidate.stage === 'Moving forward') {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-strong">
-        <CheckIcon className="h-3.5 w-3.5" />
-        Moving forward
-      </span>
-    )
-  }
-  return <span className="text-[13px] text-secondary">{candidate.stage}</span>
+  return (
+    <span className="inline-flex items-center rounded-md bg-ink/[0.05] px-1.5 py-0.5 text-[12px] font-medium text-secondary">
+      {interviewStatus(candidate)}
+    </span>
+  )
 }
 
 function HeaderCell({ children, className = '', sortable, sortKey, sort, onSort, align = 'left' }) {
@@ -200,7 +172,7 @@ export default function CandidateTable({
         >
           Score
         </HeaderCell>
-        <div className="w-[124px] shrink-0 text-xs text-secondary">Status</div>
+        <div className="w-[124px] shrink-0 text-xs text-secondary">Interview</div>
       </div>
 
       {/* Rows */}

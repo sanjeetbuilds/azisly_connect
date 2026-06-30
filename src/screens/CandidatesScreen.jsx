@@ -1,16 +1,18 @@
 import { useMemo, useState } from 'react'
-import {
-  Button,
-  CandidateTable,
-  CandidateCard,
-  CandidateDetail,
-  ApprovedView,
-  ViewToggle,
-} from '../components'
+import { Button, CandidateTable, CandidateCard, CandidateDetail, ViewToggle } from '../components'
 import ShareWithManagerModal from '../components/ShareWithManagerModal.jsx'
 import { CheckIcon, XIcon, SearchIcon, ClockIcon } from '../components/icons.jsx'
-import { candidates, isReadyToReview } from '../data/candidates.js'
+import { candidates, isReadyToReview, interviewStatus } from '../data/candidates.js'
 import { interviews } from '../data/interviews.js'
+
+// The interview-status tabs above the list.
+const TABS = [
+  { key: 'all', label: 'All' },
+  { key: 'invite-sent', label: 'Invite sent', status: 'Invite sent' },
+  { key: 'pending', label: 'Pending', status: 'Pending' },
+  { key: 'done', label: 'Done', status: 'Done' },
+  { key: 'lapsed', label: 'Lapsed', status: 'Lapsed' },
+]
 
 // Only scored, not-yet-decided candidates can be ticked.
 function eligibility(c) {
@@ -45,7 +47,6 @@ export default function CandidatesScreen({
   managerResponse,
 }) {
   const isHM = approveBy === 'hiring_manager'
-  const forwardStage = isHM ? 'Taken forward' : 'Moving forward'
 
   const [search, setSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -77,21 +78,8 @@ export default function CandidatesScreen({
     [moved, isHM],
   )
 
-  const TABS = useMemo(() => {
-    const base = [
-      { key: 'all', label: 'All' },
-      { key: 'to-interview', label: 'To interview', stages: ['Sourced'] },
-      { key: 'in-progress', label: 'In progress', stages: ['Invited', 'Interviewing'] },
-      { key: 'ready', label: 'Ready to review', stages: ['Ready to review', 'Needs human'] },
-    ]
-    if (isHM) base.push({ key: 'with-hm', label: 'With hiring manager', stages: ['Shared'] })
-    base.push({ key: 'forward', label: isHM ? 'Approved' : 'Moving forward', stages: [forwardStage] })
-    return base
-  }, [isHM, forwardStage])
-
   const pendingCount = pool.filter((c) => c.stage === 'Shared').length
   const readyCount = pool.filter((c) => eligibility(c).ok).length
-  const forwardList = pool.filter((c) => c.stage === forwardStage)
 
   const isFresh = (c) => Boolean(c.isNew) && !opened.has(c.id)
 
@@ -99,7 +87,7 @@ export default function CandidatesScreen({
     const q = search.trim().toLowerCase()
     const active = TABS.find((t) => t.key === tab) ?? TABS[0]
     const filtered = pool.filter((c) => {
-      if (active?.stages && !active.stages.includes(c.stage)) return false
+      if (active?.status && interviewStatus(c) !== active.status) return false
       if (q) {
         const hay = [c.name, c.role, c.location, ...c.skills].join(' ').toLowerCase()
         if (!hay.includes(q)) return false
@@ -109,7 +97,7 @@ export default function CandidatesScreen({
     const sorted = sortCandidates(filtered, sort)
     return [...sorted].sort((a, b) => (isFresh(b) ? 1 : 0) - (isFresh(a) ? 1 : 0))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, tab, sort, opened, pool, TABS])
+  }, [search, tab, sort, opened, pool])
 
   const selected = pool.find((c) => c.id === selectedId) ?? null
   const pickedEligible = pool.filter((c) => picked.has(c.id) && eligibility(c).ok)
@@ -224,8 +212,6 @@ export default function CandidatesScreen({
     setSkipped(new Set())
   }
 
-  const showForward = tab === 'forward'
-
   return (
     <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
       {/* Mobile-only header */}
@@ -264,7 +250,7 @@ export default function CandidatesScreen({
               </p>
               <p className="text-[13px] text-secondary">just now</p>
             </div>
-            <Button onClick={() => switchTab('forward')}>See the picks</Button>
+            <Button onClick={() => switchTab('done')}>See the picks</Button>
             <button
               type="button"
               onClick={() => setNoticeOpen(false)}
@@ -364,39 +350,35 @@ export default function CandidatesScreen({
                   <SearchIcon className="h-4 w-4" />
                 </button>
               )}
-              {!showForward && <ViewToggle value={viewMode} onChange={setViewMode} />}
+              <ViewToggle value={viewMode} onChange={setViewMode} />
             </div>
           </div>
 
-          {/* Action bar — one top action, hidden on the forward view */}
-          {!showForward && (
-            <div className="flex flex-wrap items-center gap-3 border-b border-hairline bg-background/40 px-4 py-2.5">
-              {n > 0 ? (
-                <span className="text-[13px] text-secondary">
-                  <span className="font-medium text-ink">{n}</span> selected ·{' '}
-                  <button
-                    type="button"
-                    onClick={clearPicked}
-                    className="font-medium text-info transition-colors hover:underline"
-                  >
-                    Clear
-                  </button>
-                </span>
-              ) : (
-                <span className="text-[13px] text-secondary">{primary.helper}</span>
-              )}
-              <div className="ml-auto">
-                <Button disabled={n === 0} onClick={primary.run}>
-                  {primary.label}
-                </Button>
-              </div>
+          {/* Action bar — one top action, always visible */}
+          <div className="flex flex-wrap items-center gap-3 border-b border-hairline bg-background/40 px-4 py-2.5">
+            {n > 0 ? (
+              <span className="text-[13px] text-secondary">
+                <span className="font-medium text-ink">{n}</span> selected ·{' '}
+                <button
+                  type="button"
+                  onClick={clearPicked}
+                  className="font-medium text-info transition-colors hover:underline"
+                >
+                  Clear
+                </button>
+              </span>
+            ) : (
+              <span className="text-[13px] text-secondary">{primary.helper}</span>
+            )}
+            <div className="ml-auto">
+              <Button disabled={n === 0} onClick={primary.run}>
+                {primary.label}
+              </Button>
             </div>
-          )}
+          </div>
 
           {/* Results */}
-          {showForward ? (
-            <ApprovedView candidates={forwardList} onOpen={openDetail} label={forwardStage} />
-          ) : visible.length === 0 ? (
+          {visible.length === 0 ? (
             <div className="px-6 py-16 text-center text-sm text-secondary">
               No candidates in this view.
             </div>

@@ -1,10 +1,7 @@
 import Avatar from './Avatar.jsx'
-import VerdictTag from './VerdictTag.jsx'
-import Tag from './Tag.jsx'
 import JudgeControls from './JudgeControls.jsx'
 import { ContactCopy, ScoreValue } from './CandidateTable.jsx'
-import { ClockIcon, CheckIcon } from './icons.jsx'
-import { GATE } from '../data/candidates.js'
+import { GATE, interviewStatus } from '../data/candidates.js'
 
 /* The candidate's strongest assessed competencies, as compact bars. */
 function TopCompetencies({ competencies = [] }) {
@@ -70,25 +67,10 @@ export default function CandidateCard({
             <div className="truncate text-[13px] text-secondary">{candidate.role}</div>
           </div>
         </div>
-        {candidate.verdict ? (
-          <VerdictTag verdict={candidate.verdict} />
-        ) : (
-          <Tag color="gray">{candidate.stage}</Tag>
-        )}
+        <span className="inline-flex shrink-0 items-center rounded-md bg-ink/[0.05] px-1.5 py-0.5 text-[12px] font-medium text-secondary">
+          {interviewStatus(candidate)}
+        </span>
       </div>
-
-      {candidate.stage === 'Shared' && (
-        <span className="inline-flex items-center gap-1.5 text-[13px] text-secondary">
-          <ClockIcon className="h-3.5 w-3.5" />
-          With hiring manager
-        </span>
-      )}
-      {candidate.stage === 'Moving forward' && (
-        <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-strong">
-          <CheckIcon className="h-3.5 w-3.5" />
-          Moving forward
-        </span>
-      )}
 
       <TopCompetencies competencies={candidate.competencies} />
 

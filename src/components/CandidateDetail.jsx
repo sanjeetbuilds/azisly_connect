@@ -10,7 +10,7 @@ import Tag, { skillColor } from './Tag.jsx'
 import Kbd from './Kbd.jsx'
 import JudgeControls from './JudgeControls.jsx'
 import { XIcon, PlayIcon, CheckIcon, MailIcon, PhoneIcon } from './icons.jsx'
-import { SOURCES, stageTrackIndex, GATE, contactsFor } from '../data/candidates.js'
+import { SOURCES, stageTrackIndex, GATE, contactsFor, GATED_COMPETENCIES, interviewStatus } from '../data/candidates.js'
 
 // A plain <p>, not a heading — headings inherit the global ink colour and
 // tighter tracking; section labels must stay small, grey, and normally spaced.
@@ -63,6 +63,15 @@ export default function CandidateDetail({
   const scored = Boolean(candidate.verdict)
   const decidedForward = candidate.stage === 'Taken forward' || candidate.stage === 'Moving forward'
   const contacts = decidedForward ? contactsFor(candidate.name) : null
+  const confidenceLevel =
+    candidate.confidence == null
+      ? null
+      : candidate.confidence >= 80
+        ? 'High'
+        : candidate.confidence >= 60
+          ? 'Medium'
+          : 'Low'
+  const compScore = (name) => candidate.competencies.find((c) => c.name === name)?.score ?? null
   return (
     <div className="flex flex-col">
       {/* Stage tracker + close — top of the floating detail panel */}
@@ -92,7 +101,9 @@ export default function CandidateDetail({
                   <p className="text-sm text-secondary">{candidate.role}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-[13px] text-secondary">
-                  <Tag color="gray">{candidate.stage}</Tag>
+                  <span className="inline-flex items-center rounded-md bg-ink/[0.05] px-1.5 py-0.5 text-[12px] font-medium text-secondary">
+                    {interviewStatus(candidate)}
+                  </span>
                   {candidate.verdict && <VerdictTag verdict={candidate.verdict} />}
                   <span>·</span>
                   <span>{candidate.location}</span>
@@ -120,18 +131,54 @@ export default function CandidateDetail({
             ))}
           </div>
 
-          {/* Gate failure — why a human is needed, made explicit */}
-          {candidate.gate && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-attention/25 bg-attention/[0.07] px-3.5 py-3 text-[13px] leading-relaxed text-attention">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-attention" />
-              <span>
-                <span className="font-medium">Gate: {candidate.gate.competency}</span> scored{' '}
-                {candidate.gate.score}, below the {GATE} threshold. A human look is needed before this
-                candidate is shared.
-              </span>
-            </div>
-          )}
         </div>
+
+        {/* Score quality — confidence and gates, studied here, not in the list */}
+        {scored && (
+          <section className="flex flex-col gap-5">
+            <div className="flex flex-col gap-1.5">
+              <SectionLabel>Confidence</SectionLabel>
+              <div className="flex flex-wrap items-baseline gap-2">
+                <span className="text-sm font-medium text-ink">{confidenceLevel}</span>
+                <span className="text-[13px] text-secondary">
+                  how much interview evidence the score rests on
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <SectionLabel>Gates</SectionLabel>
+              <p className="text-[13px] leading-relaxed text-secondary">
+                This role gates {GATED_COMPETENCIES.join(' and ')} at {GATE}. A score below the
+                threshold flags the candidate for review.
+              </p>
+              <div className="flex flex-col divide-y divide-hairline overflow-hidden rounded-lg border border-hairline">
+                {GATED_COMPETENCIES.map((g) => {
+                  const s = compScore(g)
+                  const passed = s != null && s >= GATE
+                  return (
+                    <div key={g} className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-sm">
+                      <span className="text-ink">{g}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-ink tabular-nums">{s ?? '·'}</span>
+                        <span
+                          className={`inline-flex w-[64px] items-center gap-1.5 text-[13px] font-medium ${
+                            passed ? 'text-strong' : 'text-attention'
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${passed ? 'bg-strong' : 'bg-attention'}`}
+                          />
+                          {passed ? 'Passed' : 'Failed'}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Interview video — shown to recruiter and manager alike, once scored */}
         {scored && <InterviewVideo candidate={candidate} summary={interview} />}

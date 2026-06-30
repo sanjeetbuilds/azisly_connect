@@ -36,6 +36,20 @@ export const STAGES = [
 const SHARED_OR_DECIDED = ['Shared', 'Taken forward', 'Passed']
 // Scored = the engine has produced a verdict.
 export const isScored = (c) => Boolean(c.verdict)
+
+// The competencies this role gates, checked against GATE. Shown and explained in
+// the candidate detail.
+export const GATED_COMPETENCIES = ['Communication', 'Ownership']
+
+// The candidate's interview status in plain recruiter language, derived from the
+// lifecycle. The list shows this single status; the score carries the verdict.
+export function interviewStatus(c) {
+  if (c.score != null) return 'Done' // interview completed and judged
+  if (c.lapsed) return 'Lapsed' // invite expired with no interview
+  if (c.stage === 'Interviewing') return 'Pending' // invited, not yet completed
+  if (c.stage === 'Invited') return 'Invite sent'
+  return 'Not invited' // Sourced
+}
 // Ready to review = scored and not yet shared or decided. One source of truth.
 export const isReadyToReview = (c) => isScored(c) && !SHARED_OR_DECIDED.includes(c.stage)
 
@@ -393,7 +407,8 @@ export const candidates = [
     confidence: null,
     verdict: null,
     gate: null,
-    stage: 'Sourced',
+    stage: 'Invited',
+    lapsed: true, // invite expired with no interview
     source: 'agency',
     applied: 'Jun 25',
     appliedSort: 25,
