@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Button, Avatar, Tag } from '../components'
-import { ArrowLeftIcon, CheckIcon, ClockIcon } from '../components/icons.jsx'
+import { ArrowLeftIcon, CheckIcon, ClockIcon, LinkIcon, ChevronRightIcon } from '../components/icons.jsx'
 import { candidates, SOURCES } from '../data/candidates.js'
+import { buildInterviewLink } from '../lib/magicLink.js'
 
 // Sourced candidates: added, not yet invited. These are the ones to invite.
 const POOL = candidates.filter((c) => c.stage === 'Sourced')
@@ -22,12 +23,54 @@ function Checkbox({ checked, disabled }) {
   )
 }
 
-export default function InviteScreen({ roleTitle = 'Senior Product Engineer', onBack }) {
+/* One invited candidate with their real interview link: Copy and Open, the same
+   pattern as the manager links. */
+function InviteLinkRow({ item }) {
+  const [copied, setCopied] = useState(false)
+  const copy = () => {
+    navigator.clipboard?.writeText(item.link).catch(() => {})
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  const control =
+    'flex h-8 items-center gap-1.5 rounded-lg border border-hairline px-3 text-[13px] font-medium text-ink transition-colors hover:border-ink/25'
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-hairline bg-surface px-3 py-2.5 shadow-card">
+      <Avatar src={item.avatar} name={item.name} size={32} />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-medium text-ink">{item.name}</div>
+        <div className="flex items-center gap-1.5 text-secondary">
+          <LinkIcon className="h-3 w-3 shrink-0" />
+          <span className="min-w-0 truncate font-mono text-[12px]">{item.link}</span>
+        </div>
+      </div>
+      <button type="button" onClick={copy} className={`${control} shrink-0`}>
+        {copied ? (
+          <>
+            <CheckIcon className="h-3.5 w-3.5 text-strong" /> Copied
+          </>
+        ) : (
+          'Copy'
+        )}
+      </button>
+      <a href={item.link} target="_blank" rel="noreferrer" className={`${control} shrink-0`}>
+        Open
+      </a>
+    </div>
+  )
+}
+
+export default function InviteScreen({
+  roleTitle = 'Senior Product Engineer',
+  roleId = 'r-spe',
+  companyId = 'acme',
+  onBack,
+}) {
   // Pre-invited candidate to show the "already invited" disabled state.
   const [invited, setInvited] = useState({ 'omar-haddad': 18 })
   const [selected, setSelected] = useState(new Set())
   const [confirming, setConfirming] = useState(false)
-  const [justSent, setJustSent] = useState(0)
+  const [sent, setSent] = useState([]) // [{ id, name, avatar, link }] just invited
 
   const toggle = (id) => {
     if (invited[id]) return
@@ -39,7 +82,16 @@ export default function InviteScreen({ roleTitle = 'Senior Product Engineer', on
   }
 
   const send = () => {
-    const count = selected.size
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const list = [...selected].map((id) => {
+      const c = POOL.find((x) => x.id === id)
+      return {
+        id,
+        name: c.name,
+        avatar: c.avatar,
+        link: buildInterviewLink({ candidateId: id, roleId, companyId }, { origin }),
+      }
+    })
     setInvited((prev) => {
       const next = { ...prev }
       selected.forEach((id) => {
@@ -47,9 +99,9 @@ export default function InviteScreen({ roleTitle = 'Senior Product Engineer', on
       })
       return next
     })
+    setSent(list)
     setSelected(new Set())
     setConfirming(false)
-    setJustSent(count)
   }
 
   return (
@@ -74,23 +126,44 @@ export default function InviteScreen({ roleTitle = 'Senior Product Engineer', on
 
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-28 pt-6 lg:px-8">
         <div className="mx-auto w-full max-w-2xl">
-          <p className="mb-4 text-sm leading-relaxed text-secondary">
-            Select candidates to invite. Each gets a scheduling link and a 24-hour window to book a
-            time.
-          </p>
-
-          {/* Sent banner */}
-          {justSent > 0 && (
-            <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-strong/20 bg-strong/[0.06] px-4 py-3 text-sm text-ink">
-              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-strong/15 text-strong">
-                <CheckIcon className="h-2.5 w-2.5" />
-              </span>
-              <span>
-                {justSent} invite{justSent === 1 ? '' : 's'} sent. The 24-hour scheduling window has
-                started.
-              </span>
+          {/* Sent confirmation with the real per-candidate interview links */}
+          {sent.length > 0 && (
+            <div className="mb-5 rounded-xl border border-strong/25 bg-strong/[0.04] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-strong/15 text-strong">
+                    <CheckIcon className="h-3 w-3" />
+                  </span>
+                  <span className="font-medium text-ink">
+                    {sent.length} invite{sent.length === 1 ? '' : 's'} sent
+                  </span>
+                </div>
+                <a
+                  href={sent[0].link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-[13px] font-medium text-info transition-colors hover:underline"
+                >
+                  Preview as candidate
+                  <ChevronRightIcon className="h-3.5 w-3.5" />
+                </a>
+              </div>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-secondary">
+                Each candidate has a private interview link that opens their landing in a fresh tab.
+                Copy it to send, or open it to check.
+              </p>
+              <div className="mt-3 flex flex-col gap-2">
+                {sent.map((item) => (
+                  <InviteLinkRow key={item.id} item={item} />
+                ))}
+              </div>
             </div>
           )}
+
+          <p className="mb-4 text-sm leading-relaxed text-secondary">
+            Select candidates to invite. Each gets a private interview link and a 24-hour window to
+            book a time.
+          </p>
 
           <div className="overflow-hidden rounded-xl border border-hairline bg-surface shadow-card">
             {POOL.map((c) => {
@@ -166,7 +239,7 @@ export default function InviteScreen({ roleTitle = 'Senior Product Engineer', on
                 Invite {selected.size} candidate{selected.size === 1 ? '' : 's'} to interview?
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-secondary">
-                Each candidate gets a personal scheduling link and a 24-hour window to book. You can
+                Each candidate gets a private interview link and a 24-hour window to book. You can
                 follow up if they don&rsquo;t respond in time.
               </p>
               <div className="mt-6 flex items-center justify-end gap-3">

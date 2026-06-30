@@ -52,6 +52,7 @@ export default function CandidatesScreen({
   approveBy = 'hiring_manager',
   roleTitle = 'Senior Product Engineer',
   managerResponse,
+  onInvite,
 }) {
   const isHM = approveBy === 'hiring_manager'
 
@@ -236,17 +237,24 @@ export default function CandidatesScreen({
       </header>
 
       {/* Page header */}
-      <div className="shrink-0 px-6 pb-4 pt-8 lg:px-8">
-        <p className="text-sm text-secondary">Pipeline · {roleTitle}</p>
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          <h1 className="text-2xl text-ink">Candidates</h1>
-          <span className="inline-flex items-center rounded-full bg-info/10 px-2 py-0.5 font-mono text-xs font-medium text-info tabular-nums">
-            {candidates.length}
-          </span>
-          {readyCount > 0 && (
-            <span className="text-[13px] font-medium text-info">{readyCount} ready to review</span>
-          )}
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 px-6 pb-4 pt-8 lg:px-8">
+        <div>
+          <p className="text-sm text-secondary">Pipeline · {roleTitle}</p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <h1 className="text-2xl text-ink">Candidates</h1>
+            <span className="inline-flex items-center rounded-full bg-info/10 px-2 py-0.5 font-mono text-xs font-medium text-info tabular-nums">
+              {candidates.length}
+            </span>
+            {readyCount > 0 && (
+              <span className="text-[13px] font-medium text-info">{readyCount} ready to review</span>
+            )}
+          </div>
         </div>
+        {onInvite && (
+          <Button variant="secondary" onClick={onInvite}>
+            Invite to interview
+          </Button>
+        )}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 lg:px-8">

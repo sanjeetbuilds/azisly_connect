@@ -222,6 +222,7 @@ export default function App() {
               approveBy={pipelineRole?.approve_by ?? 'hiring_manager'}
               roleTitle={pipelineRole?.title ?? 'Senior Product Engineer'}
               managerResponse={{ manager: 'Anjali Rao', approvedCount: approvedIds.length }}
+              onInvite={() => setView('invite')}
             />
           )
         })()}

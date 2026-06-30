@@ -26,3 +26,14 @@ export function buildDefineLink(roleId, { days = 7, origin } = {}) {
   const exp = Date.now() + days * DAY_MS
   return `${base}/m/define/${encodeToken({ roleId, type: 'define', exp })}`
 }
+
+// Build a real, per-candidate interview link (the candidate takes the interview).
+// The token carries everything the landing needs so a hard load in a fresh tab
+// resolves from the seed alone. Kept distinct from the review link type, which
+// leads the recruiter or manager to watch a completed interview. days < 0
+// produces an already-expired token (for the expired-link preview).
+export function buildInterviewLink({ candidateId, roleId, companyId = 'acme' }, { days = 7, origin } = {}) {
+  const base = origin ?? (typeof window !== 'undefined' ? window.location.origin : '')
+  const exp = Date.now() + days * DAY_MS
+  return `${base}/i/${encodeToken({ candidateId, roleId, companyId, type: 'interview', exp })}`
+}
