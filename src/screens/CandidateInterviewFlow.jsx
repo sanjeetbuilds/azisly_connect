@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import CandidateInterviewLanding from './CandidateInterviewLanding.jsx'
 import InterviewSetupScreen from './InterviewSetupScreen.jsx'
+import InterviewScreen from './InterviewScreen.jsx'
 
 const MESSAGE_STATES = ['expired', 'filled', 'completed']
 
 // Map the (preview) token to a starting point so engineers can deep-link each
 // state. A real token would resolve to the same set.
 function startFor(token) {
+  if (token === 'complete') return { stage: 'complete', permission: 'ready' }
+  if (token === 'interview') return { stage: 'interview', permission: 'ready' }
   if (token === 'warmup') return { stage: 'warmup', permission: 'ready' }
   if (token === 'setup-ready') return { stage: 'check', permission: 'ready' }
   if (token === 'setup-denied') return { stage: 'check', permission: 'denied' }
@@ -44,6 +47,17 @@ export default function CandidateInterviewFlow({
     )
   }
 
+  if (stage === 'interview' || stage === 'complete') {
+    return (
+      <InterviewScreen
+        role={role}
+        company={company}
+        initialPhase={stage === 'complete' ? 'complete' : 'interview'}
+        initialIndex={token === 'interview' ? 2 : 0}
+      />
+    )
+  }
+
   return (
     <InterviewSetupScreen
       role={role}
@@ -51,7 +65,7 @@ export default function CandidateInterviewFlow({
       initialStage={stage === 'warmup' ? 'warmup' : 'check'}
       initialPermission={start.permission}
       onBack={() => setStage('landing')}
-      onStartInterview={() => {}}
+      onStartInterview={() => setStage('interview')}
     />
   )
 }
