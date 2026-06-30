@@ -162,6 +162,23 @@ export const CameraIcon = ({ className = 'h-4 w-4' }) => (
   </svg>
 )
 
+export const CameraOffIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.4" className={className}>
+    <rect x="2" y="4.5" width="8.5" height="7" rx="1.5" />
+    <path d="M10.5 7l3.5-2v6l-3.5-2z" strokeLinejoin="round" />
+    <path d="M2 14L14 2" strokeLinecap="round" />
+  </svg>
+)
+
+export const MicOffIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.4" className={className}>
+    <rect x="6" y="2" width="4" height="7.5" rx="2" />
+    <path d="M3.8 7.6a4.2 4.2 0 0 0 8.4 0" strokeLinecap="round" />
+    <path d="M8 11.8V14M6 14h4" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M2.5 2.5L13.5 13.5" strokeLinecap="round" />
+  </svg>
+)
+
 export const ShieldIcon = ({ className = 'h-4 w-4' }) => (
   <svg {...base} strokeWidth="1.4" className={className}>
     <path d="M8 2l4.5 1.7v3.5c0 3-2 5.3-4.5 6.3-2.5-1-4.5-3.3-4.5-6.3V3.7L8 2z" strokeLinejoin="round" />
