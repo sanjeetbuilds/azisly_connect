@@ -12,6 +12,16 @@ import { CheckIcon, XIcon, SearchIcon, ClockIcon } from '../components/icons.jsx
 import { candidates, isReadyToReview, roleTotals } from '../data/candidates.js'
 import { interviews } from '../data/interviews.js'
 
+// Stage tabs filter the list. "Approved" opens the dedicated approved view.
+const TABS = [
+  { key: 'all', label: 'All' },
+  { key: 'to-interview', label: 'To interview', stages: ['Sourced'] },
+  { key: 'in-progress', label: 'In progress', stages: ['Invited', 'Interviewing'] },
+  { key: 'ready', label: 'Ready to review', stages: ['Ready to review', 'Needs human'] },
+  { key: 'with-hm', label: 'With hiring manager', stages: ['Shared'] },
+  { key: 'approved', label: 'Approved', stages: ['Taken forward'] },
+]
+
 // Only scored, not-yet-decided candidates can be ticked.
 function eligibility(c) {
   if (isReadyToReview(c)) return { ok: true }
@@ -32,31 +42,11 @@ function sortCandidates(list, { key, dir }) {
   return sorted
 }
 
-/* A small segmented control for the prototype preview toggles. */
-function Seg({ value, options, onChange }) {
-  return (
-    <div className="inline-flex items-center rounded-lg border border-hairline bg-surface p-0.5 shadow-card">
-      {options.map((o) => (
-        <button
-          key={o.key}
-          type="button"
-          onClick={() => onChange(o.key)}
-          className={`rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors ${
-            value === o.key ? 'bg-ink text-surface' : 'text-secondary hover:text-ink'
-          }`}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 /**
  * CandidatesScreen — the recruiter's view while a shortlist is with the hiring
  * manager and after the manager responds. Candidates sent to the manager read
- * "With hiring manager"; once the manager responds, the picks are highlighted
- * and their contacts unlock. Two approved layouts (A and B) can be compared.
+ * "With hiring manager"; once the manager responds, the picks are highlighted,
+ * their contacts unlock, and the dedicated "Approved" tab surfaces them.
  */
 export default function CandidatesScreen({ approveBy = 'hiring_manager', managerResponse }) {
   const [search, setSearch] = useState('')
@@ -73,44 +63,17 @@ export default function CandidatesScreen({ approveBy = 'hiring_manager', manager
   const [noticeOpen, setNoticeOpen] = useState(true)
   const [movedCount, setMovedCount] = useState(0)
 
-  // Prototype preview: the hiring-manager phase and which approved layout to show.
-  const [phase, setPhase] = useState('responded') // waiting | responded
-  const [version, setVersion] = useState('A') // A | B
-
   const managerFirst = (managerResponse?.manager ?? 'the hiring manager').split(' ')[0]
 
-  // Before the manager responds, the picks are still pending, so show the whole
-  // sent cohort as "With hiring manager".
-  const pool = useMemo(
-    () =>
-      phase === 'waiting'
-        ? candidates.map((c) => (c.stage === 'Taken forward' ? { ...c, stage: 'Shared' } : c))
-        : candidates,
-    [phase],
-  )
-
-  const pendingCount = pool.filter((c) => c.stage === 'Shared').length
-  const approvedList = pool.filter((c) => c.stage === 'Taken forward')
-
-  const TABS = useMemo(() => {
-    const base = [
-      { key: 'all', label: 'All' },
-      { key: 'to-interview', label: 'To interview', stages: ['Sourced'] },
-      { key: 'in-progress', label: 'In progress', stages: ['Invited', 'Interviewing'] },
-      { key: 'ready', label: 'Ready to review', stages: ['Ready to review', 'Needs human'] },
-      { key: 'with-hm', label: 'With hiring manager', stages: ['Shared'] },
-    ]
-    if (phase === 'responded')
-      base.push({ key: 'approved', label: version === 'A' ? 'Taken forward' : 'Approved', stages: ['Taken forward'] })
-    return base
-  }, [phase, version])
+  const pendingCount = candidates.filter((c) => c.stage === 'Shared').length
+  const approvedList = candidates.filter((c) => c.stage === 'Taken forward')
 
   const isFresh = (c) => Boolean(c.isNew) && !opened.has(c.id)
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase()
     const active = TABS.find((t) => t.key === tab) ?? TABS[0]
-    const filtered = pool.filter((c) => {
+    const filtered = candidates.filter((c) => {
       if (active?.stages && !active.stages.includes(c.stage)) return false
       if (q) {
         const hay = [c.name, c.role, c.location, ...c.skills].join(' ').toLowerCase()
@@ -121,10 +84,10 @@ export default function CandidatesScreen({ approveBy = 'hiring_manager', manager
     const sorted = sortCandidates(filtered, sort)
     return [...sorted].sort((a, b) => (isFresh(b) ? 1 : 0) - (isFresh(a) ? 1 : 0))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, tab, sort, opened, pool, TABS])
+  }, [search, tab, sort, opened])
 
-  const selected = pool.find((c) => c.id === selectedId) ?? null
-  const pickedEligible = pool.filter((c) => picked.has(c.id) && eligibility(c).ok)
+  const selected = candidates.find((c) => c.id === selectedId) ?? null
+  const pickedEligible = candidates.filter((c) => picked.has(c.id) && eligibility(c).ok)
   const n = pickedEligible.length
 
   const moveForward = () => {
@@ -159,12 +122,6 @@ export default function CandidatesScreen({ approveBy = 'hiring_manager', manager
     setLastTick(null)
     setSelectedId(null)
   }
-  const switchPhase = (key) => {
-    setPhase(key)
-    setTab('all')
-    clearPicked()
-    setSelectedId(null)
-  }
 
   const openDetail = (id) => {
     setSelectedId(id)
@@ -172,7 +129,7 @@ export default function CandidatesScreen({ approveBy = 'hiring_manager', manager
   }
 
   const tick = (id, index, shiftKey) => {
-    const c = pool.find((x) => x.id === id)
+    const c = candidates.find((x) => x.id === id)
     if (!c || !eligibility(c).ok) return
     if (shiftKey && lastTick != null) {
       const [a, b] = lastTick <= index ? [lastTick, index] : [index, lastTick]
@@ -208,7 +165,7 @@ export default function CandidatesScreen({ approveBy = 'hiring_manager', manager
     setLastTick(index)
   }
   const cross = (id) => {
-    const c = pool.find((x) => x.id === id)
+    const c = candidates.find((x) => x.id === id)
     if (!c || !eligibility(c).ok) return
     setSkipped((prev) => {
       const next = new Set(prev)
@@ -237,7 +194,7 @@ export default function CandidatesScreen({ approveBy = 'hiring_manager', manager
     setSkipped(new Set())
   }
 
-  const showApprovedB = tab === 'approved' && version === 'B'
+  const showApproved = tab === 'approved'
 
   return (
     <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -265,35 +222,8 @@ export default function CandidatesScreen({ approveBy = 'hiring_manager', manager
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 lg:px-8">
-        {/* Prototype preview controls */}
-        <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-dashed border-hairline px-4 py-2 text-[13px]">
-          <span className="font-medium text-secondary">Prototype preview</span>
-          <span className="text-secondary">Hiring manager</span>
-          <Seg
-            value={phase}
-            onChange={switchPhase}
-            options={[
-              { key: 'waiting', label: 'Awaiting picks' },
-              { key: 'responded', label: `${managerFirst} responded` },
-            ]}
-          />
-          {phase === 'responded' && (
-            <>
-              <span className="text-secondary">Approved layout</span>
-              <Seg
-                value={version}
-                onChange={setVersion}
-                options={[
-                  { key: 'A', label: 'Version A' },
-                  { key: 'B', label: 'Version B' },
-                ]}
-              />
-            </>
-          )}
-        </div>
-
         {/* The manager has responded — a dismissible notification */}
-        {phase === 'responded' && managerResponse && noticeOpen && (
+        {managerResponse && noticeOpen && (
           <div className="mb-4 flex flex-wrap items-center gap-4 rounded-xl border border-strong/25 bg-strong/[0.05] px-5 py-3.5">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-strong/10 text-strong">
               <CheckIcon className="h-5 w-5" />
@@ -306,7 +236,7 @@ export default function CandidatesScreen({ approveBy = 'hiring_manager', manager
               </p>
               <p className="text-[13px] text-secondary">just now</p>
             </div>
-            <Button onClick={managerResponse.onView}>See the picks</Button>
+            <Button onClick={() => switchTab('approved')}>See the picks</Button>
             <button
               type="button"
               onClick={() => setNoticeOpen(false)}
@@ -406,12 +336,12 @@ export default function CandidatesScreen({ approveBy = 'hiring_manager', manager
                   <SearchIcon className="h-4 w-4" />
                 </button>
               )}
-              {!showApprovedB && <ViewToggle value={viewMode} onChange={setViewMode} />}
+              {!showApproved && <ViewToggle value={viewMode} onChange={setViewMode} />}
             </div>
           </div>
 
-          {/* Action bar — one top action, hidden on the dedicated approved view */}
-          {!showApprovedB && (
+          {/* Action bar — one top action, hidden on the approved view */}
+          {!showApproved && (
             <div className="flex flex-wrap items-center gap-3 border-b border-hairline bg-background/40 px-4 py-2.5">
               {n > 0 ? (
                 <span className="text-[13px] text-secondary">
@@ -436,7 +366,7 @@ export default function CandidatesScreen({ approveBy = 'hiring_manager', manager
           )}
 
           {/* Results */}
-          {showApprovedB ? (
+          {showApproved ? (
             <ApprovedView candidates={approvedList} onOpen={openDetail} />
           ) : visible.length === 0 ? (
             <div className="px-6 py-16 text-center text-sm text-secondary">
