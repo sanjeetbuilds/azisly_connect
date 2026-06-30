@@ -1,6 +1,6 @@
 import Avatar from './Avatar.jsx'
 import JudgeControls from './JudgeControls.jsx'
-import { ContactCopy, ScoreValue } from './CandidateTable.jsx'
+import { ScoreValue } from './CandidateTable.jsx'
 import { GATE, interviewStatus } from '../data/candidates.js'
 
 /* The candidate's strongest assessed competencies, as compact bars. */
@@ -76,11 +76,9 @@ export default function CandidateCard({
 
       <div className="flex items-center justify-between border-t border-hairline pt-3.5">
         <ScoreValue candidate={candidate} size="lg" />
-        {!disabled ? (
+        {!disabled && (
           <JudgeControls picked={picked} skipped={skipped} onTick={onTick} onCross={onCross} />
-        ) : candidate.stage === 'Taken forward' || candidate.stage === 'Moving forward' ? (
-          <ContactCopy candidate={candidate} />
-        ) : null}
+        )}
       </div>
     </div>
   )

@@ -1,9 +1,8 @@
-import { useState } from 'react'
 import Avatar from './Avatar.jsx'
 import Tag, { skillColor } from './Tag.jsx'
 import JudgeControls from './JudgeControls.jsx'
-import { SortIcon, CheckIcon, MailIcon } from './icons.jsx'
-import { contactsFor, interviewStatus } from '../data/candidates.js'
+import { SortIcon, CheckIcon } from './icons.jsx'
+import { interviewStatus } from '../data/candidates.js'
 
 /* The header select-all tick. */
 function SelectAll({ checked, disabled, onClick }) {
@@ -73,29 +72,6 @@ export function ScoreValue({ candidate, size = 'sm' }) {
         match
       </span>
     </span>
-  )
-}
-
-/* A quick-copy of the candidate's email, shown on taken-forward rows. */
-export function ContactCopy({ candidate }) {
-  const [copied, setCopied] = useState(false)
-  const { email } = contactsFor(candidate.name)
-  return (
-    <button
-      type="button"
-      aria-label="Copy email"
-      title={copied ? 'Copied' : `Copy ${email}`}
-      onClick={(e) => {
-        e.stopPropagation()
-        navigator.clipboard?.writeText(email).catch(() => {})
-        setCopied(true)
-        setTimeout(() => setCopied(false), 1500)
-      }}
-      className="flex h-[22px] items-center gap-1 rounded-full border border-hairline bg-surface pl-1.5 pr-2 text-[11px] font-medium text-secondary transition-colors hover:border-strong/40 hover:text-strong"
-    >
-      {copied ? <CheckIcon className="h-3 w-3 text-strong" /> : <MailIcon className="h-3 w-3" />}
-      {copied ? 'Copied' : 'Email'}
-    </button>
   )
 }
 
@@ -209,16 +185,14 @@ export default function CandidateTable({
               }`}
             >
               <div className="flex w-[58px] shrink-0 items-center">
-                {elig.ok ? (
+                {elig.ok && (
                   <JudgeControls
                     picked={isPicked}
                     skipped={isSkipped}
                     onTick={(e) => onTick(c.id, index, e.shiftKey)}
                     onCross={() => onCross(c.id)}
                   />
-                ) : c.stage === 'Taken forward' || c.stage === 'Moving forward' ? (
-                  <ContactCopy candidate={c} />
-                ) : null}
+                )}
               </div>
 
               <div className="flex min-w-0 flex-1 items-center gap-3">
