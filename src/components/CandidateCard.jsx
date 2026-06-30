@@ -2,7 +2,7 @@ import Avatar from './Avatar.jsx'
 import VerdictTag from './VerdictTag.jsx'
 import Tag from './Tag.jsx'
 import JudgeControls from './JudgeControls.jsx'
-import { ContactCopy } from './CandidateTable.jsx'
+import { ContactCopy, ScoreValue } from './CandidateTable.jsx'
 import { ClockIcon, CheckIcon } from './icons.jsx'
 import { GATE } from '../data/candidates.js'
 
@@ -93,12 +93,7 @@ export default function CandidateCard({
       <TopCompetencies competencies={candidate.competencies} />
 
       <div className="flex items-center justify-between border-t border-hairline pt-3.5">
-        <div className="flex items-baseline gap-1.5">
-          <span className="font-mono text-lg leading-none text-ink tabular-nums">
-            {candidate.score ?? <span className="text-base text-secondary">·</span>}
-          </span>
-          {candidate.score != null && <span className="text-[12px] text-secondary">match</span>}
-        </div>
+        <ScoreValue candidate={candidate} size="lg" />
         {!disabled ? (
           <JudgeControls picked={picked} skipped={skipped} onTick={onTick} onCross={onCross} />
         ) : candidate.stage === 'Taken forward' || candidate.stage === 'Moving forward' ? (

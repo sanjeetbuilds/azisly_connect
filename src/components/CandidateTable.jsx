@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import Avatar from './Avatar.jsx'
-import VerdictTag from './VerdictTag.jsx'
 import Tag, { skillColor } from './Tag.jsx'
 import JudgeControls from './JudgeControls.jsx'
 import { SortIcon, CheckIcon, MailIcon, ClockIcon } from './icons.jsx'
@@ -45,16 +44,33 @@ export function SkillTags({ skills, max = 2 }) {
   )
 }
 
-/* A small grey confidence meter that sits beside the score. */
-function ConfidenceMeter({ value }) {
-  if (value == null) return <span className="text-[13px] text-secondary">·</span>
+/**
+ * ScoreValue — one number, the right one for the candidate's phase, never blank.
+ * Before the interview is judged, the pre-interview Match estimate (muted, with
+ * a "match" tag). Once judged, the role Score in full weight, its colour carrying
+ * the verdict (green strong, amber weak), with a "review" marker when a gate fails.
+ */
+export function ScoreValue({ candidate, size = 'sm' }) {
+  const num = size === 'lg' ? 'text-lg leading-none' : 'text-sm'
+  if (candidate.score != null) {
+    const color =
+      candidate.verdict === 'strong'
+        ? 'text-strong'
+        : candidate.verdict === 'not-yet'
+          ? 'text-attention'
+          : 'text-ink'
+    return (
+      <span className="inline-flex items-baseline gap-1 font-mono tabular-nums">
+        <span className={`${num} font-medium ${color}`}>{candidate.score}</span>
+        {candidate.gate && <span className="text-[11px] font-medium text-attention">· review</span>}
+      </span>
+    )
+  }
   return (
-    <span className="inline-flex items-center" title={`${value}% confidence`}>
-      <span className="relative h-1.5 w-9 overflow-hidden rounded-full bg-ink/[0.08]">
-        <span
-          className="absolute inset-y-0 left-0 rounded-full bg-ink/35"
-          style={{ width: `${value}%` }}
-        />
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`font-mono ${num} text-secondary tabular-nums`}>{candidate.match ?? '·'}</span>
+      <span className="rounded bg-ink/[0.06] px-1 py-px text-[10px] font-medium uppercase tracking-wide text-secondary">
+        match
       </span>
     </span>
   )
@@ -164,7 +180,7 @@ export default function CandidateTable({
   const allChecked = eligible.length > 0 && eligible.every((c) => picked.has(c.id))
 
   return (
-    <div className="min-w-[780px]">
+    <div className="min-w-[680px]">
       {/* Header row */}
       <div className="flex items-center gap-4 border-b border-hairline bg-background/60 px-5 py-2">
         <div className="w-[58px] shrink-0">
@@ -174,9 +190,8 @@ export default function CandidateTable({
           Candidate
         </HeaderCell>
         <div className="hidden w-[190px] shrink-0 text-xs text-secondary xl:block">Skills</div>
-        <div className="hidden w-[56px] shrink-0 text-xs text-secondary lg:block">Confidence</div>
         <HeaderCell
-          className="w-[48px] shrink-0"
+          className="w-[120px] shrink-0"
           align="right"
           sortable
           sortKey="score"
@@ -185,7 +200,6 @@ export default function CandidateTable({
         >
           Score
         </HeaderCell>
-        <div className="w-[110px] shrink-0 text-xs text-secondary">Verdict</div>
         <div className="w-[124px] shrink-0 text-xs text-secondary">Status</div>
       </div>
 
@@ -256,18 +270,10 @@ export default function CandidateTable({
                 {extra > 0 ? `, +${extra}` : ''}
               </div>
 
-              {/* Confidence — small grey meter beside the score */}
-              <div className="hidden w-[56px] shrink-0 lg:block">
-                <ConfidenceMeter value={c.confidence} />
+              {/* Score / Match — one number, the right one, never blank */}
+              <div className="flex w-[120px] shrink-0 justify-end">
+                <ScoreValue candidate={c} />
               </div>
-
-              {/* Score — ink, right-aligned */}
-              <div className="w-[48px] shrink-0 text-right font-mono text-sm text-ink tabular-nums">
-                {c.score ?? <span className="text-secondary">·</span>}
-              </div>
-
-              {/* Verdict — the only coloured status signal */}
-              <div className="w-[110px] shrink-0">{c.verdict && <VerdictTag verdict={c.verdict} />}</div>
 
               {/* Status — neutral grey, or the amber Needs human flag */}
               <div className="w-[124px] shrink-0">

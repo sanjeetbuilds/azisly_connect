@@ -106,6 +106,7 @@ export const candidates = [
     applied: 'Jun 18',
     appliedSort: 18,
     skills: ['React', 'TypeScript', 'Product', 'GraphQL'],
+    match: 88,
     avatar: avatar(47),
     competencies: comps({
       communication: 84,
@@ -146,6 +147,7 @@ export const candidates = [
     applied: 'Jun 21',
     appliedSort: 21,
     skills: ['React', 'Node.js', 'Product', 'Design systems'],
+    match: 91,
     avatar: avatar(9),
     competencies: comps({
       communication: 93,
@@ -186,6 +188,7 @@ export const candidates = [
     applied: 'Jun 15',
     appliedSort: 15,
     skills: ['React', 'CSS', 'Accessibility', 'Testing'],
+    match: 85,
     avatar: avatar(32),
     competencies: comps({
       communication: 88,
@@ -226,6 +229,7 @@ export const candidates = [
     applied: 'Jun 12',
     appliedSort: 12,
     skills: ['Go', 'Postgres', 'Kafka', 'Distributed systems'],
+    match: 80,
     avatar: avatar(12),
     // Product craft was not asked in this interview, so it is not assessed.
     competencies: comps({
@@ -268,6 +272,7 @@ export const candidates = [
     applied: 'Jun 09',
     appliedSort: 9,
     skills: ['Terraform', 'AWS', 'Kubernetes', 'CI/CD'],
+    match: 76,
     avatar: avatar(5),
     competencies: comps({
       communication: 44,
@@ -308,6 +313,7 @@ export const candidates = [
     applied: 'Jun 05',
     appliedSort: 5,
     skills: ['Kubernetes', 'AWS', 'Observability'],
+    match: 70,
     avatar: avatar(51),
     competencies: comps({
       communication: 60,
@@ -351,6 +357,7 @@ export const candidates = [
     appliedSort: 26,
     isNew: true, // matched by the AI after the recruiter's last view
     skills: ['Go', 'gRPC', 'Postgres', 'Redis'],
+    match: 84,
     avatar: avatar(13),
     competencies: [],
     evidence: [],
@@ -371,6 +378,7 @@ export const candidates = [
     appliedSort: 24,
     isNew: true,
     skills: ['Python', 'Spark', 'dbt', 'Airflow'],
+    match: 79,
     avatar: avatar(45),
     competencies: [],
     evidence: [],
@@ -390,6 +398,7 @@ export const candidates = [
     applied: 'Jun 25',
     appliedSort: 25,
     skills: ['Kubernetes', 'Terraform', 'AWS', 'Observability'],
+    match: 72,
     avatar: avatar(15),
     competencies: [],
     evidence: [],
@@ -409,6 +418,7 @@ export const candidates = [
     applied: 'Jun 23',
     appliedSort: 23,
     skills: ['React', 'TypeScript', 'CSS', 'Testing'],
+    match: 88,
     avatar: avatar(44),
     competencies: [],
     evidence: [],
@@ -428,6 +438,7 @@ export const candidates = [
     applied: 'Jun 22',
     appliedSort: 22,
     skills: ['React', 'Node.js', 'Product', 'GraphQL'],
+    match: 82,
     avatar: avatar(33),
     competencies: [],
     evidence: [],
