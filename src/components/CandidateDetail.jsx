@@ -10,19 +10,13 @@ import Tag, { skillColor } from './Tag.jsx'
 import Kbd from './Kbd.jsx'
 import JudgeControls from './JudgeControls.jsx'
 import { XIcon, PlayIcon, CheckIcon, MailIcon, PhoneIcon } from './icons.jsx'
-import { SOURCES, stageTrackIndex, GATE } from '../data/candidates.js'
+import { SOURCES, stageTrackIndex, GATE, contactsFor } from '../data/candidates.js'
 
 // A plain <p>, not a heading — headings inherit the global ink colour and
 // tighter tracking; section labels must stay small, grey, and normally spaced.
 const SectionLabel = ({ children }) => (
   <p className="text-sm font-medium tracking-normal text-secondary">{children}</p>
 )
-
-// Mocked contact details, unlocked once a candidate is taken forward.
-function contactsFor(name) {
-  const slug = name.toLowerCase().replace(/[^a-z]+/g, '.')
-  return { email: `${slug}@gmail.com`, phone: '+351 912 345 678' }
-}
 
 /* A mocked interview video poster + transcript summary. */
 function InterviewVideo({ candidate, summary }) {
@@ -235,6 +229,10 @@ export default function CandidateDetail({
                     : 'Select to move forward, or skip'}
               </span>
             </div>
+          ) : candidate.stage === 'Shared' ? (
+            <span className="text-sm text-secondary">
+              With the hiring manager, awaiting their picks
+            </span>
           ) : (
             <span className="text-sm text-secondary">{candidate.stage}</span>
           )}

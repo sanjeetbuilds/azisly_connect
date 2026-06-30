@@ -62,6 +62,12 @@ const TRACK_INDEX = {
 }
 export const stageTrackIndex = (stage) => TRACK_INDEX[stage] ?? 0
 
+// Mocked contact details, unlocked once a candidate is taken forward.
+export function contactsFor(name) {
+  const slug = name.toLowerCase().replace(/[^a-z]+/g, '.')
+  return { email: `${slug}@gmail.com`, phone: '+351 912 345 678' }
+}
+
 // Sources carry a functional colour (where the candidate came from).
 export const SOURCES = {
   referral: { label: 'Referral', color: 'green' },
@@ -214,7 +220,7 @@ export const candidates = [
     confidence: 70,
     verdict: 'promising',
     gate: null,
-    stage: 'Ready to review',
+    stage: 'Shared',
     source: 'agency',
     applied: 'Jun 12',
     appliedSort: 12,
@@ -296,7 +302,7 @@ export const candidates = [
     confidence: 54,
     verdict: 'promising',
     gate: null,
-    stage: 'Passed',
+    stage: 'Ready to review',
     source: 'careers',
     applied: 'Jun 05',
     appliedSort: 5,

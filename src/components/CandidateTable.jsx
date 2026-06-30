@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import Avatar from './Avatar.jsx'
 import VerdictTag from './VerdictTag.jsx'
 import Tag, { skillColor } from './Tag.jsx'
 import JudgeControls from './JudgeControls.jsx'
-import { SortIcon, CheckIcon } from './icons.jsx'
+import { SortIcon, CheckIcon, MailIcon, ClockIcon } from './icons.jsx'
+import { contactsFor } from '../data/candidates.js'
 
 /* The header select-all tick. */
 function SelectAll({ checked, disabled, onClick }) {
@@ -58,8 +60,31 @@ function ConfidenceMeter({ value }) {
   )
 }
 
+/* A quick-copy of the candidate's email, shown on taken-forward rows. */
+export function ContactCopy({ candidate }) {
+  const [copied, setCopied] = useState(false)
+  const { email } = contactsFor(candidate.name)
+  return (
+    <button
+      type="button"
+      aria-label="Copy email"
+      title={copied ? 'Copied' : `Copy ${email}`}
+      onClick={(e) => {
+        e.stopPropagation()
+        navigator.clipboard?.writeText(email).catch(() => {})
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1500)
+      }}
+      className="flex h-[22px] items-center gap-1 rounded-full border border-hairline bg-surface pl-1.5 pr-2 text-[11px] font-medium text-secondary transition-colors hover:border-strong/40 hover:text-strong"
+    >
+      {copied ? <CheckIcon className="h-3 w-3 text-strong" /> : <MailIcon className="h-3 w-3" />}
+      {copied ? 'Copied' : 'Email'}
+    </button>
+  )
+}
+
 /* Status — one neutral grey style for every state, except the amber Needs human
-   flag, which also carries the gate reason. */
+   flag and the pending "With hiring manager" marker. */
 function StatusCell({ candidate }) {
   if (candidate.stage === 'Needs human') {
     return (
@@ -74,6 +99,14 @@ function StatusCell({ candidate }) {
           </span>
         )}
       </div>
+    )
+  }
+  if (candidate.stage === 'Shared') {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[13px] text-secondary">
+        <ClockIcon className="h-3.5 w-3.5" />
+        With hiring manager
+      </span>
     )
   }
   return <span className="text-[13px] text-secondary">{candidate.stage}</span>
@@ -176,18 +209,22 @@ export default function CandidateTable({
                     ? 'bg-accent/[0.03]'
                     : isSkipped
                       ? 'bg-background opacity-55'
-                      : 'hover:bg-background'
+                      : c.stage === 'Taken forward'
+                        ? 'bg-strong/[0.07] hover:bg-strong/[0.1]'
+                        : 'hover:bg-background'
               }`}
             >
-              <div className="w-[58px] shrink-0">
-                <JudgeControls
-                  picked={isPicked}
-                  skipped={isSkipped}
-                  disabled={!elig.ok}
-                  reason={elig.reason}
-                  onTick={(e) => onTick(c.id, index, e.shiftKey)}
-                  onCross={() => onCross(c.id)}
-                />
+              <div className="flex w-[58px] shrink-0 items-center">
+                {elig.ok ? (
+                  <JudgeControls
+                    picked={isPicked}
+                    skipped={isSkipped}
+                    onTick={(e) => onTick(c.id, index, e.shiftKey)}
+                    onCross={() => onCross(c.id)}
+                  />
+                ) : c.stage === 'Taken forward' ? (
+                  <ContactCopy candidate={c} />
+                ) : null}
               </div>
 
               <div className="flex min-w-0 flex-1 items-center gap-3">

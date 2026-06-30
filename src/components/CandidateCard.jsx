@@ -2,6 +2,8 @@ import Avatar from './Avatar.jsx'
 import VerdictTag from './VerdictTag.jsx'
 import Tag from './Tag.jsx'
 import JudgeControls from './JudgeControls.jsx'
+import { ContactCopy } from './CandidateTable.jsx'
+import { ClockIcon } from './icons.jsx'
 import { GATE } from '../data/candidates.js'
 
 /* The candidate's strongest assessed competencies, as compact bars. */
@@ -75,6 +77,13 @@ export default function CandidateCard({
         )}
       </div>
 
+      {candidate.stage === 'Shared' && (
+        <span className="inline-flex items-center gap-1.5 text-[13px] text-secondary">
+          <ClockIcon className="h-3.5 w-3.5" />
+          With hiring manager
+        </span>
+      )}
+
       <TopCompetencies competencies={candidate.competencies} />
 
       <div className="flex items-center justify-between border-t border-hairline pt-3.5">
@@ -84,14 +93,11 @@ export default function CandidateCard({
           </span>
           {candidate.score != null && <span className="text-[12px] text-secondary">match</span>}
         </div>
-        <JudgeControls
-          picked={picked}
-          skipped={skipped}
-          disabled={disabled}
-          reason={reason}
-          onTick={onTick}
-          onCross={onCross}
-        />
+        {!disabled ? (
+          <JudgeControls picked={picked} skipped={skipped} onTick={onTick} onCross={onCross} />
+        ) : candidate.stage === 'Taken forward' ? (
+          <ContactCopy candidate={candidate} />
+        ) : null}
       </div>
     </div>
   )
