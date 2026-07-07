@@ -1,4 +1,4 @@
-import { Card, Avatar, ScoreDisplay, CompetencyBar, EvidenceQuote, Tag } from '../components'
+import { Card, Avatar, CompetencyBar, EvidenceQuote, Tag } from '../components'
 import { PlayIcon, CheckIcon } from '../components/icons.jsx'
 
 const SectionLabel = ({ children }) => (
@@ -34,19 +34,22 @@ function ApprovedCard({ candidate, interview }) {
           <Avatar src={candidate.avatar} name={candidate.name} size={48} />
           <div className="flex flex-col gap-1.5">
             <div>
-              <h3 className="text-lg text-ink">{candidate.name}</h3>
+              <h3 className="text-lg font-semibold text-ink">{candidate.name}</h3>
               <p className="text-[13px] text-secondary">
-                {candidate.role} · {candidate.location}
+                {candidate.role}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Tag color="green">
-                <CheckIcon className="mr-1 h-3 w-3" /> Taken forward
-              </Tag>
+              <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-accent/25 bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent">
+                <CheckIcon className="h-3 w-3" /> Taken forward
+              </span>
             </div>
           </div>
         </div>
-        <ScoreDisplay score={candidate.score} label="Overall" size="sm" />
+        <div className="flex shrink-0 flex-col items-end">
+          <span className="text-3xl font-bold text-ink tabular-nums">{candidate.score}</span>
+          <span className="text-[13px] text-secondary">Interview</span>
+        </div>
       </div>
 
       <div className="grid gap-6 px-6 py-6 md:grid-cols-2">
@@ -90,10 +93,10 @@ function CompactRow({ candidate }) {
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium text-ink">{candidate.name}</div>
         <div className="truncate text-[13px] text-secondary">
-          {candidate.role} · {candidate.location}
+          {candidate.role}
         </div>
       </div>
-      <span className="font-mono text-sm text-ink tabular-nums">{candidate.score}</span>
+      <span className="text-sm font-semibold text-ink tabular-nums">{candidate.score}</span>
       <Tag color="gray">Not taken forward</Tag>
     </div>
   )
@@ -126,14 +129,14 @@ export default function ManagerDecisionScreen({
       </header>
 
       <div className="shrink-0 px-6 pb-5 pt-8 lg:px-8">
-        <p className="text-sm text-secondary">Pipeline · {roleTitle}</p>
-        <h1 className="mt-1.5 text-2xl text-ink">Manager&rsquo;s decision</h1>
+        <p className="text-[13px] font-medium text-secondary">Pipeline · {roleTitle}</p>
+        <h1 className="mt-1 text-2xl font-bold text-ink">Manager&rsquo;s decision</h1>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-12 lg:px-8">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
           {/* Status banner — the manager responded */}
-          <div className="flex flex-wrap items-center gap-4 rounded-xl border border-strong/25 bg-strong/[0.05] px-5 py-4">
+          <div className="flex flex-wrap items-center gap-4 rounded-card border border-accent/25 bg-accent/[0.04] px-5 py-4">
             <Avatar name={manager} size={40} />
             <div className="min-w-0 flex-1">
               <p className="text-sm text-ink">

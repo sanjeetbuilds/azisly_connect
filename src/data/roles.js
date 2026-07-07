@@ -35,6 +35,12 @@ export const seedRoles = [
     state: 'ready',
     define_by: 'recruiter',
     approve_by: 'hiring_manager',
+    // Optional requirements — the matched list filter bar starts from these but
+    // defaults to open so every match (including freshers) shows on first view.
+    requirements: {
+      minExperience: null,
+      location: null,
+    },
     candidatesReady: 6,
     totalCandidates: 18,
     updated: 'Updated 2h ago',
@@ -105,7 +111,10 @@ export const seedRoles = [
   },
 ]
 
-export function makeRole(id, { title, define_by = 'recruiter', approve_by = 'hiring_manager' } = {}) {
+export function makeRole(
+  id,
+  { title, define_by = 'recruiter', approve_by = 'recruiter_alone', requirements = null } = {},
+) {
   return {
     id,
     title: title ?? 'New role',
@@ -114,8 +123,16 @@ export function makeRole(id, { title, define_by = 'recruiter', approve_by = 'hir
     state: 'matching',
     define_by,
     approve_by,
+    requirements,
     candidatesReady: 0,
     totalCandidates: 0,
     updated: 'Updated just now',
   }
 }
+
+// The MVP requirement fields: experience and location only. Every field is
+// optional; the matched list filters only on the ones a recruiter actually set.
+export const REQUIREMENT_FIELDS = [
+  { key: 'minExperience', label: 'Experience', kind: 'number' },
+  { key: 'location', label: 'Location', kind: 'text' },
+]

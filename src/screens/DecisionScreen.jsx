@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Card, Avatar, ScoreDisplay, VerdictTag } from '../components'
+import { Button, Card, Avatar, VerdictTag } from '../components'
 import { ArrowLeftIcon, CheckIcon, MailIcon, PhoneIcon, LinkIcon } from '../components/icons.jsx'
 
 const FALLBACK = {
@@ -45,8 +45,8 @@ export default function DecisionScreen({ candidate = FALLBACK, onBack, onDone })
           </button>
         )}
         <div>
-          <p className="text-sm text-secondary">Decision</p>
-          <h1 className="mt-1.5 text-2xl text-ink">Shortlist or pass</h1>
+          <p className="text-[13px] font-medium text-secondary">Decision</p>
+          <h1 className="mt-1 text-2xl font-bold text-ink">Shortlist or pass</h1>
         </div>
       </div>
 
@@ -58,15 +58,18 @@ export default function DecisionScreen({ candidate = FALLBACK, onBack, onDone })
               <Avatar src={candidate.avatar} name={candidate.name} size={56} />
               <div className="flex flex-col gap-2">
                 <div>
-                  <h2 className="text-xl text-ink">{candidate.name}</h2>
+                  <h2 className="text-xl font-bold text-ink">{candidate.name}</h2>
                   <p className="text-sm text-secondary">
-                    {candidate.role} · {candidate.location}
+                    {candidate.role}
                   </p>
                 </div>
                 <VerdictTag verdict={candidate.verdict} />
               </div>
             </div>
-            <ScoreDisplay score={candidate.score} label="Overall" size="sm" />
+            <div className="flex shrink-0 flex-col items-end">
+              <span className="text-3xl font-bold text-ink tabular-nums">{candidate.score}</span>
+              <span className="text-[13px] text-secondary">Interview</span>
+            </div>
           </Card>
 
           {/* Pending — choose */}
@@ -92,8 +95,8 @@ export default function DecisionScreen({ candidate = FALLBACK, onBack, onDone })
           {/* Shortlisted — contact details revealed */}
           {phase === 'shortlisted' && (
             <>
-              <div className="flex items-start gap-2.5 rounded-xl border border-strong/20 bg-strong/[0.06] px-4 py-3 text-sm text-ink">
-                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-strong/15 text-strong">
+              <div className="flex items-start gap-2.5 rounded-card border border-accent/25 bg-accent/[0.04] px-4 py-3 text-sm text-ink">
+                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
                   <CheckIcon className="h-2.5 w-2.5" />
                 </span>
                 <span>

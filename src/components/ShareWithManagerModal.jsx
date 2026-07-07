@@ -24,13 +24,11 @@ function CandidateRow({ c }) {
       <Avatar src={c.avatar} name={c.name} size={32} />
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium text-ink">{c.name}</div>
-        <div className="truncate text-[13px] text-secondary">
-          {c.role} · {c.location}
-        </div>
+        <div className="truncate text-[13px] text-secondary">{c.role}</div>
       </div>
-      <span className="font-mono text-sm text-ink tabular-nums">{c.score}</span>
-      <div className="w-[104px] shrink-0">
-        <VerdictTag verdict={c.verdict} />
+      <div className="flex shrink-0 items-center gap-1.5">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Match</span>
+        <span className="text-sm font-semibold text-ink tabular-nums">{c.match}</span>
       </div>
     </div>
   )

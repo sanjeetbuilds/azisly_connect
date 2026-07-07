@@ -1,10 +1,35 @@
 import Avatar from './Avatar.jsx'
 import Tag, { skillColor } from './Tag.jsx'
-import JudgeControls from './JudgeControls.jsx'
-import { SortIcon, CheckIcon } from './icons.jsx'
-import { interviewStatus } from '../data/candidates.js'
+import Tooltip from './Tooltip.jsx'
+import VerdictTag from './VerdictTag.jsx'
+import { ScoreValue, InterviewScoreValue } from './Scores.jsx'
+import { CheckIcon } from './icons.jsx'
+import { topExperienceOf } from '../data/candidates.js'
 
-/* The header select-all tick. */
+const MATCH_EXPLAINER = 'Match score: how well this candidate fits the role on paper, before the interview.'
+
+// Pick whole skill chips that fit the budget; the rest become "+N". Never crop a
+// chip mid-word.
+function fitSkills(skills, budget) {
+  const est = (s) => s.length * 6.6 + 18
+  const shown = []
+  let used = 0
+  for (const s of skills) {
+    const w = est(s) + (shown.length ? 4 : 0)
+    if (used + w > budget) break
+    used += w
+    shown.push(s)
+  }
+  let extra = skills.length - shown.length
+  // Leave room for the "+N" pill.
+  while (extra > 0 && shown.length > 1 && used + 34 > budget) {
+    used -= est(shown[shown.length - 1]) + 4
+    shown.pop()
+    extra = skills.length - shown.length
+  }
+  return { shown, extra }
+}
+
 function SelectAll({ checked, disabled, onClick }) {
   return (
     <button
@@ -12,14 +37,13 @@ function SelectAll({ checked, disabled, onClick }) {
       onClick={onClick}
       disabled={disabled}
       aria-pressed={checked}
-      aria-label="Select all eligible"
-      title="Select all"
-      className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border transition-colors ${
+      aria-label="Select all"
+      className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border transition-colors ${
         disabled
-          ? 'cursor-not-allowed border-hairline bg-background text-secondary/40'
+          ? 'cursor-not-allowed border-hairline bg-background'
           : checked
-            ? 'border-accent bg-accent text-surface'
-            : 'border-hairline bg-surface text-secondary hover:border-accent hover:text-accent'
+            ? 'border-accent bg-accent text-white'
+            : 'border-hairline bg-surface text-transparent hover:border-accent'
       }`}
     >
       <CheckIcon className="h-3 w-3" />
@@ -27,138 +51,74 @@ function SelectAll({ checked, disabled, onClick }) {
   )
 }
 
-/* A row of skill tags with a "+N" overflow chip — kept for the grid card. */
-export function SkillTags({ skills, max = 2 }) {
-  const shown = skills.slice(0, max)
-  const extra = skills.length - shown.length
-  return (
-    <div className="flex flex-wrap items-center gap-1">
-      {shown.map((s) => (
-        <Tag key={s} color={skillColor(s)}>
-          {s}
-        </Tag>
-      ))}
-      {extra > 0 && <Tag color="gray">+{extra}</Tag>}
-    </div>
-  )
-}
-
-/**
- * ScoreValue — one number, the right one for the candidate's phase, never blank.
- * Before the interview is judged, the pre-interview Match estimate (muted, with
- * a "match" tag). Once judged, the role Score in full weight, its colour carrying
- * the verdict (green strong, amber weak), with a "review" marker when a gate fails.
- */
-export function ScoreValue({ candidate, size = 'sm' }) {
-  const num = size === 'lg' ? 'text-lg leading-none' : 'text-sm'
-  if (candidate.score != null) {
-    const color =
-      candidate.verdict === 'strong'
-        ? 'text-strong'
-        : candidate.verdict === 'not-yet'
-          ? 'text-attention'
-          : 'text-ink'
-    return (
-      <span className="inline-flex items-baseline gap-1 font-mono tabular-nums">
-        <span className={`${num} font-medium ${color}`}>{candidate.score}</span>
-        {candidate.gate && <span className="text-[11px] font-medium text-attention">· review</span>}
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className={`font-mono ${num} text-secondary tabular-nums`}>{candidate.match ?? '·'}</span>
-      <span className="rounded bg-ink/[0.06] px-1 py-px text-[10px] font-medium uppercase tracking-wide text-secondary">
-        match
-      </span>
-    </span>
-  )
-}
-
-/* Interview status — one neutral grey chip for every state, no per-status colour. */
-function StatusCell({ candidate }) {
-  return (
-    <span className="inline-flex items-center rounded-md bg-ink/[0.05] px-1.5 py-0.5 text-[12px] font-medium text-secondary">
-      {interviewStatus(candidate)}
-    </span>
-  )
-}
-
-function HeaderCell({ children, className = '', sortable, sortKey, sort, onSort, align = 'left' }) {
-  const isActive = sort?.key === sortKey
-  const justify = align === 'right' ? 'justify-end' : 'justify-start'
-  if (!sortable) {
-    return <div className={`${className} text-xs text-secondary`}>{children}</div>
-  }
+function RowCheck({ checked, onClick }) {
   return (
     <button
       type="button"
-      onClick={() => onSort(sortKey)}
-      className={`${className} flex items-center gap-1 ${justify} text-xs transition-colors ${
-        isActive ? 'text-ink' : 'text-secondary hover:text-ink'
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick()
+      }}
+      aria-pressed={checked}
+      aria-label="Select candidate"
+      className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border transition-colors ${
+        checked ? 'border-accent bg-accent text-white' : 'border-hairline bg-surface text-transparent hover:border-accent'
       }`}
     >
-      {children}
-      <SortIcon dir={isActive ? sort.dir : null} className={`h-3 w-3 ${isActive ? 'text-accent' : ''}`} />
+      <CheckIcon className="h-3 w-3" />
     </button>
   )
 }
 
+const HEAD = 'text-[11px] font-semibold uppercase tracking-wide text-muted'
+
 /**
- * CandidateTable — a dense table that follows the workflow. Checkboxes are only
- * enabled for rows eligible for the active action; ineligible ones show a quiet
- * reason on hover. Verdict carries colour (green/grey/amber); status is one
- * neutral grey, except the amber Needs human flag.
+ * CandidateTable — one table for every stage tab. The row end is two FIXED slots:
+ * an action slot, and, at the far right, a reserved menu slot that never shifts
+ * between rows. Match carries a designed tooltip; skill chips never crop.
  */
 export default function CandidateTable({
   candidates,
   selectedId,
   onSelect,
-  sort,
-  onSort,
+  selectable = false,
   picked,
-  skipped,
-  onTick,
-  onCross,
+  onToggle,
   onToggleAll,
-  eligibility = () => ({ ok: true }),
-  isNew = () => false,
+  showInterview = false,
+  newIds,
+  rowAction,
+  rowMenu,
 }) {
-  const eligible = candidates.filter((c) => eligibility(c).ok)
-  const allChecked = eligible.length > 0 && eligible.every((c) => picked.has(c.id))
+  const allChecked = selectable && candidates.length > 0 && candidates.every((c) => picked.has(c.id))
 
   return (
-    <div className="min-w-[680px]">
+    <div className="w-full">
       {/* Header row */}
-      <div className="flex items-center gap-4 border-b border-hairline bg-background/60 px-5 py-2">
-        <div className="w-[58px] shrink-0">
-          <SelectAll checked={allChecked} disabled={eligible.length === 0} onClick={onToggleAll} />
-        </div>
-        <HeaderCell className="min-w-0 flex-1" sortable sortKey="name" sort={sort} onSort={onSort}>
-          Candidate
-        </HeaderCell>
-        <div className="hidden w-[190px] shrink-0 text-xs text-secondary xl:block">Skills</div>
-        <HeaderCell
-          className="w-[120px] shrink-0"
-          align="right"
-          sortable
-          sortKey="score"
-          sort={sort}
-          onSort={onSort}
-        >
-          Score
-        </HeaderCell>
-        <div className="w-[124px] shrink-0 text-xs text-secondary">Interview</div>
+      <div className="flex items-center gap-4 border-b border-hairline px-5 py-2.5">
+        {selectable && (
+          <div className="w-[20px] shrink-0">
+            <SelectAll checked={allChecked} disabled={candidates.length === 0} onClick={onToggleAll} />
+          </div>
+        )}
+        <div className={`min-w-[160px] flex-1 ${HEAD}`}>Candidate</div>
+        <div className={`hidden w-[220px] shrink-0 md:block ${HEAD}`}>Experience</div>
+        {showInterview ? (
+          <div className={`w-[150px] shrink-0 ${HEAD}`}>Interview</div>
+        ) : (
+          <div className={`hidden w-[170px] shrink-0 xl:block ${HEAD}`}>Skills</div>
+        )}
+        {!showInterview && <div className={`w-[60px] shrink-0 text-right ${HEAD}`}>Match</div>}
+        <div className="w-[156px] shrink-0" />
+        <div className="w-[34px] shrink-0" />
       </div>
 
       {/* Rows */}
       <div>
-        {candidates.map((c, index) => {
-          const elig = eligibility(c)
-          const isPicked = picked.has(c.id)
-          const isSkipped = skipped.has(c.id)
+        {candidates.map((c) => {
           const open = c.id === selectedId
-          const extra = c.skills.length - 2
+          const top = topExperienceOf(c)
+          const { shown, extra } = fitSkills(c.skills, 160)
           return (
             <div
               key={c.id}
@@ -172,59 +132,73 @@ export default function CandidateTable({
                 }
               }}
               aria-current={open ? 'true' : undefined}
-              className={`flex w-full cursor-pointer items-center gap-4 border-b border-hairline px-5 py-2 text-left transition-colors last:border-b-0 ${
-                open
-                  ? 'bg-accent/[0.05]'
-                  : isPicked
-                    ? 'bg-accent/[0.03]'
-                    : isSkipped
-                      ? 'bg-background opacity-55'
-                      : c.stage === 'Taken forward' || c.stage === 'Moving forward'
-                        ? 'bg-strong/[0.07] hover:bg-strong/[0.1]'
-                        : 'hover:bg-background'
+              className={`group relative flex h-[56px] w-full cursor-pointer items-center gap-4 border-b border-hairline px-5 text-left transition-colors last:border-b-0 ${
+                open ? 'bg-accent-soft/60' : picked?.has(c.id) ? 'bg-accent-soft/40' : 'hover:bg-background'
               }`}
             >
-              <div className="flex w-[58px] shrink-0 items-center">
-                {elig.ok && (
-                  <JudgeControls
-                    picked={isPicked}
-                    skipped={isSkipped}
-                    onTick={(e) => onTick(c.id, index, e.shiftKey)}
-                    onCross={() => onCross(c.id)}
-                  />
-                )}
-              </div>
+              {selectable && (
+                <div className="w-[20px] shrink-0">
+                  <RowCheck checked={picked.has(c.id)} onClick={() => onToggle(c.id)} />
+                </div>
+              )}
 
-              <div className="flex min-w-0 flex-1 items-center gap-3">
-                <Avatar src={c.avatar} name={c.name} size={32} />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate text-sm font-medium text-ink">{c.name}</span>
-                    {isNew(c) && (
-                      <span className="shrink-0 rounded-full bg-info/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-info">
-                        New
-                      </span>
-                    )}
-                  </div>
-                  <div className="truncate text-[13px] text-secondary">{c.role}</div>
+              {/* Candidate — avatar + full name, never truncates */}
+              <div className="flex min-w-[160px] flex-1 items-center gap-3">
+                <Avatar name={c.name} size={34} className="shrink-0" />
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <span className="text-sm font-semibold leading-snug text-ink">{c.name}</span>
+                  {(c.isNew || newIds?.has(c.id)) && (
+                    <span className="rounded-full bg-accent-soft px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-strong">
+                      New
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {/* Skills — muted grey, quiet */}
-              <div className="hidden w-[190px] shrink-0 truncate text-[13px] text-secondary xl:block">
-                {c.skills.slice(0, 2).join(', ')}
-                {extra > 0 ? `, +${extra}` : ''}
+              {/* Experience — one compact item, or a dash */}
+              <div className="hidden w-[220px] shrink-0 whitespace-nowrap text-[13px] text-ink md:block">
+                {top ?? <span className="text-muted">Fresher</span>}
               </div>
 
-              {/* Score / Match — one number, the right one, never blank */}
-              <div className="flex w-[120px] shrink-0 justify-end">
-                <ScoreValue candidate={c} />
-              </div>
+              {/* Skills (pre-interview) or Interview score (post-interview) */}
+              {showInterview ? (
+                <div className="flex w-[150px] shrink-0 items-center gap-2">
+                  <InterviewScoreValue candidate={c} size="lg" showGate={false} />
+                  {c.verdict && <VerdictTag verdict={c.verdict} />}
+                </div>
+              ) : (
+                <div className="hidden w-[170px] shrink-0 items-center gap-1 whitespace-nowrap xl:flex">
+                  {shown.map((s) => (
+                    <Tag key={s} color={skillColor(s)} className="shrink-0">
+                      {s}
+                    </Tag>
+                  ))}
+                  {extra > 0 && (
+                    <Tag color="gray" className="shrink-0">
+                      +{extra}
+                    </Tag>
+                  )}
+                </div>
+              )}
 
-              {/* Status — neutral grey, or the amber Needs human flag */}
-              <div className="w-[124px] shrink-0">
-                <StatusCell candidate={c} />
-              </div>
+              {/* Match — hero pre-interview, with a designed tooltip */}
+              {!showInterview && (
+                <div className="flex w-[60px] shrink-0 justify-end">
+                  <Tooltip label={MATCH_EXPLAINER}>
+                    <span className="flex flex-col items-end gap-1">
+                      <ScoreValue value={c.match} size="md" />
+                      <span className="h-1 w-12 overflow-hidden rounded-full bg-track">
+                        <span className="block h-full rounded-full bg-accent-dot" style={{ width: `${c.match}%` }} />
+                      </span>
+                    </span>
+                  </Tooltip>
+                </div>
+              )}
+
+              {/* Action slot (fixed) */}
+              <div className="flex w-[156px] shrink-0 items-center justify-end">{rowAction?.(c)}</div>
+              {/* Menu slot (fixed, far right, always reserved) */}
+              <div className="flex w-[34px] shrink-0 items-center justify-end">{rowMenu?.(c)}</div>
             </div>
           )
         })}

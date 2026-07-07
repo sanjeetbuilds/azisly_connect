@@ -60,7 +60,7 @@ export default function InviteManagerScreen({
         <div className="flex min-h-0 flex-1 items-center justify-center px-6 py-12">
           <Card className="flex w-full max-w-lg flex-col gap-6 p-8">
             <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-strong/10 text-strong">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
                 <CheckIcon className="h-6 w-6" />
               </span>
               <div>

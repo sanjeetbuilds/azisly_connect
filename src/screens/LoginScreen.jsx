@@ -12,7 +12,7 @@ const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
 
 function Wordmark({ className = '' }) {
   return (
-    <span className={`font-medium tracking-tight text-ink ${className}`}>
+    <span className={`font-semibold tracking-tight text-ink ${className}`}>
       Azisly <span className="text-secondary">Recruit</span>
     </span>
   )
@@ -61,7 +61,7 @@ export default function LoginScreen({ onSignIn }) {
         <Wordmark className="text-lg" />
 
         <div className="flex max-w-sm flex-col gap-7">
-          <h2 className="text-[26px] leading-snug text-ink">
+          <h2 className="text-[28px] font-bold leading-snug text-ink">
             Hiring decisions, judged on evidence.
           </h2>
           <ul className="flex flex-col gap-3.5">
@@ -85,7 +85,7 @@ export default function LoginScreen({ onSignIn }) {
           <Wordmark className="mb-10 block text-center lg:hidden" />
 
           <div className="mb-8 flex flex-col gap-1.5">
-            <h1 className="text-2xl text-ink">Sign in</h1>
+            <h1 className="text-2xl font-bold text-ink">Sign in</h1>
             <p className="text-sm text-secondary">Welcome back to Azisly Recruit.</p>
           </div>
 

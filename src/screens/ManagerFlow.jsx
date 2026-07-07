@@ -70,7 +70,7 @@ export default function ManagerFlow({
       <ManagerTopBar />
       <main className="flex flex-1 items-center justify-center px-6 py-12">
         <Card className="flex max-w-md flex-col items-center gap-5 p-10 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-strong/10 text-strong">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-soft text-accent">
             <CheckIcon className="h-7 w-7" />
           </span>
           <div className="flex flex-col gap-2">

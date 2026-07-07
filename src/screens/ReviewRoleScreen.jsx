@@ -39,7 +39,7 @@ function WeightRow({ name, weight, editing, onChange }) {
             >
               <MinusIcon className="h-3.5 w-3.5" />
             </button>
-            <span className="w-12 border-x border-hairline py-1 text-center font-mono text-sm text-ink tabular-nums">
+            <span className="w-12 border-x border-hairline py-1 text-center text-sm font-semibold text-ink tabular-nums">
               {weight}%
             </span>
             <button
@@ -52,7 +52,7 @@ function WeightRow({ name, weight, editing, onChange }) {
             </button>
           </span>
         ) : (
-          <span className="font-mono text-sm text-ink tabular-nums">{weight}%</span>
+          <span className="text-sm font-semibold text-ink tabular-nums">{weight}%</span>
         )}
       </div>
       <div className="h-1 w-full overflow-hidden rounded-full bg-track">
@@ -105,7 +105,7 @@ export default function ReviewRoleScreen({
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="flex min-h-0 flex-1 items-center justify-center px-6 pb-16">
           <div className="flex max-w-md flex-col items-center gap-5 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-strong/10 text-strong">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-soft text-accent">
               <CheckIcon className="h-7 w-7" />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -143,8 +143,8 @@ export default function ReviewRoleScreen({
           </button>
         )}
         <div>
-          <p className="text-sm text-secondary">Roles · Review</p>
-          <h1 className="mt-1.5 text-2xl text-ink">Role card</h1>
+          <p className="text-[13px] font-medium text-secondary">Roles · Review</p>
+          <h1 className="mt-1 text-2xl font-bold text-ink">Role card</h1>
         </div>
       </div>
 
@@ -154,7 +154,7 @@ export default function ReviewRoleScreen({
             {/* Summary */}
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg text-ink">{roleTitle}</h2>
+                <h2 className="text-lg font-semibold text-ink">{roleTitle}</h2>
                 <p className="mt-0.5 text-[13px] text-secondary">
                   {openings} opening{openings === 1 ? '' : 's'} · Remote · Europe · Full-time
                 </p>
@@ -167,7 +167,7 @@ export default function ReviewRoleScreen({
               <div className="flex items-baseline justify-between">
                 <SectionLabel>Competencies &amp; weighting</SectionLabel>
                 <span
-                  className={`font-mono text-xs tabular-nums ${
+                  className={`text-xs font-semibold tabular-nums ${
                     balanced ? 'text-secondary' : 'text-attention'
                   }`}
                 >
@@ -225,7 +225,7 @@ export default function ReviewRoleScreen({
                 <ul className="flex flex-col gap-2.5">
                   {mustHaves.map((m, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-sm text-ink">
-                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-strong/10 text-strong">
+                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
                         <CheckIcon className="h-2.5 w-2.5" />
                       </span>
                       {m}

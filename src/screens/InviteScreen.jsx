@@ -47,7 +47,7 @@ function InviteLinkRow({ item }) {
       <button type="button" onClick={copy} className={`${control} shrink-0`}>
         {copied ? (
           <>
-            <CheckIcon className="h-3.5 w-3.5 text-strong" /> Copied
+            <CheckIcon className="h-3.5 w-3.5 text-accent" /> Copied
           </>
         ) : (
           'Copy'
@@ -119,8 +119,8 @@ export default function InviteScreen({
           </button>
         )}
         <div>
-          <p className="text-sm text-secondary">{roleTitle}</p>
-          <h1 className="mt-1.5 text-2xl text-ink">Invite to interview</h1>
+          <p className="text-[13px] font-medium text-secondary">{roleTitle}</p>
+          <h1 className="mt-1 text-2xl font-bold text-ink">Invite to interview</h1>
         </div>
       </div>
 
@@ -128,10 +128,10 @@ export default function InviteScreen({
         <div className="mx-auto w-full max-w-2xl">
           {/* Sent confirmation with the real per-candidate interview links */}
           {sent.length > 0 && (
-            <div className="mb-5 rounded-xl border border-strong/25 bg-strong/[0.04] p-4">
+            <div className="mb-5 rounded-card border border-accent/25 bg-accent/[0.04] p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-strong/15 text-strong">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
                     <CheckIcon className="h-3 w-3" />
                   </span>
                   <span className="font-medium text-ink">
@@ -142,7 +142,7 @@ export default function InviteScreen({
                   href={sent[0].link}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-[13px] font-medium text-info transition-colors hover:underline"
+                  className="inline-flex items-center gap-1 text-[13px] font-medium text-accent transition-colors hover:underline"
                 >
                   Preview as candidate
                   <ChevronRightIcon className="h-3.5 w-3.5" />
@@ -165,7 +165,7 @@ export default function InviteScreen({
             book a time.
           </p>
 
-          <div className="overflow-hidden rounded-xl border border-hairline bg-surface shadow-card">
+          <div className="overflow-hidden rounded-card border border-hairline bg-surface shadow-card">
             {POOL.map((c) => {
               const isInvited = Boolean(invited[c.id])
               const isSelected = selected.has(c.id)
@@ -234,8 +234,8 @@ export default function InviteScreen({
             className="absolute inset-0 z-20 animate-fade-in cursor-default bg-ink/20 backdrop-blur-[1px]"
           />
           <div className="absolute inset-0 z-30 flex items-center justify-center p-6">
-            <div className="w-full max-w-md animate-fade-in-up rounded-2xl border border-hairline bg-surface p-6 shadow-overlay">
-              <h2 className="text-lg text-ink">
+            <div className="w-full max-w-md animate-fade-in-up rounded-card border border-hairline bg-surface p-6 shadow-overlay">
+              <h2 className="text-lg font-semibold text-ink">
                 Invite {selected.size} candidate{selected.size === 1 ? '' : 's'} to interview?
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-secondary">

@@ -4,7 +4,7 @@ import { SparkleIcon, ClockIcon } from '../components/icons.jsx'
 
 function Wordmark() {
   return (
-    <span className="font-medium tracking-tight text-ink">
+    <span className="font-semibold tracking-tight text-ink">
       Azisly <span className="text-secondary">Recruit</span>
     </span>
   )
@@ -73,7 +73,7 @@ export default function ManagerEntryScreen({
                 <ClockIcon className="h-6 w-6" />
               </span>
               <div className="flex flex-col gap-2">
-                <h1 className="text-xl text-ink">This link has expired or isn&rsquo;t valid</h1>
+                <h1 className="text-xl font-bold text-ink">This link has expired or isn&rsquo;t valid</h1>
                 <p className="text-sm leading-relaxed text-secondary">
                   Magic links are only valid for a short time. Ask {first} for a fresh link and
                   you&rsquo;ll be right back here.
@@ -96,7 +96,7 @@ export default function ManagerEntryScreen({
                     {company}
                   </p>
                 )}
-                <h1 className="text-xl leading-snug text-ink">{copy.title}</h1>
+                <h1 className="text-xl font-bold leading-snug text-ink">{copy.title}</h1>
                 <p className="text-sm leading-relaxed text-secondary">{copy.body}</p>
               </div>
               <Button className="w-full" onClick={begin}>

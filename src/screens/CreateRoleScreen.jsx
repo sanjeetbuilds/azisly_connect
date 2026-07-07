@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Card, ManagerPicker } from '../components'
+import { Button, Card } from '../components'
 import { SearchIcon, CheckIcon, PlusIcon, MinusIcon } from '../components/icons.jsx'
 
 const ROLE_SUGGESTIONS = [
@@ -17,35 +17,6 @@ const ROLE_SUGGESTIONS = [
   'Designer',
 ]
 
-// One up-front choice. Each option is a plain sentence, stored internally as the
-// two flags (define_by, approve_by) so the recruiter never sees two switches.
-const HANDLER_OPTIONS = [
-  {
-    key: 'r-r',
-    title: 'I define it and I decide who moves forward.',
-    define_by: 'recruiter',
-    approve_by: 'recruiter_alone',
-  },
-  {
-    key: 'r-h',
-    title: 'I define it, a hiring manager picks who moves forward.',
-    define_by: 'recruiter',
-    approve_by: 'hiring_manager',
-  },
-  {
-    key: 'h-r',
-    title: 'A hiring manager defines it, I decide who moves forward.',
-    define_by: 'hiring_manager',
-    approve_by: 'recruiter_alone',
-  },
-  {
-    key: 'h-h',
-    title: 'A hiring manager defines it and picks who moves forward.',
-    define_by: 'hiring_manager',
-    approve_by: 'hiring_manager',
-  },
-]
-
 function FieldLabel({ children, hint }) {
   return (
     <div className="mb-2 flex items-baseline justify-between gap-3">
@@ -55,51 +26,23 @@ function FieldLabel({ children, hint }) {
   )
 }
 
-function RadioDot({ selected }) {
-  return (
-    <span
-      className={`mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border transition-colors ${
-        selected ? 'border-accent' : 'border-hairline'
-      }`}
-    >
-      {selected && <span className="h-2 w-2 rounded-full bg-accent" />}
-    </span>
-  )
-}
-
-function OptionButton({ selected, title, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex items-center gap-3 rounded-xl border p-4 text-left transition-colors ${
-        selected ? 'border-accent bg-accent/[0.03] ring-1 ring-accent/20' : 'border-hairline hover:border-ink/20'
-      }`}
-    >
-      <RadioDot selected={selected} />
-      <span className="text-sm text-ink">{title}</span>
-    </button>
-  )
-}
-
+/**
+ * CreateRoleScreen — the first, deliberately small step. The recruiter names the
+ * role and sets the number of openings, and that is all. By default the
+ * recruiter defines the role themselves on the next screen; asking a hiring
+ * manager to define it is an optional action offered there, not an up-front
+ * setting. There is no "who defines / who decides" matrix here anymore.
+ */
 export default function CreateRoleScreen({ onCancel, onContinue }) {
   const [query, setQuery] = useState('')
   const [chosen, setChosen] = useState(null) // a role is only "chosen" when picked from the list
   const [open, setOpen] = useState(false)
   const [openings, setOpenings] = useState(1)
 
-  // One choice, stored as two flags. Plus the inline manager when one is needed.
-  const [handler, setHandler] = useState('r-r')
-  const [manager, setManager] = useState(null)
-
   const q = query.trim().toLowerCase()
   const matches = q.length >= 2 ? ROLE_SUGGESTIONS.filter((r) => r.toLowerCase().includes(q)) : []
   const showSuggestions = open && q.length >= 2 && !chosen
-
-  const option = HANDLER_OPTIONS.find((o) => o.key === handler) ?? HANDLER_OPTIONS[0]
-  const needsManager = option.define_by === 'hiring_manager' || option.approve_by === 'hiring_manager'
-
-  const valid = Boolean(chosen) && openings >= 1 && (!needsManager || Boolean(manager))
+  const valid = Boolean(chosen) && openings >= 1
 
   const handleType = (v) => {
     setQuery(v)
@@ -114,13 +57,7 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
 
   const submit = () => {
     if (!valid) return
-    onContinue({
-      title: chosen,
-      openings,
-      define_by: option.define_by,
-      approve_by: option.approve_by,
-      manager: needsManager ? manager : null,
-    })
+    onContinue({ title: chosen, openings })
   }
 
   return (
@@ -134,17 +71,17 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
 
       {/* Page header */}
       <div className="shrink-0 px-6 pt-8 lg:px-8">
-        <p className="text-sm text-secondary">Roles · New · Step 1 of 2</p>
-        <h1 className="mt-1.5 text-2xl text-ink">Create a role</h1>
-        <p className="mt-1.5 text-sm text-secondary">
-          Basic setup and who is involved. You can change these later.
+        <p className="text-[13px] font-medium text-secondary">Roles · New</p>
+        <h1 className="mt-1 text-[28px] font-bold leading-tight text-ink">Create a role</h1>
+        <p className="mt-2 text-sm text-secondary">
+          Name the role and set how many openings. You will define it on the next step.
         </p>
       </div>
 
       {/* Scrollable form */}
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-6 lg:px-8">
         <div className="mx-auto w-full max-w-xl">
-          <Card className="flex flex-col gap-7 p-7">
+          <Card className="flex flex-col gap-8 p-8">
             {/* Role title */}
             <div>
               <FieldLabel hint="Start typing to see suggestions">Role title</FieldLabel>
@@ -197,7 +134,7 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
                           onClick={() => choose(query.trim())}
                           className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm text-ink transition-colors hover:bg-background"
                         >
-                          Use “<span className="font-medium">{query.trim()}</span>”
+                          Use &ldquo;<span className="font-medium">{query.trim()}</span>&rdquo;
                         </button>
                       )}
                     </div>
@@ -215,7 +152,7 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
               <div className="inline-flex items-center overflow-hidden rounded-lg border border-hairline shadow-card">
                 <button
                   type="button"
-                  onClick={() => setOpenings((n) => Math.max(1, n - 1))}
+                  onClick={() => setOpenings((num) => Math.max(1, num - 1))}
                   disabled={openings <= 1}
                   aria-label="Decrease"
                   className="flex h-9 w-10 items-center justify-center text-secondary transition-colors hover:text-ink disabled:opacity-40"
@@ -227,7 +164,7 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
                 </span>
                 <button
                   type="button"
-                  onClick={() => setOpenings((n) => Math.min(99, n + 1))}
+                  onClick={() => setOpenings((num) => Math.min(99, num + 1))}
                   aria-label="Increase"
                   className="flex h-9 w-10 items-center justify-center text-secondary transition-colors hover:text-ink"
                 >
@@ -236,39 +173,22 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
               </div>
             </div>
 
-            {/* One choice — who handles this role */}
-            <div>
-              <FieldLabel>Who handles this role?</FieldLabel>
-              <div className="flex flex-col gap-2.5">
-                {HANDLER_OPTIONS.map((o) => (
-                  <OptionButton
-                    key={o.key}
-                    selected={handler === o.key}
-                    title={o.title}
-                    onClick={() => setHandler(o.key)}
-                  />
-                ))}
-              </div>
-
-              {/* Inline manager picker — revealed when the choice involves a manager */}
-              {needsManager && (
-                <div className="mt-4">
-                  <ManagerPicker value={manager} onChange={setManager} />
-                </div>
-              )}
-            </div>
+            <p className="rounded-lg border border-hairline bg-background px-4 py-3 text-[13px] leading-relaxed text-secondary">
+              You will define this role yourself next. Prefer a hiring manager to define it? You can
+              hand it over with a link from the define screen.
+            </p>
           </Card>
         </div>
       </div>
 
-      {/* Sticky action bar — Cancel and Continue always visible */}
+      {/* Sticky action bar — one clear primary action */}
       <div className="shrink-0 border-t border-hairline bg-background px-6 py-4 lg:px-8">
         <div className="mx-auto flex w-full max-w-xl items-center justify-end gap-3">
           <Button variant="secondary" onClick={onCancel}>
             Cancel
           </Button>
           <Button disabled={!valid} onClick={submit}>
-            Continue
+            Continue to define
           </Button>
         </div>
       </div>

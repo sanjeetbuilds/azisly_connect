@@ -41,6 +41,19 @@ export const isScored = (c) => Boolean(c.verdict)
 // the candidate detail.
 export const GATED_COMPETENCIES = ['Communication', 'Ownership']
 
+// The role's target competency profile: the level this role needs on each
+// competency. The detail draws a tick on each bar at this level; a score below
+// its target reads as a shortfall. Omit a competency to draw no marker for it.
+export const ROLE_TARGETS = {
+  Communication: 78,
+  'Problem Solving': 80,
+  Ownership: 75,
+  'Learning Agility': 70,
+  Execution: 78,
+  Collaboration: 72,
+  'Product craft': 75,
+}
+
 // The candidate's interview status in plain recruiter language, derived from the
 // lifecycle. The list shows this single status; the score carries the verdict.
 export function interviewStatus(c) {
@@ -77,6 +90,12 @@ const TRACK_INDEX = {
 }
 export const stageTrackIndex = (stage) => TRACK_INDEX[stage] ?? 0
 
+// The single most relevant experience item for the matched table. Freshers with
+// no jobs return null (rendered as a dash); the full history lives in the panel.
+export function topExperienceOf(c) {
+  return c.work && c.work.length ? c.work[0] : null
+}
+
 // Mocked contact details, unlocked once a candidate is taken forward.
 export function contactsFor(name) {
   const slug = name.toLowerCase().replace(/[^a-z]+/g, '.')
@@ -92,6 +111,15 @@ export const SOURCES = {
 }
 
 const avatar = (n) => `https://i.pravatar.cc/160?img=${n}`
+
+// Only TWO scores exist in the product, always labelled separately:
+//   match   0-100  pre-interview fit estimate — the ONLY score on the matched
+//                  list, shown before any interview happens.
+//   score   0-100  the interview score — appears later, in the candidate detail
+//                  after the interview, and carries a verdict colour.
+// Each candidate also carries pre-interview profile fields used by the matched
+// list and its requirement filters: course, discipline, percentage (academics),
+// expYears, strengths (competency hints), and work (roles incl. pre-MBA).
 
 // Build the seven-competency array (six core + one domain), null = not assessed.
 const comps = ({ communication, problem, ownership, learning, execution, collaboration, domain }) => [
@@ -121,6 +149,12 @@ export const candidates = [
     appliedSort: 18,
     skills: ['React', 'TypeScript', 'Product', 'GraphQL'],
     match: 88,
+    course: 'BTech',
+    discipline: 'Computer Science',
+    percentage: 84,
+    expYears: 8,
+    strengths: ['Problem solving', 'Ownership', 'Execution'],
+    work: ['Senior Engineer · Stripe · 3 yrs', 'Engineer · Feedzai · 3 yrs', 'Intern · Google · 6 mo'],
     avatar: avatar(47),
     competencies: comps({
       communication: 84,
@@ -162,6 +196,12 @@ export const candidates = [
     appliedSort: 21,
     skills: ['React', 'Node.js', 'Product', 'Design systems'],
     match: 91,
+    course: 'BE',
+    discipline: 'Computer Science',
+    percentage: 88,
+    expYears: 6,
+    strengths: ['Communication', 'Collaboration', 'Product craft'],
+    work: ['Product Engineer · Toss · 4 yrs', 'Intern · Naver · 6 mo'],
     avatar: avatar(9),
     competencies: comps({
       communication: 93,
@@ -203,6 +243,12 @@ export const candidates = [
     appliedSort: 15,
     skills: ['React', 'CSS', 'Accessibility', 'Testing'],
     match: 85,
+    course: 'BSc',
+    discipline: 'Computer Science',
+    percentage: 79,
+    expYears: 7,
+    strengths: ['Accessibility', 'Execution', 'Communication'],
+    work: ['Frontend Engineer · Farfetch · 4 yrs', 'Intern · Talkdesk · 6 mo'],
     avatar: avatar(32),
     competencies: comps({
       communication: 88,
@@ -244,6 +290,12 @@ export const candidates = [
     appliedSort: 12,
     skills: ['Go', 'Postgres', 'Kafka', 'Distributed systems'],
     match: 80,
+    course: 'BE',
+    discipline: 'Software Engineering',
+    percentage: 76,
+    expYears: 9,
+    strengths: ['Distributed systems', 'Problem solving'],
+    work: ['Backend Engineer · Nubank · 5 yrs', 'Engineer · Konfio · 3 yrs'],
     avatar: avatar(12),
     // Product craft was not asked in this interview, so it is not assessed.
     competencies: comps({
@@ -287,6 +339,12 @@ export const candidates = [
     appliedSort: 9,
     skills: ['Terraform', 'AWS', 'Kubernetes', 'CI/CD'],
     match: 76,
+    course: 'BTech',
+    discipline: 'Information Technology',
+    percentage: 72,
+    expYears: 5,
+    strengths: ['Infrastructure', 'Execution'],
+    work: ['Platform Engineer · Razorpay · 3 yrs', 'Intern · Infosys · 6 mo'],
     avatar: avatar(5),
     competencies: comps({
       communication: 44,
@@ -328,6 +386,12 @@ export const candidates = [
     appliedSort: 5,
     skills: ['Kubernetes', 'AWS', 'Observability'],
     match: 70,
+    course: 'BEng',
+    discipline: 'Computer Science',
+    percentage: 68,
+    expYears: 4,
+    strengths: ['Observability', 'Ownership'],
+    work: ['Infra Engineer · Monzo · 2 yrs', 'Intern · ARM · 6 mo'],
     avatar: avatar(51),
     competencies: comps({
       communication: 60,
@@ -372,6 +436,20 @@ export const candidates = [
     isNew: true, // matched by the AI after the recruiter's last view
     skills: ['Go', 'gRPC', 'Postgres', 'Redis'],
     match: 84,
+    course: 'MSc',
+    discipline: 'Computer Science',
+    percentage: 81,
+    expYears: 0,
+    strengths: ['gRPC', 'Problem solving'],
+    // Fresher: no formal jobs yet, only projects during and after graduation.
+    work: [],
+    projects: ['Open-source gRPC load balancer', 'Realtime chat app (side project)'],
+    matchSummary: 'Strong on backend fundamentals and problem solving for this role.',
+    matchReasons: [
+      { competency: 'Problem Solving', note: 'Built an open-source gRPC load balancer, reasoning through backpressure and retries.' },
+      { competency: 'Backend depth', note: 'Go, gRPC, Postgres, and Redis across side projects, close to the stack this role needs.' },
+      { competency: 'Learning Agility', note: 'Shipped two substantial projects during and after graduation.' },
+    ],
     avatar: avatar(13),
     competencies: [],
     evidence: [],
@@ -393,6 +471,18 @@ export const candidates = [
     isNew: true,
     skills: ['Python', 'Spark', 'dbt', 'Airflow'],
     match: 79,
+    course: 'BEng',
+    discipline: 'Data Engineering',
+    percentage: 83,
+    expYears: 1,
+    strengths: ['Data pipelines', 'Execution'],
+    // Internship only: a single six-month stint during graduation.
+    work: ['6 mo internship · Shopee'],
+    matchSummary: 'Strong on data pipelines and delivery for this role.',
+    matchReasons: [
+      { competency: 'Execution', note: 'Ran dbt and Airflow pipelines end to end during a six-month internship.' },
+      { competency: 'Data engineering', note: 'Python, Spark, dbt, and Airflow map directly to this role.' },
+    ],
     avatar: avatar(45),
     competencies: [],
     evidence: [],
@@ -414,6 +504,17 @@ export const candidates = [
     appliedSort: 25,
     skills: ['Kubernetes', 'Terraform', 'AWS', 'Observability'],
     match: 72,
+    course: 'MBA',
+    discipline: 'Operations',
+    percentage: 78,
+    expYears: 7,
+    strengths: ['Kubernetes', 'Ownership'],
+    work: ['Platform Engineer · Careem · 3 yrs', 'Pre-MBA: Ops Analyst · Aramex · 3 yrs'],
+    matchSummary: 'Strong on platform ownership and infrastructure depth for this role.',
+    matchReasons: [
+      { competency: 'Ownership', note: 'Owned platform reliability at Careem through a noisy quarter.' },
+      { competency: 'Infrastructure', note: 'Kubernetes, Terraform, and AWS in production.' },
+    ],
     avatar: avatar(15),
     competencies: [],
     evidence: [],
@@ -434,6 +535,17 @@ export const candidates = [
     appliedSort: 23,
     skills: ['React', 'TypeScript', 'CSS', 'Testing'],
     match: 88,
+    course: 'BTech',
+    discipline: 'Computer Science',
+    percentage: 86,
+    expYears: 6,
+    strengths: ['React', 'TypeScript', 'Testing'],
+    work: ['Frontend Engineer · Andela · 4 yrs', 'Intern · Wave · 6 mo'],
+    matchSummary: 'Strong on frontend craft and testing for this role.',
+    matchReasons: [
+      { competency: 'Frontend craft', note: 'React and TypeScript at Andela, with a testing habit.' },
+      { competency: 'Execution', note: 'Shipped features end to end with contract tests.' },
+    ],
     avatar: avatar(44),
     competencies: [],
     evidence: [],
@@ -448,12 +560,24 @@ export const candidates = [
     confidence: null,
     verdict: null,
     gate: null,
-    stage: 'Interviewing',
+    stage: 'Invited',
+    declinedInterview: true, // the candidate turned down the interview
     source: 'referral',
     applied: 'Jun 22',
     appliedSort: 22,
     skills: ['React', 'Node.js', 'Product', 'GraphQL'],
     match: 82,
+    course: 'BE',
+    discipline: 'Computer Science',
+    percentage: 80,
+    expYears: 7,
+    strengths: ['React', 'Product craft'],
+    work: ['Product Engineer · Mercari · 4 yrs', 'Intern · Rakuten · 6 mo'],
+    matchSummary: 'Strong on product engineering for this role.',
+    matchReasons: [
+      { competency: 'Product craft', note: 'Product Engineer at Mercari, shipping user-facing features.' },
+      { competency: 'Frontend', note: 'React, Node, and GraphQL across the stack.' },
+    ],
     avatar: avatar(33),
     competencies: [],
     evidence: [],

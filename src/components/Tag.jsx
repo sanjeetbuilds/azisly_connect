@@ -1,14 +1,15 @@
 /**
- * Tag — a small, soft-tinted category badge. Functional colour: it labels a
- * source, skill, or category — used tastefully, never for decoration.
+ * Tag — an outlined, rounded-full category pill (the reference's tag style): a
+ * thin coloured border with matching text on a transparent fill. Functional
+ * colour only, used to label a skill, course, discipline, or source.
  */
 const TAG_COLORS = {
-  gray: 'bg-[#F2F4F7] text-[#344054]',
-  blue: 'bg-[#EEF4FF] text-[#3538CD]',
-  green: 'bg-[#ECFDF3] text-[#027A48]',
-  purple: 'bg-[#F4F3FF] text-[#5925DC]',
-  amber: 'bg-[#FFFAEB] text-[#B54708]',
-  rose: 'bg-[#FFF1F3] text-[#C01048]',
+  gray: 'border-hairline text-secondary',
+  blue: 'border-[#c5d6ee] text-[#3a6fb0]',
+  green: 'border-[#bfe0cb] text-[#2e7d50]',
+  purple: 'border-[#d9cdf0] text-[#6b4ea8]',
+  amber: 'border-[#e6dcbb] text-[#b5731f]',
+  rose: 'border-[#eec7d3] text-[#b05678]',
 }
 
 // Stable colour per skill so the same skill always reads the same.
@@ -22,7 +23,7 @@ export function skillColor(skill) {
 export default function Tag({ color = 'gray', children, className = '' }) {
   return (
     <span
-      className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ${
+      className={`inline-flex items-center gap-1 rounded-full border bg-transparent px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${
         TAG_COLORS[color] ?? TAG_COLORS.gray
       } ${className}`}
     >

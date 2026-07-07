@@ -1,40 +1,53 @@
+import { useState } from 'react'
 import Button from './Button.jsx'
 import Card from './Card.jsx'
 import Avatar from './Avatar.jsx'
-import ScoreDisplay from './ScoreDisplay.jsx'
-import CompetencyBar from './CompetencyBar.jsx'
+import { ScoreValue } from './Scores.jsx'
+import StatusPill from './StatusPill.jsx'
 import VerdictTag from './VerdictTag.jsx'
-import EvidenceQuote from './EvidenceQuote.jsx'
-import StageTracker from './StageTracker.jsx'
 import Tag, { skillColor } from './Tag.jsx'
 import Kbd from './Kbd.jsx'
-import JudgeControls from './JudgeControls.jsx'
-import { XIcon, PlayIcon, CheckIcon, MailIcon, PhoneIcon } from './icons.jsx'
-import { SOURCES, stageTrackIndex, GATE, contactsFor, GATED_COMPETENCIES, interviewStatus } from '../data/candidates.js'
+import {
+  XIcon,
+  PlayIcon,
+  CheckIcon,
+  MailIcon,
+  PhoneIcon,
+  SendIcon,
+  LinkIcon,
+  ArrowRightIcon,
+  LockIcon,
+  DownloadIcon,
+  ChevronDownIcon,
+} from './icons.jsx'
+import { GATE, contactsFor, GATED_COMPETENCIES, ROLE_TARGETS, interviewStatus } from '../data/candidates.js'
 
-// A plain <p>, not a heading — headings inherit the global ink colour and
-// tighter tracking; section labels must stay small, grey, and normally spaced.
 const SectionLabel = ({ children }) => (
-  <p className="text-sm font-medium tracking-normal text-secondary">{children}</p>
+  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{children}</p>
 )
 
-/* A mocked interview video poster + transcript summary. */
+const RECO = {
+  strong: 'Recommend advancing.',
+  promising: 'Promising, worth a closer look.',
+  'not-yet': 'Not yet, needs a human review.',
+}
+
 function InterviewVideo({ candidate, summary }) {
   return (
-    <section className="flex flex-col gap-4">
-      <SectionLabel>Interview</SectionLabel>
+    <section className="flex flex-col gap-3">
+      <SectionLabel>Interview recording</SectionLabel>
       <Card className="overflow-hidden p-0">
         <div className="relative aspect-video w-full bg-gradient-to-br from-ink to-[#2c2c34]">
-          <span className="absolute left-3 top-3 flex items-center gap-2 text-xs text-surface/90">
-            <Avatar src={candidate.avatar} name={candidate.name} size={22} />
+          <span className="absolute left-3 top-3 flex items-center gap-2 text-xs text-white/90">
+            <Avatar name={candidate.name} size={22} />
             {candidate.name}
           </span>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface/95 text-ink shadow-panel transition-transform hover:scale-105">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/95 text-ink shadow-panel transition-transform hover:scale-105">
               <PlayIcon className="ml-1 h-6 w-6" />
             </span>
           </div>
-          <span className="absolute bottom-3 right-3 rounded-md bg-ink/70 px-2 py-0.5 font-mono text-xs text-surface">
+          <span className="absolute bottom-3 right-3 rounded-md bg-ink/70 px-2 py-0.5 font-mono text-xs text-white">
             42:18
           </span>
         </div>
@@ -44,248 +57,441 @@ function InterviewVideo({ candidate, summary }) {
   )
 }
 
-/**
- * CandidateDetail — the right pane. Opens when a candidate row is selected.
- * Leads with the stage tracker, then the hero score, competency bars, evidence
- * quotes, and the action buttons (one primary, the rest secondary).
- */
-export default function CandidateDetail({
-  candidate,
-  onBack,
-  interview,
-  decided,
-  onTakeForward,
-  onUndo,
-  judge,
-}) {
-  const src = SOURCES[candidate.source]
-  const managerMode = Boolean(onTakeForward)
-  const scored = Boolean(candidate.verdict)
-  const decidedForward = candidate.stage === 'Taken forward' || candidate.stage === 'Moving forward'
-  const contacts = decidedForward ? contactsFor(candidate.name) : null
-  const confidenceLevel =
-    candidate.confidence == null
-      ? null
-      : candidate.confidence >= 80
-        ? 'High'
-        : candidate.confidence >= 60
-          ? 'Medium'
-          : 'Low'
-  const compScore = (name) => candidate.competencies.find((c) => c.name === name)?.score ?? null
+/* One compact, sorted competency row: score, slim bar with a legible role-target
+   marker, a gate marker only on gated competencies, evidence one tap away. Lows
+   stay loud. */
+function CompetencyRow({ comp, ev, open, onToggle }) {
+  const target = ROLE_TARGETS[comp.name]
+  const gated = GATED_COMPETENCIES.includes(comp.name)
+  const gateFail = gated && comp.score < GATE
+  const belowTarget = target != null && comp.score < target
+  const fill = gateFail ? 'bg-danger' : belowTarget ? 'bg-attention' : 'bg-strong'
+  const scoreColor = gateFail ? 'text-danger' : belowTarget ? 'text-attention' : 'text-ink'
   return (
     <div className="flex flex-col">
-      {/* Stage tracker + close — top of the floating detail panel */}
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-hairline bg-surface px-6 py-4 lg:px-8">
-        <StageTracker current={stageTrackIndex(candidate.stage)} className="min-w-0" />
+      <div
+        role={ev ? 'button' : undefined}
+        tabIndex={ev ? 0 : undefined}
+        onClick={ev ? onToggle : undefined}
+        onKeyDown={ev ? (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onToggle()) : undefined}
+        className={`flex items-center gap-3 px-4 py-2.5 ${ev ? 'cursor-pointer hover:bg-background' : ''}`}
+      >
+        <span className="w-[130px] shrink-0 whitespace-nowrap text-[13px] text-ink">{comp.name}</span>
+        <span className="relative h-2 flex-1">
+          <span className="absolute inset-0 rounded-full bg-track" />
+          {belowTarget && (
+            <span
+              className="absolute inset-y-0 bg-attention/50"
+              style={{ left: `${comp.score}%`, width: `${target - comp.score}%` }}
+            />
+          )}
+          <span className={`absolute inset-y-0 left-0 rounded-full ${fill}`} style={{ width: `${Math.max(3, comp.score)}%` }} />
+          {target != null && (
+            <>
+              {/* white halo so the target marker pops against the filled bar */}
+              <span
+                aria-hidden="true"
+                className="absolute top-1/2 z-10 h-[16px] w-[5px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-surface"
+                style={{ left: `${target}%` }}
+              />
+              <span
+                aria-hidden="true"
+                className="absolute top-1/2 z-10 h-[16px] w-[2.5px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink"
+                style={{ left: `${target}%` }}
+              />
+            </>
+          )}
+        </span>
+        <span className={`w-6 shrink-0 text-right text-sm font-semibold tabular-nums ${scoreColor}`}>{comp.score}</span>
+        <span className="flex w-[84px] shrink-0 items-center justify-end gap-1.5">
+          {gated &&
+            (gateFail ? (
+              <span className="inline-flex items-center rounded-full bg-danger-soft px-2 py-0.5 text-[11px] font-semibold text-danger">
+                Gate failed
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-medium text-strong">
+                Gate met
+              </span>
+            ))}
+          {ev && <ChevronDownIcon className={`h-3.5 w-3.5 text-muted transition-transform ${open ? 'rotate-180' : ''}`} />}
+        </span>
+      </div>
+      {ev && open && (
+        <div className="px-4 pb-3">
+          <div className="rounded-lg border border-hairline bg-background px-3 py-2.5">
+            <p className="text-[13px] leading-relaxed text-ink">&ldquo;{ev.quote}&rdquo;</p>
+            <p className="mt-1 text-[12px] text-secondary">
+              Supports {ev.competency}
+              {ev.source ? ` · ${ev.source}` : ''}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * CandidateDetail — stage-aware overlay. Pre-interview it justifies the match.
+ * Post-interview it reads like the reference: a score-and-decision card at the
+ * top, a one-line read, the competency radar in our palette, and the detailed
+ * sorted list beneath where lows stay honest and evidence is one tap away.
+ */
+export default function CandidateDetail({ candidate, onBack, interview, decided, onTakeForward, onUndo, recruiter }) {
+  const managerMode = Boolean(onTakeForward)
+  const status = recruiter?.status
+  const managerName = recruiter?.managerName
+  const scored = candidate.score != null
+  const decidedForward = status === 'taken_forward'
+  const contacts = decidedForward ? contactsFor(candidate.name) : null
+
+  // Pre-interview: why they matched.
+  const reasons = candidate.matchReasons?.length
+    ? candidate.matchReasons
+    : (candidate.strengths ?? []).slice(0, 3).map((s) => ({ competency: s, note: '' }))
+  const matchSummary =
+    candidate.matchSummary || `Strong on ${(candidate.strengths ?? []).slice(0, 2).join(' and ')} for this role.`
+
+  // Post-interview: assessed competencies, evidence, strengths and gaps.
+  const assessed = (candidate.competencies ?? []).filter((c) => c.score != null)
+  const evByComp = {}
+  ;(candidate.evidence ?? []).forEach((e) => {
+    if (!evByComp[e.competency]) evByComp[e.competency] = e
+  })
+  const sortedComps = [...assessed].sort((a, b) => b.score - a.score)
+  const strengths = sortedComps.slice(0, 2).map((c) => c.name)
+  const gapComps = sortedComps.filter((c) => GATED_COMPETENCIES.includes(c.name) && c.score < GATE)
+  const gaps = (gapComps.length ? gapComps : sortedComps.slice(-1)).map((c) => c.name)
+
+  // Only the standout's evidence is open by default; everything else is one tap.
+  const [openRows, setOpenRows] = useState(() =>
+    strengths[0] && evByComp[strengths[0]] ? new Set([strengths[0]]) : new Set(),
+  )
+  const toggleRow = (name) =>
+    setOpenRows((prev) => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
+      return next
+    })
+
+  const fresher = !candidate.work?.length
+
+  return (
+    <div className="flex flex-col">
+      {/* Header */}
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-hairline bg-surface px-5 py-4">
+        <StatusPill label={interviewStatus(candidate)} />
         {onBack && (
           <button
             type="button"
             onClick={onBack}
             aria-label="Close detail"
-            className="shrink-0 rounded-lg border border-hairline p-1.5 text-secondary transition-colors hover:border-ink/30 hover:text-ink"
+            className="shrink-0 rounded-md border border-hairline p-1.5 text-secondary transition-colors hover:border-ink/30 hover:text-ink"
           >
             <XIcon className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
 
-      <div className="flex flex-col gap-10 px-6 py-8 lg:px-8">
-        {/* Header: identity + meta + hero score */}
-        <div className="flex flex-col gap-5">
-          <div className="flex items-start justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <Avatar src={candidate.avatar} name={candidate.name} size={56} />
-              <div className="flex flex-col gap-2">
-                <div>
-                  <h2 className="text-xl text-ink">{candidate.name}</h2>
+      <div className="flex flex-col gap-5 bg-background px-5 py-5">
+        {scored ? (
+          /* ── POST-INTERVIEW: card-stacked ──────────────────────── */
+          <>
+            {/* Identity + score only; the decision lives in the sticky bottom bar */}
+            <Card className="flex items-start justify-between gap-4 p-5">
+              <div className="flex items-center gap-3.5">
+                <Avatar name={candidate.name} size={52} />
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold text-ink">{candidate.name}</h2>
                   <p className="text-sm text-secondary">{candidate.role}</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 text-[13px] text-secondary">
-                  <span className="inline-flex items-center rounded-md bg-ink/[0.05] px-1.5 py-0.5 text-[12px] font-medium text-secondary">
-                    {interviewStatus(candidate)}
-                  </span>
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Interview</span>
+                <div className="flex items-center gap-2">
+                  <ScoreValue value={candidate.score} size="xl" />
                   {candidate.verdict && <VerdictTag verdict={candidate.verdict} />}
-                  <span>·</span>
-                  <span>{candidate.location}</span>
-                  <span>·</span>
-                  <span>{candidate.experience}</span>
-                  <span>·</span>
-                  <span>Applied {candidate.applied}</span>
-                  {src && <Tag color={src.color}>{src.label}</Tag>}
+                </div>
+                <span className="text-[12px] text-muted">Match {candidate.match}</span>
+              </div>
+            </Card>
+
+            {/* One-line read */}
+            <div className="flex flex-col gap-1 px-1">
+              <p className="text-sm font-medium text-ink">{RECO[candidate.verdict]}</p>
+              {strengths.length > 0 && (
+                <p className="text-[13px] leading-relaxed text-secondary">
+                  Strongest on <span className="text-ink">{strengths.join(' and ')}</span>.
+                  {gaps.length > 0 && (
+                    <>
+                      {' '}
+                      Keep an eye on <span className="text-ink">{gaps.join(' and ')}</span>.
+                    </>
+                  )}
+                </p>
+              )}
+            </div>
+
+            {/* Competency detail (sorted; the list carries the shape) */}
+            <Card className="flex flex-col divide-y divide-hairline p-0 py-1">
+              <div className="flex items-center justify-between px-4 py-2.5">
+                <SectionLabel>Competencies</SectionLabel>
+                <span className="flex items-center gap-1.5 text-[11px] text-muted">
+                  <span className="h-3.5 w-[3px] rounded-full bg-ink" /> role target
+                </span>
+              </div>
+              {sortedComps.map((c) => (
+                <CompetencyRow
+                  key={c.name}
+                  comp={c}
+                  ev={evByComp[c.name]}
+                  open={openRows.has(c.name)}
+                  onToggle={() => toggleRow(c.name)}
+                />
+              ))}
+            </Card>
+
+            <InterviewVideo candidate={candidate} summary={interview} />
+
+            <Card className="flex flex-col gap-3 p-5">
+              <SectionLabel>Background</SectionLabel>
+              <div className="flex flex-col gap-1">
+                {candidate.work?.length > 0 ? (
+                  candidate.work.map((w) => (
+                    <p key={w} className="text-sm text-ink">
+                      {w}
+                    </p>
+                  ))
+                ) : (
+                  <p className="text-sm text-secondary">No formal experience yet.</p>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                {candidate.skills.map((s) => (
+                  <Tag key={s} color={skillColor(s)}>
+                    {s}
+                  </Tag>
+                ))}
+              </div>
+            </Card>
+
+            {/* Contact */}
+            {decidedForward && contacts ? (
+              <Card className="flex flex-col gap-3 p-5">
+                <SectionLabel>Contact details</SectionLabel>
+                <a
+                  href={`mailto:${contacts.email}`}
+                  className="flex items-center gap-3 text-sm text-ink transition-colors hover:text-strong"
+                >
+                  <MailIcon className="h-4 w-4 text-secondary" />
+                  {contacts.email}
+                </a>
+                <div className="flex items-center gap-3 text-sm text-ink">
+                  <PhoneIcon className="h-4 w-4 text-secondary" />
+                  {contacts.phone}
+                </div>
+              </Card>
+            ) : (
+              <p className="flex items-center gap-1.5 px-1 text-[13px] text-muted">
+                <LockIcon className="h-3.5 w-3.5 shrink-0" />
+                Contact unlocks once this candidate is taken forward.
+              </p>
+            )}
+          </>
+        ) : (
+          /* ── PRE-INTERVIEW: unchanged ──────────────────────────── */
+          <>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <Avatar name={candidate.name} size={56} />
+                  <div className="min-w-0">
+                    <h2 className="text-xl font-bold text-ink">{candidate.name}</h2>
+                    <p className="text-sm text-secondary">{candidate.role}</p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Match</span>
+                  <ScoreValue value={candidate.match} size="xl" />
                 </div>
               </div>
-            </div>
-            {candidate.score != null ? (
-              <ScoreDisplay score={candidate.score} label="Overall" />
-            ) : (
-              <span className="shrink-0 text-sm text-secondary">Not scored yet</span>
-            )}
-          </div>
-
-          {/* Skills */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {candidate.skills.map((s) => (
-              <Tag key={s} color={skillColor(s)}>
-                {s}
-              </Tag>
-            ))}
-          </div>
-
-        </div>
-
-        {/* Score quality — confidence and gates, studied here, not in the list */}
-        {scored && (
-          <section className="flex flex-col gap-5">
-            <div className="flex flex-col gap-1.5">
-              <SectionLabel>Confidence</SectionLabel>
-              <div className="flex flex-wrap items-baseline gap-2">
-                <span className="text-sm font-medium text-ink">{confidenceLevel}</span>
-                <span className="text-[13px] text-secondary">
-                  how much interview evidence the score rests on
-                </span>
-              </div>
+              <p className="text-sm leading-relaxed text-ink">{matchSummary}</p>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <SectionLabel>Gates</SectionLabel>
-              <p className="text-[13px] leading-relaxed text-secondary">
-                This role gates {GATED_COMPETENCIES.join(' and ')} at {GATE}. A score below the
-                threshold flags the candidate for review.
-              </p>
-              <div className="flex flex-col divide-y divide-hairline overflow-hidden rounded-lg border border-hairline">
-                {GATED_COMPETENCIES.map((g) => {
-                  const s = compScore(g)
-                  const passed = s != null && s >= GATE
-                  return (
-                    <div key={g} className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-sm">
-                      <span className="text-ink">{g}</span>
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-ink tabular-nums">{s ?? '·'}</span>
-                        <span
-                          className={`inline-flex w-[64px] items-center gap-1.5 text-[13px] font-medium ${
-                            passed ? 'text-strong' : 'text-attention'
-                          }`}
-                        >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${passed ? 'bg-strong' : 'bg-attention'}`}
-                          />
-                          {passed ? 'Passed' : 'Failed'}
-                        </span>
-                      </div>
+            <section className="flex flex-col gap-3">
+              <SectionLabel>Why they matched</SectionLabel>
+              <div className="flex flex-col gap-3.5">
+                {reasons.map((r) => (
+                  <div key={r.competency} className="flex gap-2.5">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-soft text-strong">
+                      <CheckIcon className="h-3 w-3" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink">{r.competency}</p>
+                      {r.note && <p className="text-[13px] leading-relaxed text-secondary">{r.note}</p>}
                     </div>
-                  )
-                })}
+                  </div>
+                ))}
               </div>
-            </div>
-          </section>
-        )}
+              <p className="text-[13px] text-muted">Other competencies will be assessed in the interview.</p>
+            </section>
 
-        {/* Interview video — shown to recruiter and manager alike, once scored */}
-        {scored && <InterviewVideo candidate={candidate} summary={interview} />}
-
-        {/* Competencies */}
-        <section className="flex flex-col gap-4">
-          <SectionLabel>Competencies</SectionLabel>
-          {candidate.competencies.length > 0 ? (
-            <Card className="flex flex-col gap-6 p-6">
-              {candidate.competencies.map((c) => (
-                <CompetencyBar key={c.name} name={c.name} score={c.score} />
-              ))}
-            </Card>
-          ) : (
-            <Card className="p-6 text-sm text-secondary">
-              Competency scores appear once the interview is complete.
-            </Card>
-          )}
-        </section>
-
-        {/* Evidence */}
-        {candidate.evidence.length > 0 && (
-          <section className="flex flex-col gap-4">
-            <SectionLabel>Evidence</SectionLabel>
-            <div className="flex flex-col gap-4">
-              {candidate.evidence.map((e, i) => (
-                <Card key={i} className="p-6">
-                  <EvidenceQuote quote={e.quote} competency={e.competency} source={e.source} />
-                </Card>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Contact details — unlocked once the manager takes the candidate forward */}
-        {decidedForward && contacts && (
-          <section className="flex flex-col gap-4">
-            <SectionLabel>Contact details</SectionLabel>
-            <Card className="flex flex-col gap-3 p-6">
-              <a
-                href={`mailto:${contacts.email}`}
-                className="flex items-center gap-3 text-sm text-ink transition-colors hover:text-accent"
-              >
-                <MailIcon className="h-4 w-4 text-secondary" />
-                {contacts.email}
-              </a>
-              <div className="flex items-center gap-3 text-sm text-ink">
-                <PhoneIcon className="h-4 w-4 text-secondary" />
-                {contacts.phone}
+            <section className="flex flex-col gap-2">
+              <SectionLabel>Skills</SectionLabel>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {candidate.skills.map((s) => (
+                  <Tag key={s} color={skillColor(s)}>
+                    {s}
+                  </Tag>
+                ))}
               </div>
-            </Card>
-          </section>
-        )}
+            </section>
 
-        {/* Actions */}
-        <div className="sticky bottom-0 -mx-6 flex flex-wrap items-center gap-3 border-t border-hairline bg-surface px-6 py-5 lg:-mx-8 lg:px-8">
-          {managerMode ? (
-            decided ? (
-              <>
-                <span className="flex items-center gap-2 text-sm font-medium text-strong">
-                  <CheckIcon className="h-4 w-4" /> Taken forward
-                </span>
-                <Button variant="secondary" className="ml-auto" onClick={() => onUndo?.(candidate)}>
-                  Undo
-                </Button>
-              </>
+            {!fresher && (
+              <section className="flex flex-col gap-2">
+                <SectionLabel>Experience</SectionLabel>
+                <div className="flex flex-col divide-y divide-hairline overflow-hidden rounded-lg border border-hairline">
+                  {candidate.work.map((w) => (
+                    <p key={w} className="px-3.5 py-2.5 text-sm text-ink">
+                      {w}
+                    </p>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {candidate.projects?.length > 0 ? (
+              <section className="flex flex-col gap-2">
+                <SectionLabel>Projects</SectionLabel>
+                {fresher && <p className="text-[13px] text-secondary">No formal experience yet. Recent projects:</p>}
+                <div className="flex flex-col divide-y divide-hairline overflow-hidden rounded-lg border border-hairline">
+                  {candidate.projects.map((p) => (
+                    <p key={p} className="px-3.5 py-2.5 text-sm text-ink">
+                      {p}
+                    </p>
+                  ))}
+                </div>
+              </section>
             ) : (
-              <>
-                <Button variant="primary" onClick={() => onTakeForward?.(candidate)}>
-                  Take forward
-                </Button>
-                <Kbd className="ml-auto">⌘↵</Kbd>
-              </>
-            )
-          ) : decidedForward ? (
-            // Decided forward, by the manager or the recruiter. No further judging.
-            <span className="flex items-center gap-2 text-sm font-medium text-strong">
-              <CheckIcon className="h-4 w-4" />
-              {candidate.stage === 'Taken forward'
-                ? 'Taken forward by the hiring manager. Reach out to start the offline rounds.'
-                : 'Moving forward, your decision. Reach out to start the offline rounds.'}
-            </span>
-          ) : judge?.eligible ? (
-            <div className="flex w-full items-center gap-4">
-              <JudgeControls
-                size="lg"
-                picked={judge.picked}
-                skipped={judge.skipped}
-                onTick={judge.onTick}
-                onCross={judge.onCross}
-              />
-              <span className="text-sm text-secondary">
-                {judge.picked
-                  ? 'Selected to move forward'
-                  : judge.skipped
-                    ? 'Skipped'
-                    : 'Select to move forward, or skip'}
+              fresher && <p className="text-sm text-secondary">No formal experience yet.</p>
+            )}
+
+            <p className="flex items-center gap-1.5 text-[13px] text-muted">
+              <LockIcon className="h-3.5 w-3.5 shrink-0" />
+              Contact unlocks once this candidate is taken forward.
+            </p>
+          </>
+        )}
+      </div>
+
+      {/* Bottom action bar */}
+      <div className="sticky bottom-0 flex flex-wrap items-center gap-2 border-t border-hairline bg-surface px-5 py-4">
+        {managerMode ? (
+          decided ? (
+            <>
+              <span className="flex items-center gap-2 text-sm font-medium text-ink">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent-soft text-strong">
+                  <CheckIcon className="h-3.5 w-3.5" />
+                </span>
+                Marked to take forward
               </span>
-            </div>
-          ) : candidate.stage === 'Shared' ? (
-            <span className="text-sm text-secondary">
-              With the hiring manager, awaiting their picks
-            </span>
+              <Button variant="secondary" className="ml-auto" onClick={() => onUndo?.(candidate)}>
+                Undo
+              </Button>
+            </>
           ) : (
-            <span className="text-sm text-secondary">{candidate.stage}</span>
-          )}
-        </div>
+            <>
+              <Button variant="primary" onClick={() => onTakeForward?.(candidate)}>
+                Take forward
+              </Button>
+              <Kbd className="ml-auto">⌘↵</Kbd>
+            </>
+          )
+        ) : status === 'taken_forward' ? (
+          <div className="flex w-full flex-wrap items-center gap-2">
+            <span className="flex items-center gap-2 text-sm font-medium text-ink">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent-soft text-strong">
+                <CheckIcon className="h-3.5 w-3.5" />
+              </span>
+              Taken forward
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              {recruiter?.onDownloadCv && (
+                <Button variant="secondary" onClick={recruiter.onDownloadCv}>
+                  <DownloadIcon className="h-4 w-4" />
+                  Download CV
+                </Button>
+              )}
+              {recruiter?.onReachOut && (
+                <Button onClick={recruiter.onReachOut}>
+                  <MailIcon className="h-4 w-4" />
+                  Reach out
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : status === 'declined' ? (
+          <span className="text-sm text-secondary">Declined. Not moving ahead for this role.</span>
+        ) : status === 'matched' ? (
+          <div className="flex w-full flex-wrap items-center gap-2">
+            <Button onClick={recruiter.onInvite}>
+              <SendIcon className="h-4 w-4" />
+              Invite to interview
+            </Button>
+            <Button variant="secondary" className="ml-auto" onClick={recruiter.onDecline}>
+              <XIcon className="h-4 w-4" />
+              Decline
+            </Button>
+          </div>
+        ) : status === 'pending' ? (
+          <div className="flex w-full items-center gap-2.5">
+            <StatusPill label="Awaiting response" tone="neutral" />
+            <span className="text-sm text-secondary">Invited 3 days ago. Waiting on the interview.</span>
+          </div>
+        ) : status === 'lapsed' ? (
+          <div className="flex w-full flex-wrap items-center gap-2.5">
+            <StatusPill label="Invite expired" tone="warning" />
+            <span className="text-sm text-secondary">The invite expired before the interview. Credit returned.</span>
+            <Button variant="secondary" className="ml-auto" onClick={recruiter.onInvite}>
+              <SendIcon className="h-4 w-4" />
+              Re-invite
+            </Button>
+          </div>
+        ) : status === 'declined_interview' ? (
+          <div className="flex w-full items-center gap-2.5">
+            <StatusPill label="Declined" tone="danger" />
+            <span className="text-sm text-secondary">The candidate turned down the interview. Credit returned.</span>
+          </div>
+        ) : status === 'interviewed' || status === 'shared' ? (
+          <div className="flex w-full flex-wrap items-center gap-2">
+            {status === 'shared' && (
+              <StatusPill
+                label={managerName ? `With ${managerName} to review` : 'Sent to manager for review'}
+                tone="accent"
+              />
+            )}
+            <div className="ml-auto flex items-center gap-2">
+              <Button variant="secondary" onClick={recruiter.onReject}>
+                <XIcon className="h-4 w-4" />
+                Reject
+              </Button>
+              {status !== 'shared' && (
+                <Button variant="secondary" onClick={recruiter.onShare}>
+                  <LinkIcon className="h-4 w-4" />
+                  Share with manager
+                </Button>
+              )}
+              <Button onClick={recruiter.onTakeForward}>
+                <ArrowRightIcon className="h-4 w-4" />
+                Take forward
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <span className="text-sm text-secondary">{interviewStatus(candidate)}</span>
+        )}
       </div>
     </div>
   )

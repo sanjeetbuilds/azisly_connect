@@ -30,10 +30,11 @@ export default function App() {
   const [authed, setAuthed] = useState(false)
   const [view, setView] = useState('roles') // roles | create | define | review | candidates | invite | decision
   const [roles, setRoles] = useState(seedRoles)
-  const [draft, setDraft] = useState(null) // { title, openings, define_by, approve_by, manager }
+  const [draft, setDraft] = useState(null) // { title, openings }
   const [decisionCandidate, setDecisionCandidate] = useState(null)
   const [submitRole, setSubmitRole] = useState(null) // the defined role being submitted for matching
   const [openRole, setOpenRole] = useState(null) // the role whose candidate pipeline is open
+  const [runMatch, setRunMatch] = useState(false) // show the matching animation only on first submit
 
   // Candidate interview flow (public, no account): landing then pre-interview
   // setup. The token value selects the state for preview; a real token would be
@@ -94,10 +95,12 @@ export default function App() {
     <div className="flex h-screen overflow-hidden bg-background text-ink">
       <Sidebar
         active={activeNav}
+        counts={{ Roles: roles.length, Candidates: candidates.length }}
         onNavigate={(item) => {
           if (item === 'Roles') setView('roles')
           else {
-            setOpenRole(null) // the global pipeline defaults to the Senior Product Engineer role
+            setOpenRole(null) // the candidate view defaults to the Senior Product Engineer role
+            setRunMatch(false) // returning to candidates: straight to the tabs, no re-animation
             setView('candidates')
           }
         }}
@@ -116,15 +119,11 @@ export default function App() {
           )}
           onCreateRole={() => setView('create')}
           onOpenRole={(role) => {
-            // A defined role goes to submit-and-match; everything else opens its
-            // candidate pipeline, which reads the role's approve_by flag.
-            if (role.state === 'defined') {
-              setSubmitRole(role)
-              setView('submit-match')
-            } else {
-              setOpenRole(role)
-              setView('candidates')
-            }
+            // Opening an existing role goes straight to the candidate tabs; the
+            // matching animation only runs the one time a role is submitted.
+            setOpenRole(role)
+            setRunMatch(false)
+            setView('candidates')
           }}
           defineNotice={{
             // A hiring manager finished defining a role via magic link.
@@ -132,8 +131,9 @@ export default function App() {
             roleTitle: 'Engineering Manager',
             onReview: () => {
               const em = roles.find((r) => r.id === 'r-em')
-              if (em) setSubmitRole(em)
-              setView('submit-match')
+              setOpenRole(em ?? null)
+              setRunMatch(true) // a fresh submit: run the matching animation once
+              setView('candidates')
             },
           }}
         />
@@ -143,9 +143,10 @@ export default function App() {
         <CreateRoleScreen
           onCancel={() => setView('roles')}
           onContinue={(cfg) => {
+            // The recruiter always defines by default; asking a manager to define
+            // is an optional action offered on the define screen.
             setDraft(cfg)
-            // The define_by switch decides who writes the definition.
-            setView(cfg.define_by === 'hiring_manager' ? 'invite-manager' : 'define')
+            setView('define')
           }}
         />
       )}
@@ -158,9 +159,9 @@ export default function App() {
           return (
             <InviteManagerScreen
               roleId={inviteRole.id}
-              roleTitle={inviteRole.title}
-              preset={draft?.manager ?? null}
-              onCancel={() => setView('create')}
+              roleTitle={draft?.title ?? inviteRole.title}
+              preset={null}
+              onCancel={() => setView('define')}
               onDone={() => {
                 setDraft(null)
                 setView('roles')
@@ -193,6 +194,7 @@ export default function App() {
           roleTitle={draft?.title ?? 'New role'}
           openings={draft?.openings ?? 1}
           onBack={() => setView('create')}
+          onAskManager={() => setView('invite-manager')}
           onComplete={() => setView('review')}
         />
       )}
@@ -205,6 +207,7 @@ export default function App() {
           onApprove={addRole}
           onStartSourcing={() => {
             setDraft(null)
+            setRunMatch(true) // first submit of this role: run the matching animation
             setView('candidates')
           }}
           onBackToRoles={() => {
@@ -219,13 +222,15 @@ export default function App() {
           const pipelineRole = openRole ?? roles.find((r) => r.id === 'r-spe')
           return (
             <CandidatesScreen
-              approveBy={pipelineRole?.approve_by ?? 'hiring_manager'}
+              key={`${pipelineRole?.id}-${runMatch ? 'match' : 'list'}`}
               roleTitle={pipelineRole?.title ?? 'Senior Product Engineer'}
-              managerResponse={{ manager: 'Anjali Rao', approvedCount: approvedIds.length }}
-              onInvite={() => setView('invite')}
+              roleId={pipelineRole?.id ?? 'r-spe'}
+              requirements={pipelineRole?.requirements}
+              runMatch={runMatch}
             />
           )
         })()}
+
 
       {view === 'manager-decision' && (
         <ManagerDecisionScreen

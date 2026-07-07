@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Button, Card, Avatar, VerdictTag, Tag, CandidateDetail } from '../components'
+import { Button, Card, Avatar, VerdictTag, CandidateDetail } from '../components'
 import { CheckIcon } from '../components/icons.jsx'
 
 function Wordmark() {
   return (
-    <span className="font-medium tracking-tight text-ink">
+    <span className="font-semibold tracking-tight text-ink">
       Azisly <span className="text-secondary">Recruit</span>
     </span>
   )
@@ -44,16 +44,14 @@ function RichRow({ candidate, forwarded, selected, onClick }) {
       <Avatar src={candidate.avatar} name={candidate.name} size={44} />
       <div className="min-w-0 flex-1">
         <div className="truncate text-[15px] font-medium text-ink">{candidate.name}</div>
-        <div className="truncate text-[13px] text-secondary">
-          {candidate.role} · {candidate.location}
-        </div>
+        <div className="truncate text-[13px] text-secondary">{candidate.role}</div>
       </div>
       <div className="flex shrink-0 items-center gap-4">
-        <span className="font-mono text-sm text-ink tabular-nums">{candidate.score}</span>
+        <span className="text-sm font-semibold text-ink tabular-nums">{candidate.score}</span>
         {forwarded ? (
-          <Tag color="green">
-            <CheckIcon className="mr-1 h-3 w-3" /> Taken forward
-          </Tag>
+          <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-accent/25 bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent">
+            <CheckIcon className="h-3 w-3" /> Taken forward
+          </span>
         ) : (
           <VerdictTag verdict={candidate.verdict} />
         )}
@@ -103,7 +101,7 @@ export default function ManagerReviewScreen({
         <TopBar />
         <main className="flex flex-1 items-center justify-center px-6 py-12">
           <Card className="flex max-w-md flex-col items-center gap-5 p-10 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-strong/10 text-strong">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-soft text-strong">
               <CheckIcon className="h-7 w-7" />
             </span>
             <div className="flex flex-col gap-2">
@@ -126,8 +124,8 @@ export default function ManagerReviewScreen({
 
       {/* Header */}
       <div className="shrink-0 px-6 pb-5 pt-8 lg:px-8">
-        <p className="text-sm text-secondary">{roleTitle}</p>
-        <h1 className="mt-1.5 text-2xl text-ink">Candidates to review</h1>
+        <p className="text-[13px] font-medium text-secondary">{roleTitle}</p>
+        <h1 className="mt-1 text-2xl font-bold text-ink">Candidates to review</h1>
         <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-secondary">
           {first} shared {candidates.length} candidate{candidates.length === 1 ? '' : 's'} for your
           call. Open each to watch the interview and see the evidence, then mark who to take forward.
@@ -176,7 +174,7 @@ export default function ManagerReviewScreen({
           />
           <div
             key={selected.id}
-            className="absolute inset-y-0 right-0 z-30 flex w-full max-w-xl animate-slide-in-right flex-col overflow-y-auto border-l border-hairline bg-surface shadow-overlay"
+            className="absolute inset-y-0 right-0 z-30 flex w-full max-w-lg animate-slide-in-right flex-col overflow-y-auto border-l border-hairline bg-surface shadow-overlay"
           >
             <CandidateDetail
               candidate={selected}

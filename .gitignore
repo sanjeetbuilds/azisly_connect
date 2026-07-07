@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Env files (never commit secrets)
+.env
+.env.*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -27,3 +31,6 @@ dist-ssr
 .vercel
 
 .vercel
+
+# Admin (Azisly Ops) is its own git repo / Vercel project
+admin/

@@ -98,6 +98,34 @@ export const ChevronRightIcon = ({ className = 'h-4 w-4' }) => (
   </svg>
 )
 
+export const ArrowRightIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.5" className={className}>
+    <path d="M3 8h10M9.5 4.5L13 8l-3.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+export const FilterIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.5" className={className}>
+    <path d="M2.5 4h11M4.5 8h7M6.5 12h3" strokeLinecap="round" />
+  </svg>
+)
+
+export const BriefcaseIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.4" className={className}>
+    <rect x="2.3" y="5" width="11.4" height="7.7" rx="1.5" />
+    <path d="M6 5V4a1.6 1.6 0 0 1 1.6-1.6h0.8A1.6 1.6 0 0 1 10 4v1" strokeLinecap="round" />
+    <path d="M2.3 8.4h11.4" strokeLinecap="round" />
+  </svg>
+)
+
+export const UserPlusIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.4" className={className}>
+    <circle cx="6" cy="5.5" r="2.3" />
+    <path d="M2.4 12.5c0-2.2 1.7-3.6 3.6-3.6s1.5 0 2 .2" strokeLinecap="round" />
+    <path d="M11.5 8.5v4M9.5 10.5h4" strokeLinecap="round" />
+  </svg>
+)
+
 export const MailIcon = ({ className = 'h-4 w-4' }) => (
   <svg {...base} strokeWidth="1.4" className={className}>
     <rect x="2.5" y="3.5" width="11" height="9" rx="1.5" />
@@ -176,6 +204,28 @@ export const MicOffIcon = ({ className = 'h-4 w-4' }) => (
     <path d="M3.8 7.6a4.2 4.2 0 0 0 8.4 0" strokeLinecap="round" />
     <path d="M8 11.8V14M6 14h4" strokeLinecap="round" strokeLinejoin="round" />
     <path d="M2.5 2.5L13.5 13.5" strokeLinecap="round" />
+  </svg>
+)
+
+export const DownloadIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.5" className={className}>
+    <path d="M8 2.5v7M5 6.5L8 9.5l3-3" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M3 11.5v1.5A1 1 0 0 0 4 14h8a1 1 0 0 0 1-1v-1.5" strokeLinecap="round" />
+  </svg>
+)
+
+export const MoreIcon = ({ className = 'h-4 w-4' }) => (
+  <svg viewBox="0 0 16 16" fill="currentColor" className={className}>
+    <circle cx="3" cy="8" r="1.3" />
+    <circle cx="8" cy="8" r="1.3" />
+    <circle cx="13" cy="8" r="1.3" />
+  </svg>
+)
+
+export const LockIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.4" className={className}>
+    <rect x="3.5" y="7" width="9" height="6.5" rx="1.5" />
+    <path d="M5.5 7V5.3a2.5 2.5 0 0 1 5 0V7" strokeLinecap="round" />
   </svg>
 )
 

@@ -46,7 +46,7 @@ function Spinner({ className = 'h-4 w-4' }) {
 function StepMarker({ status, n }) {
   if (status === 'done') {
     return (
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-strong/10 text-strong">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
         <CheckIcon className="h-4 w-4" />
       </span>
     )
@@ -75,7 +75,7 @@ function ProcessingStep({ step, status, fill }) {
           <span className={`text-sm font-medium ${status === 'pending' ? 'text-secondary' : 'text-ink'}`}>
             {step.title}
           </span>
-          {status === 'done' && <span className="text-[12px] font-medium text-strong">Done</span>}
+          {status === 'done' && <span className="text-[12px] font-medium text-accent">Done</span>}
         </div>
         <p className="mt-0.5 text-[13px] leading-relaxed text-secondary">{step.detail}</p>
         <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-ink/[0.06]">
@@ -105,7 +105,7 @@ function MatchRow({ candidate, rank }) {
           Needs human
         </span>
       )}
-      <span className="w-12 shrink-0 text-right font-mono text-sm text-ink tabular-nums">{candidate.score}</span>
+      <span className="w-12 shrink-0 text-right text-sm font-semibold text-ink tabular-nums">{candidate.score}</span>
       <div className="w-[110px] shrink-0">{candidate.verdict && <VerdictTag verdict={candidate.verdict} />}</div>
     </div>
   )
@@ -178,8 +178,8 @@ export default function SubmitMatchScreen({ role, candidates = [], onBack, onCom
           </button>
         )}
         <div>
-          <p className="text-sm text-secondary">Roles · {role?.title}</p>
-          <h1 className="mt-1.5 text-2xl text-ink">
+          <p className="text-[13px] font-medium text-secondary">Roles · {role?.title}</p>
+          <h1 className="mt-1 text-2xl font-bold text-ink">
             {phase === 'done' ? 'Ready to review' : 'Submit for matching'}
           </h1>
         </div>
@@ -195,7 +195,7 @@ export default function SubmitMatchScreen({ role, candidates = [], onBack, onCom
                   <SparkleIcon className="h-5 w-5" />
                 </span>
                 <div>
-                  <h2 className="text-lg text-ink">{role?.title}</h2>
+                  <h2 className="text-lg font-semibold text-ink">{role?.title}</h2>
                   <p className="text-[13px] text-secondary">
                     {role?.definedBy ? `Defined by ${role.definedBy}, ready to submit` : 'Defined, ready to submit'}
                   </p>
@@ -252,8 +252,8 @@ export default function SubmitMatchScreen({ role, candidates = [], onBack, onCom
           {/* ── Done: Ready to review, ranked matches ───────────── */}
           {phase === 'done' && (
             <div className="flex flex-col gap-5">
-              <div className="flex flex-wrap items-center gap-4 rounded-xl border border-strong/25 bg-strong/[0.05] px-5 py-3.5">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-strong/10 text-strong">
+              <div className="flex flex-wrap items-center gap-4 rounded-card border border-accent/25 bg-accent/[0.04] px-5 py-3.5">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
                   <CheckIcon className="h-5 w-5" />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -268,8 +268,8 @@ export default function SubmitMatchScreen({ role, candidates = [], onBack, onCom
                 {onReviewCandidates && <Button onClick={onReviewCandidates}>Review candidates</Button>}
               </div>
 
-              <div className="overflow-hidden rounded-xl border border-hairline bg-surface shadow-card">
-                <div className="flex items-center gap-4 border-b border-hairline bg-background/60 px-5 py-2.5 text-xs text-secondary">
+              <div className="overflow-hidden rounded-card border border-hairline bg-surface shadow-card">
+                <div className="flex items-center gap-4 border-b border-hairline bg-background/60 px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
                   <span className="w-6 shrink-0 text-center">#</span>
                   <span className="flex-1">Candidate</span>
                   <span className="hidden w-[96px] sm:block" />

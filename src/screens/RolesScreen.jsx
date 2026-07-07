@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Button, Tag, Avatar } from '../components'
+import { Button, Tag, Avatar, PageHeader } from '../components'
 import { ChevronRightIcon, CheckIcon, XIcon } from '../components/icons.jsx'
 import { ROLE_STATES } from '../data/roles.js'
 
@@ -53,8 +53,8 @@ function AvatarStack({ role, index }) {
   const extra = role.totalCandidates - faces.length
   return (
     <div className="flex items-center -space-x-2">
-      {faces.map((src, i) => (
-        <Avatar key={i} src={src} name="Candidate" size={26} className="ring-2 ring-surface" />
+      {faces.map((_, i) => (
+        <Avatar key={i} seed={`${role.id}-${i}`} name="Candidate" size={26} className="ring-2 ring-surface" />
       ))}
       {extra > 0 && (
         <span className="flex h-[26px] items-center justify-center rounded-full border border-hairline bg-background px-1.5 text-[11px] font-medium text-secondary ring-2 ring-surface">
@@ -70,8 +70,8 @@ function AvatarStack({ role, index }) {
 function RoleStatus({ role }) {
   if (role.state === 'ready') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-info">
-        <span className="h-1.5 w-1.5 rounded-full bg-info" />
+      <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-accent">
+        <span className="h-1.5 w-1.5 rounded-full bg-accent" />
         {role.candidatesReady} ready to review
       </span>
     )
@@ -150,24 +150,20 @@ export default function RolesScreen({ roles, onCreateRole, onOpenRole, defineNot
         </span>
       </header>
 
-      {/* Page header — count and ready signal live in the title */}
+      {/* Page header — bold title + live counts subtitle */}
       <div className="shrink-0 px-6 pb-5 pt-8 lg:px-8">
-        <p className="text-sm text-secondary">Acme · Workspace</p>
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          <h1 className="text-2xl text-ink">Roles</h1>
-          {!loading && !empty && (
-            <>
-              <span className="inline-flex items-center rounded-full bg-info/10 px-2 py-0.5 font-mono text-xs font-medium text-info tabular-nums">
-                {roles.length}
-              </span>
-              {readyCount > 0 && (
-                <span className="text-[13px] font-medium text-info">
-                  {readyCount} with candidates ready
-                </span>
-              )}
-            </>
-          )}
-        </div>
+        <PageHeader
+          breadcrumb={['Workspace', 'Roles']}
+          title="Roles"
+          stats={
+            !loading && !empty
+              ? [
+                  { n: roles.length, label: roles.length === 1 ? 'role' : 'roles' },
+                  { n: readyCount, label: 'with candidates ready' },
+                ]
+              : undefined
+          }
+        />
       </div>
 
       {empty ? (
@@ -176,8 +172,8 @@ export default function RolesScreen({ roles, onCreateRole, onOpenRole, defineNot
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-10 lg:px-8">
           {/* A hiring manager finished a definition — a dismissible notification */}
           {defineNotice && noticeOpen && (
-            <div className="mb-4 flex flex-wrap items-center gap-4 rounded-xl border border-strong/25 bg-strong/[0.05] px-5 py-3.5">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-strong/10 text-strong">
+            <div className="mb-4 flex flex-wrap items-center gap-4 rounded-card border border-hairline bg-surface px-5 py-3.5 shadow-card">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
                 <CheckIcon className="h-5 w-5" />
               </span>
               <div className="min-w-0 flex-1">
@@ -194,7 +190,7 @@ export default function RolesScreen({ roles, onCreateRole, onOpenRole, defineNot
                 type="button"
                 onClick={() => setNoticeOpen(false)}
                 aria-label="Dismiss notification"
-                className="shrink-0 rounded-lg p-1.5 text-secondary transition-colors hover:bg-strong/10 hover:text-ink"
+                className="shrink-0 rounded-lg p-1.5 text-secondary transition-colors hover:bg-background hover:text-ink"
               >
                 <XIcon className="h-3.5 w-3.5" />
               </button>
