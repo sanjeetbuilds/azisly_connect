@@ -41,16 +41,18 @@ export const isScored = (c) => Boolean(c.verdict)
 // the candidate detail.
 export const GATED_COMPETENCIES = ['Communication', 'Ownership']
 
-// The role's target competency profile: the level this role needs on each
-// competency. The detail draws a tick on each bar at this level; a score below
-// its target reads as a shortfall. Omit a competency to draw no marker for it.
+// The universal floor: the single flat baseline every candidate must clear on
+// each universal competency. It is the SAME on every role (universals are not
+// targeted per-role). Falling below it is disqualifying-level, not a soft
+// shortfall. The gate (50) is the hard floor on gated universals; this floor
+// (65) is the bar of a strong candidate on any universal.
+export const UNIVERSAL_FLOOR = 65
+
+// The role-specific target for the DOMAIN competency only. Unlike the universals,
+// the domain has a real per-role target that varies by role. The detail draws a
+// distinct marker here so "met what THIS role needs on its domain" reads apart
+// from "cleared the flat universal floor everyone clears".
 export const ROLE_TARGETS = {
-  Communication: 78,
-  'Problem Solving': 80,
-  Ownership: 75,
-  'Learning Agility': 70,
-  Execution: 78,
-  Collaboration: 72,
   'Product craft': 75,
 }
 

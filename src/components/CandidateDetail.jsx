@@ -20,7 +20,16 @@ import {
   DownloadIcon,
   ChevronDownIcon,
 } from './icons.jsx'
-import { GATE, contactsFor, GATED_COMPETENCIES, ROLE_TARGETS, interviewStatus } from '../data/candidates.js'
+import {
+  GATE,
+  UNIVERSAL_FLOOR,
+  DOMAIN_LABEL,
+  contactsFor,
+  GATED_COMPETENCIES,
+  ROLE_TARGETS,
+  interviewStatus,
+} from '../data/candidates.js'
+import { roleScorecard } from '../data/scorecard.js'
 
 const SectionLabel = ({ children }) => (
   <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{children}</p>
@@ -57,16 +66,23 @@ function InterviewVideo({ candidate, summary }) {
   )
 }
 
-/* One compact, sorted competency row: score, slim bar with a legible role-target
-   marker, a gate marker only on gated competencies, evidence one tap away. Lows
-   stay loud. */
-function CompetencyRow({ comp, ev, open, onToggle }) {
-  const target = ROLE_TARGETS[comp.name]
+/* One compact, sorted competency row. The bar carries a marker whose MEANING
+   depends on the row: on a universal it is the flat floor every candidate must
+   clear (same across roles); on the domain it is this role's own target. The two
+   markers are styled apart so the recruiter reads them as different questions.
+   A failed gate and a below-floor universal are the loudest things here. */
+function CompetencyRow({ comp, ev, open, onToggle, emphasised }) {
+  const isDomain = comp.name === DOMAIN_LABEL
   const gated = GATED_COMPETENCIES.includes(comp.name)
+  const domainTarget = isDomain ? ROLE_TARGETS[comp.name] : null
+
   const gateFail = gated && comp.score < GATE
-  const belowTarget = target != null && comp.score < target
-  const fill = gateFail ? 'bg-danger' : belowTarget ? 'bg-attention' : 'bg-strong'
-  const scoreColor = gateFail ? 'text-danger' : belowTarget ? 'text-attention' : 'text-ink'
+  const belowFloor = !isDomain && comp.score < UNIVERSAL_FLOOR // disqualifying-level
+  const belowTarget = isDomain && domainTarget != null && comp.score < domainTarget // soft shortfall
+  const loud = gateFail || belowFloor
+
+  const fill = loud ? 'bg-danger' : belowTarget ? 'bg-attention' : 'bg-strong'
+  const scoreColor = loud ? 'text-danger' : belowTarget ? 'text-attention' : 'text-ink'
   return (
     <div className="flex flex-col">
       <div
@@ -74,46 +90,103 @@ function CompetencyRow({ comp, ev, open, onToggle }) {
         tabIndex={ev ? 0 : undefined}
         onClick={ev ? onToggle : undefined}
         onKeyDown={ev ? (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onToggle()) : undefined}
-        className={`flex items-center gap-3 px-4 py-2.5 ${ev ? 'cursor-pointer hover:bg-background' : ''}`}
+        className={`flex items-center gap-3 px-4 py-2.5 ${loud ? 'bg-danger-soft/40' : ''} ${
+          ev ? 'cursor-pointer hover:bg-background' : ''
+        }`}
       >
-        <span className="w-[130px] shrink-0 whitespace-nowrap text-[13px] text-ink">{comp.name}</span>
+        <div className="w-[126px] shrink-0">
+          <span className="block truncate text-[13px] text-ink">{comp.name}</span>
+          {isDomain ? (
+            <span className="mt-0.5 inline-flex items-center rounded-full border border-ink/25 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-ink">
+              Domain
+            </span>
+          ) : (
+            emphasised && (
+              <span className="mt-0.5 inline-flex items-center rounded-full bg-accent-soft px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-strong">
+                Emphasis
+              </span>
+            )
+          )}
+        </div>
+
         <span className="relative h-2 flex-1">
           <span className="absolute inset-0 rounded-full bg-track" />
+
+          {/* Loud gap shading: red under a below-floor universal, amber under a
+              domain that fell short of its target. */}
+          {belowFloor && (
+            <span
+              className="absolute inset-y-0 bg-danger/25"
+              style={{ left: `${comp.score}%`, width: `${UNIVERSAL_FLOOR - comp.score}%` }}
+            />
+          )}
           {belowTarget && (
             <span
               className="absolute inset-y-0 bg-attention/50"
-              style={{ left: `${comp.score}%`, width: `${target - comp.score}%` }}
+              style={{ left: `${comp.score}%`, width: `${domainTarget - comp.score}%` }}
             />
           )}
+
           <span className={`absolute inset-y-0 left-0 rounded-full ${fill}`} style={{ width: `${Math.max(3, comp.score)}%` }} />
-          {target != null && (
+
+          {isDomain ? (
+            /* Domain target — a solid ink line capped with a diamond: "what THIS
+               role needs on its domain". */
             <>
-              {/* white halo so the target marker pops against the filled bar */}
               <span
                 aria-hidden="true"
                 className="absolute top-1/2 z-10 h-[16px] w-[5px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-surface"
-                style={{ left: `${target}%` }}
+                style={{ left: `${domainTarget}%` }}
               />
               <span
                 aria-hidden="true"
                 className="absolute top-1/2 z-10 h-[16px] w-[2.5px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink"
-                style={{ left: `${target}%` }}
+                style={{ left: `${domainTarget}%` }}
+              />
+              <span
+                aria-hidden="true"
+                className="absolute top-0 z-10 h-[7px] w-[7px] -translate-x-1/2 -translate-y-[5px] rotate-45 rounded-[1px] bg-ink"
+                style={{ left: `${domainTarget}%` }}
+              />
+            </>
+          ) : (
+            /* Universal floor — a quiet, thin baseline tick, identical on every
+               universal row so it reads as the shared floor. */
+            <>
+              <span
+                aria-hidden="true"
+                className="absolute top-1/2 z-10 h-[14px] w-[4px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-surface"
+                style={{ left: `${UNIVERSAL_FLOOR}%` }}
+              />
+              <span
+                aria-hidden="true"
+                className="absolute top-1/2 z-10 h-[10px] w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-secondary/60"
+                style={{ left: `${UNIVERSAL_FLOOR}%` }}
               />
             </>
           )}
         </span>
+
         <span className={`w-6 shrink-0 text-right text-sm font-semibold tabular-nums ${scoreColor}`}>{comp.score}</span>
-        <span className="flex w-[84px] shrink-0 items-center justify-end gap-1.5">
-          {gated &&
-            (gateFail ? (
-              <span className="inline-flex items-center rounded-full bg-danger-soft px-2 py-0.5 text-[11px] font-semibold text-danger">
-                Gate failed
-              </span>
-            ) : (
+
+        <span className="flex w-[104px] shrink-0 items-center justify-end gap-1.5">
+          {gateFail ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-danger px-2 py-0.5 text-[11px] font-bold text-white">
+              <XIcon className="h-2.5 w-2.5" />
+              Gate NOT met
+            </span>
+          ) : belowFloor ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-danger-soft px-2 py-0.5 text-[11px] font-bold text-danger ring-1 ring-danger/30">
+              <XIcon className="h-2.5 w-2.5" />
+              Below floor
+            </span>
+          ) : (
+            gated && (
               <span className="inline-flex items-center rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-medium text-strong">
                 Gate met
               </span>
-            ))}
+            )
+          )}
           {ev && <ChevronDownIcon className={`h-3.5 w-3.5 text-muted transition-transform ${open ? 'rotate-180' : ''}`} />}
         </span>
       </div>
@@ -160,6 +233,9 @@ export default function CandidateDetail({ candidate, onBack, interview, decided,
     if (!evByComp[e.competency]) evByComp[e.competency] = e
   })
   const sortedComps = [...assessed].sort((a, b) => b.score - a.score)
+  // Which universals this role leaned on when it was defined, so the panel can
+  // mark them apart from the ones simply held at the floor.
+  const emphasisNames = new Set(roleScorecard({ title: candidate.role }).emphasis.map((e) => e.name))
   const strengths = sortedComps.slice(0, 2).map((c) => c.name)
   const gapComps = sortedComps.filter((c) => GATED_COMPETENCIES.includes(c.name) && c.score < GATE)
   const gaps = (gapComps.length ? gapComps : sortedComps.slice(-1)).map((c) => c.name)
@@ -236,11 +312,16 @@ export default function CandidateDetail({ candidate, onBack, interview, decided,
 
             {/* Competency detail (sorted; the list carries the shape) */}
             <Card className="flex flex-col divide-y divide-hairline p-0 py-1">
-              <div className="flex items-center justify-between px-4 py-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 px-4 py-2.5">
                 <SectionLabel>Competencies</SectionLabel>
-                <span className="flex items-center gap-1.5 text-[11px] text-muted">
-                  <span className="h-3.5 w-[3px] rounded-full bg-ink" /> role target
-                </span>
+                <div className="flex items-center gap-3 text-[11px] text-muted">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-[10px] w-[2px] rounded-full bg-secondary/60" /> floor (baseline)
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-[7px] w-[7px] rotate-45 rounded-[1px] bg-ink" /> role target (domain)
+                  </span>
+                </div>
               </div>
               {sortedComps.map((c) => (
                 <CompetencyRow
@@ -249,6 +330,7 @@ export default function CandidateDetail({ candidate, onBack, interview, decided,
                   ev={evByComp[c.name]}
                   open={openRows.has(c.name)}
                   onToggle={() => toggleRow(c.name)}
+                  emphasised={emphasisNames.has(c.name)}
                 />
               ))}
             </Card>
