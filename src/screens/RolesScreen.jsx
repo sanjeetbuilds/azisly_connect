@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Button, Tag, Avatar, PageHeader } from '../components'
-import { ChevronRightIcon, CheckIcon, XIcon } from '../components/icons.jsx'
+import { Button, PageHeader } from '../components'
+import { ChevronRightIcon, CheckIcon, XIcon, PlusIcon } from '../components/icons.jsx'
 import { ROLE_STATES } from '../data/roles.js'
 
 function EmptyState({ onCreateRole }) {
@@ -32,102 +32,112 @@ function SkeletonRow() {
         <div className="h-3.5 w-40 rounded bg-hairline" />
         <div className="mt-2 h-3 w-28 rounded bg-hairline/70" />
       </div>
-      <div className="h-5 w-24 rounded-full bg-hairline" />
-      <div className="h-3.5 w-28 rounded bg-hairline" />
+      <div className="h-5 w-28 rounded-full bg-hairline" />
     </div>
   )
 }
 
-// Distinct faces per role: each role draws from its own band of photos, so no
-// two rows share the same candidates.
-function roleFaces(role, index) {
-  const shown = Math.min(4, role.totalCandidates)
-  const base = index * 12
-  return Array.from({ length: shown }, (_, i) => `https://i.pravatar.cc/96?img=${((base + i * 3) % 70) + 1}`)
+// One status per role, grouped into kinds so the recruiter can scan for what is
+// in their court. priority drives the attention-based sort (lower is sooner).
+//   needs    the recruiter must act now (loudest)
+//   progress the system is working, no action
+//   setup    waiting on setup, a definition, or a submit
+//   done     closed
+function roleStatusMeta(role) {
+  switch (role.state) {
+    case 'ready':
+      return { kind: 'needs', label: `${role.candidatesReady} ready to review`, priority: 0 }
+    case 'matching':
+      return { kind: 'progress', label: 'Matching', priority: 1 }
+    case 'defined':
+      return { kind: 'setup', label: 'Ready to submit', priority: 2 }
+    case 'being_defined':
+      return {
+        kind: 'setup',
+        label: role.define_by === 'hiring_manager' ? 'Defining, hiring manager' : 'Defining, you',
+        priority: 3,
+      }
+    case 'created':
+      return { kind: 'setup', label: 'Draft', priority: 4 }
+    case 'closed':
+      return { kind: 'done', label: 'Closed', priority: 5 }
+    default:
+      return { kind: 'setup', label: ROLE_STATES[role.state] ?? role.state, priority: 4 }
+  }
 }
 
-/* A small overlapping stack of a role's candidate faces, plus a "+N" chip. */
-function AvatarStack({ role, index }) {
-  if (role.totalCandidates === 0) return null
-  const faces = roleFaces(role, index)
-  const extra = role.totalCandidates - faces.length
+const PILL = {
+  needs: 'bg-accent-soft text-strong font-semibold',
+  progress: 'bg-info-soft text-info font-medium',
+  setup: 'bg-ink/[0.05] text-secondary font-medium',
+  done: 'bg-ink/[0.04] text-muted font-medium',
+}
+const DOT = {
+  needs: 'bg-accent-dot',
+  progress: 'bg-info',
+  setup: 'bg-secondary/60',
+  done: 'bg-muted',
+}
+
+/* Every status uses the same pill shape; colour and weight carry the kind. */
+function RoleStatus({ meta }) {
   return (
-    <div className="flex items-center -space-x-2">
-      {faces.map((_, i) => (
-        <Avatar key={i} seed={`${role.id}-${i}`} name="Candidate" size={26} className="ring-2 ring-surface" />
-      ))}
-      {extra > 0 && (
-        <span className="flex h-[26px] items-center justify-center rounded-full border border-hairline bg-background px-1.5 text-[11px] font-medium text-secondary ring-2 ring-surface">
-          +{extra}
-        </span>
-      )}
-    </div>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] ${PILL[meta.kind]}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${DOT[meta.kind]}`} aria-hidden="true" />
+      {meta.label}
+    </span>
   )
 }
 
-/* One status per role, derived from its lifecycle state. Ready to review leads
-   with the info-accent count; the other states read as plain grey. */
-function RoleStatus({ role }) {
-  if (role.state === 'ready') {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-accent">
-        <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-        {role.candidatesReady} ready to review
-      </span>
-    )
-  }
-  if (role.state === 'defined') {
-    return (
-      <span className="text-right text-[13px] text-secondary">
-        Defined by {role.definedBy ?? 'the hiring manager'}, ready to submit
-      </span>
-    )
-  }
-  if (role.state === 'being_defined') {
-    return (
-      <Tag color="gray">
-        {role.define_by === 'hiring_manager' ? 'Being defined by hiring manager' : 'Being defined by you'}
-      </Tag>
-    )
-  }
-  // created | matching | closed
-  return <Tag color="gray">{role.state === 'matching' ? 'Matching' : ROLE_STATES[role.state]}</Tag>
+/* Consistent candidate summary, present on every row (never placeholder faces). */
+function candidateSummary(role) {
+  if (!role.totalCandidates) return 'No candidates yet'
+  return `${role.totalCandidates} candidate${role.totalCandidates === 1 ? '' : 's'}`
 }
 
-function RoleRow({ role, index, onClick }) {
+function RoleRow({ role, onClick, muted = false }) {
+  const meta = roleStatusMeta(role)
+  const needs = meta.kind === 'needs'
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-4 border-b border-hairline px-5 py-4 text-left transition-colors last:border-b-0 hover:bg-background"
+      className={`relative flex w-full items-center gap-4 border-b border-hairline px-5 py-4 text-left transition-colors last:border-b-0 hover:bg-background ${
+        needs ? 'bg-accent-soft/25' : ''
+      } ${muted ? 'opacity-70' : ''}`}
     >
+      {/* The actionable role gets a green left bar so the eye lands here first */}
+      {needs && <span aria-hidden="true" className="absolute inset-y-2 left-0 w-[3px] rounded-full bg-accent-dot" />}
+
       {/* Title */}
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[15px] font-medium text-ink">{role.title}</div>
-        <div className="truncate text-[13px] text-secondary">
+        <div className={`truncate text-[15px] font-medium ${muted ? 'text-secondary' : 'text-ink'}`}>
+          {role.title}
+        </div>
+        <div className="truncate text-[13px] text-muted">
           {role.location} · {role.type}
         </div>
       </div>
 
-      {/* Middle — overlapping candidate faces fill the empty space */}
-      <div className="hidden flex-1 justify-center sm:flex">
-        <AvatarStack role={role} index={index} />
+      {/* Candidate summary — consistent across rows */}
+      <div className="hidden w-[150px] shrink-0 text-[13px] text-secondary sm:block">
+        {candidateSummary(role)}
       </div>
 
-      {/* One status per role, from its lifecycle state */}
-      <div className="flex w-[210px] shrink-0 justify-end">
-        <RoleStatus role={role} />
+      {/* Status pill */}
+      <div className="flex w-[190px] shrink-0 justify-end">
+        <RoleStatus meta={meta} />
       </div>
 
-      <ChevronRightIcon className="h-4 w-4 shrink-0 text-secondary" />
+      <ChevronRightIcon className={`h-4 w-4 shrink-0 ${muted ? 'text-muted' : 'text-secondary'}`} />
     </button>
   )
 }
 
 /**
- * RolesScreen — the populated workspace: a clean list of the recruiter's roles.
- * The count lives in the title; each row says its status once (lead with the
- * count) and fills the middle with a stack of its candidate faces.
+ * RolesScreen — the recruiter's roles, ordered by what needs them. Ready-to-review
+ * roles lead and stand out; matching and setup follow; closed roles sit in their
+ * own de-emphasised section so the active list stays focused.
  */
 export default function RolesScreen({ roles, onCreateRole, onOpenRole, defineNotice }) {
   const [loading, setLoading] = useState(true)
@@ -141,16 +151,19 @@ export default function RolesScreen({ roles, onCreateRole, onOpenRole, defineNot
   const empty = !loading && roles.length === 0
   const readyCount = roles.filter((r) => r.candidatesReady > 0).length
 
+  const active = roles
+    .filter((r) => r.state !== 'closed')
+    .sort((a, b) => roleStatusMeta(a).priority - roleStatusMeta(b).priority)
+  const closed = roles.filter((r) => r.state === 'closed')
+
   return (
     <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
       {/* Mobile-only header */}
       <header className="flex h-14 shrink-0 items-center border-b border-hairline px-5 lg:hidden">
-        <span className="font-medium tracking-tight text-ink">
-          Azisly <span className="text-secondary">Recruit</span>
-        </span>
+        <span className="font-semibold tracking-tight text-ink">Azisly Recruit</span>
       </header>
 
-      {/* Page header — bold title + live counts subtitle */}
+      {/* Page header — title, live counts, and the primary Create action */}
       <div className="shrink-0 px-6 pb-5 pt-8 lg:px-8">
         <PageHeader
           breadcrumb={['Workspace', 'Roles']}
@@ -163,6 +176,14 @@ export default function RolesScreen({ roles, onCreateRole, onOpenRole, defineNot
                 ]
               : undefined
           }
+          actions={
+            !empty && (
+              <Button onClick={onCreateRole}>
+                <PlusIcon className="h-4 w-4" />
+                New role
+              </Button>
+            )
+          }
         />
       </div>
 
@@ -173,19 +194,16 @@ export default function RolesScreen({ roles, onCreateRole, onOpenRole, defineNot
           {/* A hiring manager finished a definition — a dismissible notification */}
           {defineNotice && noticeOpen && (
             <div className="mb-4 flex flex-wrap items-center gap-4 rounded-card border border-hairline bg-surface px-5 py-3.5 shadow-card">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-strong">
                 <CheckIcon className="h-5 w-5" />
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-ink">
-                  <span className="font-medium">{defineNotice.manager}</span> defined{' '}
-                  {defineNotice.roleTitle}
+                  <span className="font-medium">{defineNotice.manager}</span> defined {defineNotice.roleTitle}
                 </p>
                 <p className="text-[13px] text-secondary">Ready to submit for matching · just now</p>
               </div>
-              {defineNotice.onReview && (
-                <Button onClick={defineNotice.onReview}>Review and submit</Button>
-              )}
+              {defineNotice.onReview && <Button onClick={defineNotice.onReview}>Review and submit</Button>}
               <button
                 type="button"
                 onClick={() => setNoticeOpen(false)}
@@ -197,19 +215,37 @@ export default function RolesScreen({ roles, onCreateRole, onOpenRole, defineNot
             </div>
           )}
 
-          <div className="overflow-hidden rounded-xl border border-hairline bg-surface shadow-card">
-            {loading ? (
+          {loading ? (
+            <div className="overflow-hidden rounded-card border border-hairline bg-surface shadow-card">
               <div className="animate-pulse divide-y divide-hairline">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <SkeletonRow key={i} />
                 ))}
               </div>
-            ) : (
-              roles.map((r, i) => (
-                <RoleRow key={r.id} role={r} index={i} onClick={() => onOpenRole(r)} />
-              ))
-            )}
-          </div>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-hidden rounded-card border border-hairline bg-surface shadow-card">
+                {active.map((r) => (
+                  <RoleRow key={r.id} role={r} onClick={() => onOpenRole(r)} />
+                ))}
+              </div>
+
+              {/* Closed roles, de-emphasised and out of the active flow */}
+              {closed.length > 0 && (
+                <div className="mt-7">
+                  <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                    Closed · {closed.length}
+                  </p>
+                  <div className="overflow-hidden rounded-card border border-hairline bg-background/60">
+                    {closed.map((r) => (
+                      <RoleRow key={r.id} role={r} onClick={() => onOpenRole(r)} muted />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>
