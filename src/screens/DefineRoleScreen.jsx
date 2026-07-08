@@ -9,17 +9,18 @@ import {
   MicIcon,
   ChatIcon,
 } from '../components/icons.jsx'
+import { roleScorecard, domainSummary, BASELINE_LINE } from '../data/scorecard.js'
 
 const QUESTIONS = [
   'What does success look like for this role in the first six months?',
-  'Which three or four competencies matter most, and how should we weigh them?',
+  'Beyond the fundamentals, which one or two qualities should this role lean on most?',
   'What is the seniority and scope: who do they work with day to day?',
 ]
 
 // Canned answers the mocked voice mode "hears" — keyed to each question.
 const VOICE_ANSWERS = [
   'Two meaningful launches and a clear lift in activation within the first six months.',
-  'System design and ownership weighted high, communication and code quality medium.',
+  'Ownership and problem solving above all; they need to drive features without hand-holding.',
   'Senior individual contributor, working day to day with design, product, and a tech lead.',
 ]
 
@@ -122,14 +123,12 @@ function MicButton({ state, onClick }) {
   )
 }
 
-/* The role card the AI assembles from the conversation. */
+/* The role card the AI assembles from the conversation. Four distinct parts:
+   the Domain (what makes the role what it is), the one or two universals it leans
+   on as a tier, the baseline every candidate meets, and the hard must-haves. No
+   percentages — the recruiter never chose precise numbers. */
 function RoleCardPreview({ title, openings }) {
-  const competencies = [
-    { name: 'Problem Solving', weight: 'High' },
-    { name: 'Ownership', weight: 'High' },
-    { name: 'Communication', weight: 'Medium' },
-    { name: 'Execution', weight: 'Medium' },
-  ]
+  const { domain, emphasis } = roleScorecard({ title })
   return (
     <Card className="flex w-full flex-col gap-5 p-6">
       <div className="flex items-start justify-between gap-3">
@@ -142,25 +141,41 @@ function RoleCardPreview({ title, openings }) {
         <Tag color="purple">Draft</Tag>
       </div>
 
-      <p className="text-sm leading-relaxed text-secondary">
-        Owns product-facing features end to end, from shaping the problem to shipping and measuring.
-        Success in six months: two significant launches and a measurable lift in activation.
-      </p>
-
-      <div className="flex flex-col gap-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Competencies &amp; weighting</p>
-        <div className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
-          {competencies.map((c) => (
-            <div
-              key={c.name}
-              className="flex items-center justify-between border-b border-hairline py-1.5 text-sm last:border-b-0 sm:[&:nth-last-child(2)]:border-b-0"
-            >
-              <span className="text-ink">{c.name}</span>
-              <span className="text-[13px] text-secondary">{c.weight}</span>
-            </div>
-          ))}
+      {/* Domain — the differentiator, shown prominently as the core of the role */}
+      <div className="rounded-card border border-hairline bg-background/60 p-4">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="text-[15px] font-semibold text-ink">{domain}</span>
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted">
+            Core of the role
+          </span>
         </div>
+        <p className="mt-1 text-[13px] leading-relaxed text-secondary">{domainSummary(domain)}</p>
       </div>
+
+      {/* Leans on — only the emphasised universals, as tiers */}
+      <div className="flex flex-col gap-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Leans on</p>
+        {emphasis.length > 0 ? (
+          <div className="flex flex-col gap-1">
+            {emphasis.map((c) => (
+              <div
+                key={c.name}
+                className="flex items-center justify-between border-b border-hairline py-1.5 text-sm last:border-b-0"
+              >
+                <span className="text-ink">{c.name}</span>
+                <span className="inline-flex items-center rounded-full bg-accent-soft px-2 py-0.5 text-[12px] font-semibold text-strong">
+                  {c.tier}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-secondary">Balanced role, no single quality emphasised.</p>
+        )}
+      </div>
+
+      {/* Baseline — one quiet line, never the six universals as scored rows */}
+      <p className="text-[12px] leading-relaxed text-muted">{BASELINE_LINE}</p>
     </Card>
   )
 }

@@ -1,20 +1,7 @@
 import { useState } from 'react'
 import { Button, Card, Tag } from '../components'
-import { CheckIcon, PlusIcon, MinusIcon, XIcon, ArrowLeftIcon } from '../components/icons.jsx'
-
-const INITIAL_COMPETENCIES = [
-  { name: 'System design', weight: 30 },
-  { name: 'Ownership', weight: 30 },
-  { name: 'Communication', weight: 20 },
-  { name: 'Code quality', weight: 20 },
-]
-
-const INITIAL_MUST_HAVES = [
-  '5+ years building production web applications',
-  'Strong system-design fundamentals',
-  'Has owned a feature end to end, from shaping to shipping',
-  'Clear, structured written communication',
-]
+import { CheckIcon, PlusIcon, XIcon, ArrowLeftIcon } from '../components/icons.jsx'
+import { roleScorecard, domainSummary, BASELINE_LINE } from '../data/scorecard.js'
 
 const INITIAL_JD = `We're hiring a Senior Product Engineer to own product-facing features end to end, from shaping the problem with PM and design to shipping, measuring, and iterating.
 
@@ -22,52 +9,18 @@ You'll work across two squads, set the technical direction for your area, and ra
 
 In your first six months you'll lead two significant launches and drive a measurable lift in activation.`
 
-/* A competency weight shown as a horizontal bar (ink fill on a light track),
-   like the competency bars elsewhere — editable in place when editing. */
-function WeightRow({ name, weight, editing, onChange }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm text-ink">{name}</span>
-        {editing ? (
-          <span className="inline-flex items-center overflow-hidden rounded-lg border border-hairline">
-            <button
-              type="button"
-              onClick={() => onChange(Math.max(0, weight - 5))}
-              aria-label={`Decrease ${name}`}
-              className="flex h-7 w-8 items-center justify-center text-secondary transition-colors hover:text-ink"
-            >
-              <MinusIcon className="h-3.5 w-3.5" />
-            </button>
-            <span className="w-12 border-x border-hairline py-1 text-center text-sm font-semibold text-ink tabular-nums">
-              {weight}%
-            </span>
-            <button
-              type="button"
-              onClick={() => onChange(Math.min(100, weight + 5))}
-              aria-label={`Increase ${name}`}
-              className="flex h-7 w-8 items-center justify-center text-secondary transition-colors hover:text-ink"
-            >
-              <PlusIcon className="h-3.5 w-3.5" />
-            </button>
-          </span>
-        ) : (
-          <span className="text-sm font-semibold text-ink tabular-nums">{weight}%</span>
-        )}
-      </div>
-      <div className="h-1 w-full overflow-hidden rounded-full bg-track">
-        <div
-          className="h-full rounded-full bg-bar transition-[width] duration-300 ease-out"
-          style={{ width: `${weight}%` }}
-        />
-      </div>
-    </div>
-  )
-}
-
 const SectionLabel = ({ children }) => (
   <p className="text-sm font-medium tracking-normal text-secondary">{children}</p>
 )
+
+/* Emphasis is a tier, never a percentage. */
+function TierPill({ tier }) {
+  return (
+    <span className="inline-flex items-center rounded-full bg-accent-soft px-2.5 py-0.5 text-[12px] font-semibold text-strong">
+      {tier}
+    </span>
+  )
+}
 
 export default function ReviewRoleScreen({
   roleTitle = 'Senior Product Engineer',
@@ -77,17 +30,13 @@ export default function ReviewRoleScreen({
   onStartSourcing,
   onBackToRoles,
 }) {
+  const scorecard = roleScorecard({ title: roleTitle })
+  const { domain, emphasis } = scorecard
+
   const [editing, setEditing] = useState(false)
   const [approved, setApproved] = useState(false)
-  const [competencies, setCompetencies] = useState(INITIAL_COMPETENCIES)
-  const [mustHaves, setMustHaves] = useState(INITIAL_MUST_HAVES)
+  const [mustHaves, setMustHaves] = useState(scorecard.gates)
   const [jd, setJd] = useState(INITIAL_JD)
-
-  const total = competencies.reduce((sum, c) => sum + c.weight, 0)
-  const balanced = total === 100
-
-  const setWeight = (i, value) =>
-    setCompetencies((prev) => prev.map((c, idx) => (idx === i ? { ...c, weight: value } : c)))
 
   const setMustHave = (i, value) =>
     setMustHaves((prev) => prev.map((m, idx) => (idx === i ? value : m)))
@@ -162,35 +111,48 @@ export default function ReviewRoleScreen({
               <Tag color="purple">Draft</Tag>
             </div>
 
-            {/* Competencies & weighting */}
-            <section className="flex flex-col gap-4">
-              <div className="flex items-baseline justify-between">
-                <SectionLabel>Competencies &amp; weighting</SectionLabel>
-                <span
-                  className={`text-xs font-semibold tabular-nums ${
-                    balanced ? 'text-secondary' : 'text-attention'
-                  }`}
-                >
-                  Total {total}%
-                </span>
+            {/* Domain — the one competency that makes this role what it is */}
+            <section className="flex flex-col gap-3">
+              <SectionLabel>Domain</SectionLabel>
+              <div className="rounded-card border border-hairline bg-background/60 p-4">
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <span className="text-[15px] font-semibold text-ink">{domain}</span>
+                  <span className="text-[12px] font-medium uppercase tracking-wide text-muted">
+                    Core of the role
+                  </span>
+                </div>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-secondary">
+                  {domainSummary(domain)}
+                </p>
               </div>
-              <div className="flex flex-col gap-5">
-                {competencies.map((c, i) => (
-                  <WeightRow
-                    key={c.name}
-                    name={c.name}
-                    weight={c.weight}
-                    editing={editing}
-                    onChange={(v) => setWeight(i, v)}
-                  />
-                ))}
-              </div>
-              {editing && !balanced && (
-                <p className="text-xs text-attention">Weights must add up to 100% to approve.</p>
+            </section>
+
+            {/* Leans on — the 1-2 universals turned up, as a tier */}
+            <section className="flex flex-col gap-3">
+              <SectionLabel>Leans on</SectionLabel>
+              {emphasis.length > 0 ? (
+                <div className="flex flex-col gap-2.5">
+                  {emphasis.map((e) => (
+                    <div key={e.name} className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-ink">{e.name}</span>
+                      <TierPill tier={e.tier} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-secondary">Balanced role, no single quality emphasised.</p>
               )}
             </section>
 
-            {/* Must-haves */}
+            {/* Baseline — the floor, one quiet line, never six scored rows */}
+            <section className="flex items-start gap-2.5">
+              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] text-muted">
+                <CheckIcon className="h-2.5 w-2.5" />
+              </span>
+              <p className="text-[13px] leading-relaxed text-muted">{BASELINE_LINE}</p>
+            </section>
+
+            {/* Must-haves — the hard gates */}
             <section className="flex flex-col gap-4">
               <SectionLabel>Must-haves</SectionLabel>
               {editing ? (
@@ -200,7 +162,7 @@ export default function ReviewRoleScreen({
                       <input
                         value={m}
                         onChange={(e) => setMustHave(i, e.target.value)}
-                        placeholder="Add a requirement…"
+                        placeholder="Add a deal-breaker…"
                         className="flex-1 rounded-lg border border-hairline bg-surface px-3 py-2 text-sm text-ink shadow-card transition-colors placeholder:text-secondary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
                       />
                       <button
@@ -221,7 +183,7 @@ export default function ReviewRoleScreen({
                     <PlusIcon className="h-3.5 w-3.5" /> Add must-have
                   </button>
                 </div>
-              ) : (
+              ) : mustHaves.length > 0 ? (
                 <ul className="flex flex-col gap-2.5">
                   {mustHaves.map((m, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-sm text-ink">
@@ -232,6 +194,26 @@ export default function ReviewRoleScreen({
                     </li>
                   ))}
                 </ul>
+              ) : (
+                /* No gate named: the domain is the implicit essential. Confirm it,
+                   never ship a role with zero gates silently. */
+                <div className="flex flex-col gap-3">
+                  <ul className="flex flex-col gap-2.5">
+                    <li className="flex items-start gap-2.5 text-sm text-ink">
+                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
+                        <CheckIcon className="h-2.5 w-2.5" />
+                      </span>
+                      <span>
+                        {domain} <span className="text-secondary">(the role&rsquo;s essential)</span>
+                      </span>
+                    </li>
+                  </ul>
+                  <p className="rounded-card border border-hairline bg-background/60 px-4 py-3 text-[13px] leading-relaxed text-secondary">
+                    You haven&rsquo;t set a hard deal-breaker. We&rsquo;ll treat{' '}
+                    <span className="text-ink">{domain}</span> as the essential. Add one if there&rsquo;s
+                    something else.
+                  </p>
+                </div>
               )}
             </section>
 
@@ -263,9 +245,7 @@ export default function ReviewRoleScreen({
             <Button variant="secondary" onClick={() => setEditing((e) => !e)}>
               {editing ? 'Done' : 'Edit'}
             </Button>
-            <Button disabled={!balanced} onClick={approve}>
-              Approve and start sourcing
-            </Button>
+            <Button onClick={approve}>Approve and start sourcing</Button>
           </div>
         </div>
       </div>
