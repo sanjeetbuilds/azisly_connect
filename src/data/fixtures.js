@@ -20,12 +20,19 @@ export const DEMO_JD_FILENAME = 'example-job-description.pdf'
 export const DEMO_PASTED_JD =
   'This is placeholder job-description text standing in for whatever the recruiter pastes. Nothing is extracted from it in this build.'
 
-// Fake resumed probes for the "resumed, part filled" state. In the live flow
-// each probe is the recruiter's own words, captured as they typed or spoke.
-export const DEMO_RESUMED_PROBES = [
-  { phrase: 'They should turn a fuzzy problem into a plan the team can run with', competency: 'Problem Solving' },
-  { phrase: 'They keep everyone aligned without being chased', competency: 'Collaboration' },
+// Fake voice answers. In the live flow these are the recruiter's spoken words
+// (real speech-to-text). Here there is no STT, so a spoken turn plays one of
+// these back, tagged FIXTURE. Ordered to answer the opening then the follow-ups.
+export const DEMO_VOICE_ANSWERS = [
+  'only PM in the company, founder changes direction a lot',
+  'no one above them to learn from, and priorities shift every few weeks',
+  'the founder, two engineers, and a designer',
 ]
 
 // A fake in-progress transcript line for the voice "transcript building" state.
 export const DEMO_VOICE_PARTIAL = 'they need to be able to drive a launch on their own'
+
+// STUB DATA — the fake phrase→competency sequence the probe mapper returns, as
+// indices into the role's 7 competencies (6 universal + domain). Arbitrary; it
+// ignores the phrase. The real engine classifies by meaning. See lib/probeStub.js.
+export const STUB_PROBE_ORDER = [3, 6, 1, 4, 0, 5, 2]

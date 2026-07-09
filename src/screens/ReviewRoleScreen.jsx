@@ -20,7 +20,6 @@ export default function ReviewRoleScreen({
   roleTitle = '',
   scorecard: scorecardProp,
   probes = [],
-  probesAreFixture = false,
   cardFixture = false,
   onBack,
   onSubmit,
@@ -54,13 +53,7 @@ export default function ReviewRoleScreen({
 
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-28 pt-6 lg:px-8">
         <div className="mx-auto w-full max-w-2xl">
-          <RoleCard
-            scorecard={scorecard}
-            roleTitle={roleTitle}
-            probes={probes}
-            probesAreFixture={probesAreFixture}
-            fixture={cardFixture}
-          />
+          <RoleCard scorecard={scorecard} roleTitle={roleTitle} probes={probes} fixture={cardFixture} />
         </div>
       </div>
 

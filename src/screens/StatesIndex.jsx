@@ -6,7 +6,10 @@ import ReviewRoleScreen from './ReviewRoleScreen.jsx'
 import FindingCandidatesScreen from './FindingCandidatesScreen.jsx'
 import SubmitPeripheralScreen from './SubmitPeripheralScreen.jsx'
 import MagicLinkScreen from './MagicLinkScreen.jsx'
-import { DEMO_ROLE_TITLE, DEMO_UNMATCHED_TITLE, DEMO_UNAUTHORED_TITLE, DEMO_RESUMED_PROBES } from '../data/fixtures.js'
+import { DEMO_ROLE_TITLE, DEMO_UNMATCHED_TITLE, DEMO_UNAUTHORED_TITLE, DEMO_VOICE_ANSWERS } from '../data/fixtures.js'
+
+// Two answers already given by voice — the "conversed" demo state.
+const TWO_VOICE_ANSWERS = DEMO_VOICE_ANSWERS.slice(0, 2).map((text) => ({ text, fixture: true }))
 
 /*
  * /states — a click-through index of every state this build defines, reachable
@@ -48,13 +51,16 @@ const STATES = {
     label: 'Resumed, part filled',
     render: () => (
       <Full>
-        <DefineRoleScreen
-          roleTitle={DEMO_ROLE_TITLE}
-          titleIsFixture
-          initialProbes={DEMO_RESUMED_PROBES}
-          probesAreFixture
-          onComplete={() => {}}
-        />
+        <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture initialAnswers={TWO_VOICE_ANSWERS} onComplete={() => {}} />
+      </Full>
+    ),
+  },
+  'define-answered': {
+    group: 'Define',
+    label: 'Two questions answered by voice',
+    render: () => (
+      <Full>
+        <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture initialAnswers={TWO_VOICE_ANSWERS} onComplete={() => {}} />
       </Full>
     ),
   },
