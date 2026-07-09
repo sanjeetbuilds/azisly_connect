@@ -8,6 +8,8 @@ import RolesScreen from './screens/RolesScreen.jsx'
 import CreateRoleScreen from './screens/CreateRoleScreen.jsx'
 import DefineRoleScreen from './screens/DefineRoleScreen.jsx'
 import ReviewRoleScreen from './screens/ReviewRoleScreen.jsx'
+import InterviewReviewScreen from './screens/InterviewReviewScreen.jsx'
+import RoleCompleteScreen from './screens/RoleCompleteScreen.jsx'
 import CandidatesScreen from './screens/CandidatesScreen.jsx'
 import ManagerDecisionScreen from './screens/ManagerDecisionScreen.jsx'
 import InviteScreen from './screens/InviteScreen.jsx'
@@ -34,6 +36,7 @@ export default function App() {
   const [decisionCandidate, setDecisionCandidate] = useState(null)
   const [submitRole, setSubmitRole] = useState(null) // the defined role being submitted for matching
   const [openRole, setOpenRole] = useState(null) // the role whose candidate pipeline is open
+  const [interviewFrom, setInterviewFrom] = useState('define') // define | candidates
   const [runMatch, setRunMatch] = useState(false) // show the matching animation only on first submit
 
   // Candidate interview flow (public, no account): landing then pre-interview
@@ -126,14 +129,15 @@ export default function App() {
             setView('candidates')
           }}
           defineNotice={{
-            // A hiring manager finished defining a role via magic link.
+            // A hiring manager finished defining a role via magic link. The
+            // recruiter reviews BOTH the role card and the interview set before
+            // submitting, so this runs review -> interview -> sourcing.
             manager: 'Tom',
             roleTitle: 'Engineering Manager',
             onReview: () => {
-              const em = roles.find((r) => r.id === 'r-em')
-              setOpenRole(em ?? null)
-              setRunMatch(true) // a fresh submit: run the matching animation once
-              setView('candidates')
+              setInterviewFrom('define')
+              setDraft({ title: 'Engineering Manager', openings: 1 })
+              setView('review')
             },
           }}
         />
@@ -205,7 +209,47 @@ export default function App() {
           openings={draft?.openings ?? 1}
           onBack={() => setView('define')}
           onApprove={addRole}
-          onStartSourcing={() => {
+          onReviewInterview={() => setView('interview')}
+          onBackToRoles={() => {
+            setDraft(null)
+            setView('roles')
+          }}
+        />
+      )}
+
+      {view === 'interview' &&
+        (() => {
+          // The interview review returns to wherever it was opened from: the
+          // candidate list (invite nudge), the completion screen (Preview), or
+          // the define flow (review card -> interview -> completion).
+          const dest = { candidates: 'candidates', complete: 'complete', define: 'define' }[interviewFrom]
+          const forwardDest = interviewFrom === 'define' ? 'complete' : dest
+          const goto = (v) => {
+            setInterviewFrom('define')
+            setView(v)
+          }
+          return (
+            <InterviewReviewScreen
+              roleTitle={
+                interviewFrom === 'candidates'
+                  ? (openRole?.title ?? 'Senior Product Engineer')
+                  : (draft?.title ?? 'Senior Product Engineer')
+              }
+              onBack={() => goto(dest)}
+              onConfirm={() => goto(forwardDest)}
+            />
+          )
+        })()}
+
+      {view === 'complete' && (
+        <RoleCompleteScreen
+          roleTitle={draft?.title ?? 'Senior Product Engineer'}
+          onViewCard={() => setView('review')}
+          onPreviewInterview={() => {
+            setInterviewFrom('complete')
+            setView('interview')
+          }}
+          onWatchSourcing={() => {
             setDraft(null)
             setRunMatch(true) // first submit of this role: run the matching animation
             setView('candidates')
@@ -227,6 +271,10 @@ export default function App() {
               roleId={pipelineRole?.id ?? 'r-spe'}
               requirements={pipelineRole?.requirements}
               runMatch={runMatch}
+              onReviewInterview={() => {
+                setInterviewFrom('candidates')
+                setView('interview')
+              }}
             />
           )
         })()}

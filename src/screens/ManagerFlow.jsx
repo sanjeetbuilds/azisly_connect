@@ -4,6 +4,7 @@ import { CheckIcon } from '../components/icons.jsx'
 import { workspace } from '../data/candidates.js'
 import ManagerEntryScreen from './ManagerEntryScreen.jsx'
 import DefineRoleScreen from './DefineRoleScreen.jsx'
+import InterviewReviewScreen from './InterviewReviewScreen.jsx'
 
 function Wordmark() {
   return (
@@ -33,7 +34,7 @@ export default function ManagerFlow({
   recruiterAvatar = workspace.avatar,
   expired = false,
 }) {
-  const [phase, setPhase] = useState('entry') // entry | define | done
+  const [phase, setPhase] = useState('entry') // entry | define | interview | done
   const first = recruiter.split(' ')[0]
 
   if (phase === 'entry') {
@@ -56,9 +57,24 @@ export default function ManagerFlow({
         <DefineRoleScreen
           roleTitle={roleTitle}
           openings={1}
-          reviewLabel="Save and send back to recruiter"
+          reviewLabel="See how we will interview"
           onBack={() => setPhase('entry')}
-          onComplete={() => setPhase('done')}
+          onComplete={() => setPhase('interview')}
+        />
+      </div>
+    )
+  }
+
+  // The manager finishes knowing how their role will be assessed: the same panel.
+  if (phase === 'interview') {
+    return (
+      <div className="flex h-screen flex-col overflow-hidden bg-background text-ink">
+        <ManagerTopBar />
+        <InterviewReviewScreen
+          roleTitle={roleTitle}
+          confirmLabel="Save and send to recruiter"
+          onBack={() => setPhase('define')}
+          onConfirm={() => setPhase('done')}
         />
       </div>
     )

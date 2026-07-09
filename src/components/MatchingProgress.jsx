@@ -130,12 +130,15 @@ export default function MatchingProgress({ count = 0, onShow }) {
       </Card>
 
       {finished ? (
-        <div className="flex justify-center pt-1">
-          <Button onClick={onShow}>Show {count} candidates</Button>
+        <div className="flex flex-col items-center gap-3 pt-1 text-center">
+          <p className="max-w-sm text-[13px] leading-relaxed text-secondary">
+            Sourcing is under way. We will notify you the moment strong candidates are ready to review.
+          </p>
+          <Button onClick={onShow}>See candidates</Button>
         </div>
       ) : (
         <p className="text-center text-[13px] text-secondary">
-          ABI matching engine · prototype simulation of the real backend steps
+          Scoring every candidate against your role card, its gates, and competencies.
         </p>
       )}
     </div>

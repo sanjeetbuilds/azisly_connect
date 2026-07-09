@@ -41,6 +41,15 @@ export const isScored = (c) => Boolean(c.verdict)
 // the candidate detail.
 export const GATED_COMPETENCIES = ['Communication', 'Ownership']
 
+// The recruiter's own words from the define flow, kept verbatim and carried
+// through to the candidate report next to the competency they were tested under,
+// so the recruiter can see the thing they asked for was actually tested. Keyed by
+// competency. (In a live app these are the define flow's probes; seeded here for
+// the Senior Product Engineer walkthrough.)
+export const ROLE_PROBES = {
+  Collaboration: 'cross-timezone collaboration',
+}
+
 // The universal floor: the single flat baseline every candidate must clear on
 // each universal competency. It is the SAME on every role (universals are not
 // targeted per-role). Falling below it is disqualifying-level, not a soft
@@ -169,12 +178,16 @@ export const candidates = [
     }),
     evidence: [
       {
+        finding:
+          'Rewrote the ingestion pipeline to be idempotent so the team could replay a week of failed events “without a single duplicate”. Reasons from failure modes, not just the happy path.',
         quote:
           'I rewrote our ingestion pipeline to be idempotent, which let us replay a week of failed events without a single duplicate.',
         competency: 'Problem Solving',
         source: 'Interview · Round 2',
       },
       {
+        finding:
+          'Took onboarding on herself, pairing with two new hires for a month until both “shipped to production in week two”. Treats ramping others up as part of the job, not a favour.',
         quote:
           'I paired with two new hires for their first month, and both shipped to production in week two.',
         competency: 'Ownership',
@@ -216,12 +229,16 @@ export const candidates = [
     }),
     evidence: [
       {
+        finding:
+          'Cut the onboarding flow from nine screens to three and drove activation up 18 points in a month. Owns the outcome, not just the output.',
         quote:
           'I cut our onboarding flow from nine screens to three and watched activation climb 18 points in a month.',
         competency: 'Ownership',
         source: 'Take-home review',
       },
       {
+        finding:
+          'Keeps a running design doc so reviewers “see the trade-offs before they see the diff”. Writes to make review easy, ahead of time.',
         quote:
           'I keep a running design doc so reviewers see the trade-offs before they see the diff.',
         competency: 'Communication',
@@ -263,12 +280,16 @@ export const candidates = [
     }),
     evidence: [
       {
+        finding:
+          'Built a component contract test suite that “caught three regressions before they reached the design team”. A bias for preventing problems rather than reporting them.',
         quote:
           'I built a component contract test suite that caught three regressions before they reached the design team.',
         competency: 'Execution',
         source: 'Interview · Round 2',
       },
       {
+        finding:
+          'Writes the empty and error states first, “because they tell you the most about a feature”. Thinks in edge cases, and can say why.',
         quote:
           'I write the empty and error states first, because they tell you the most about a feature.',
         competency: 'Communication',
@@ -311,12 +332,16 @@ export const candidates = [
     }),
     evidence: [
       {
+        finding:
+          'Put a queue between the API and the workers so “a slow downstream never takes the front door with it”. Designs for failure isolation, not just the happy path.',
         quote:
           'I introduced a queue between the API and the workers so a slow downstream never takes the front door with it.',
         competency: 'Problem Solving',
         source: 'Interview · Round 2',
       },
       {
+        finding:
+          'When a migration stalled at 2am, rolled it back himself and “wrote the postmortem before standup”. Owns the mess as readily as the win.',
         quote:
           'When the migration stalled at 2am I rolled it back myself and wrote the postmortem before standup.',
         competency: 'Ownership',
@@ -359,16 +384,26 @@ export const candidates = [
     }),
     evidence: [
       {
+        finding:
+          'Standardised the team’s Terraform modules to cut drift, though she “leaned on the existing patterns more than rethinking them”. Reliable delivery, stronger at consolidating than at redesign.',
         quote:
           'I standardised our Terraform modules, though I leaned on the existing patterns more than rethinking them.',
         competency: 'Execution',
         source: 'Interview · Round 1',
       },
       {
+        finding:
+          'Did not surface blockers under pressure, and by her own account “tends to go quiet” when deep in a problem. That sits below the bar this role gates on, and nothing in the interview showed it changing. Probe how she escalates when stuck.',
         quote:
           'I tend to go quiet when I am deep in a problem, something I am working on with my current lead.',
         competency: 'Communication',
         source: 'Interview · Round 1',
+      },
+      {
+        finding:
+          'Answered the teamwork question by describing what the group shipped, not her own part in getting there. We did not get a clear read on how she works across people under friction. Worth walking through a concrete cross-team disagreement next round.',
+        competency: 'Collaboration',
+        source: 'Interview · Round 2',
       },
     ],
   },
@@ -406,12 +441,16 @@ export const candidates = [
     }),
     evidence: [
       {
+        finding:
+          'Kept the clusters healthy through a noisy quarter, but “mostly by reacting fast rather than getting ahead of it”. Holds the line, but has not yet shown he gets in front of problems.',
         quote:
           'I kept our clusters healthy through a noisy quarter, mostly by reacting fast rather than getting ahead of it.',
         competency: 'Ownership',
         source: 'Interview · Round 1',
       },
       {
+        finding:
+          'His on-call runbook helped, though “a teammate had to fill the gaps on the database section”. Delivers, with room to grow in depth and completeness.',
         quote:
           'The on-call runbook I wrote helped, but a teammate had to fill the gaps on the database section.',
         competency: 'Execution',

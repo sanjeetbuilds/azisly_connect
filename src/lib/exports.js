@@ -2,6 +2,7 @@
 // and CV links are prototype stand-ins (no real cloud), but the CSV and text
 // files download for real.
 import { contactsFor, topExperienceOf } from '../data/candidates.js'
+import { reportModel } from './reportData.js'
 
 export function downloadFile(filename, content, mime = 'text/plain') {
   const blob = new Blob([content], { type: mime })
@@ -17,6 +18,7 @@ export function downloadFile(filename, content, mime = 'text/plain') {
 
 const slug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 const cvLink = (c) => `https://cloud.azisly.com/cv/${c.id}.pdf`
+export const reportLink = (c) => `https://cloud.azisly.com/report/${c.id}`
 
 function csvCell(v) {
   const s = String(v ?? '')
@@ -69,5 +71,60 @@ export function downloadCv(c) {
 // A combined pack of CVs (stands in for a zip in the prototype).
 export function downloadCvPack(list, filename = 'cv-pack.txt') {
   const content = list.map(candidateCv).join('\n\n----------------------------------------\n\n')
+  downloadFile(filename, content, 'text/plain')
+}
+
+// The candidate report as plain text: the shareable artifact, written to be
+// forwarded to a hiring manager who was not in the loop.
+export function candidateReport(c) {
+  const m = reportModel(c)
+  const rule = '========================================'
+  const lines = [
+    `CANDIDATE REPORT`,
+    m.name,
+    `${m.role}`,
+    '',
+    `Interview score: ${m.score ?? 'n/a'}${m.verdict ? ` (${m.verdict})` : ''}   Match: ${m.match ?? 'n/a'}`,
+    `Verdict: ${m.reco}`,
+    '',
+    'WHAT TO DO NEXT',
+    ...m.recommendations.map((r) => `  - ${r.text}`),
+    '',
+    rule,
+    'COMPETENCIES AND EVIDENCE',
+    '',
+  ]
+  for (const comp of m.competencies) {
+    lines.push(`${comp.name}: ${comp.score}   ${comp.note.toUpperCase()}`)
+    if (comp.phrase) lines.push(`  You asked to test: "${comp.phrase}"`)
+    if (comp.evidence) {
+      lines.push(`  "${comp.evidence.quote}"`)
+      lines.push(`  ${comp.evidence.source ? `(${comp.evidence.source})` : ''}`.trimEnd())
+    }
+    lines.push('')
+  }
+  lines.push(
+    rule,
+    'CRITERIA THIS ROLE WAS ASSESSED AGAINST',
+    m.criteria.domain ? `  Domain: ${m.criteria.domain}` : '',
+    `  Very important: ${m.criteria.emphasis.join(', ') || 'none named'}`,
+    `  Must have (gates): ${m.criteria.gates.join(', ')}`,
+    ...Object.entries(m.criteria.probes).map(([k, v]) => `  Your words: "${v}" tested under ${k}`),
+    '',
+    rule,
+    'CONTACT',
+    `  Email: ${m.contacts.email}`,
+    `  Phone: ${m.contacts.phone}`,
+  )
+  return lines.filter((l) => l !== undefined).join('\n')
+}
+
+export function downloadReport(c) {
+  downloadFile(`${slug(c.name)}-report.txt`, candidateReport(c), 'text/plain')
+}
+
+// A combined pack of reports for the taken-forward set.
+export function downloadReportPack(list, filename = 'candidate-reports.txt') {
+  const content = list.map(candidateReport).join('\n\n\n')
   downloadFile(filename, content, 'text/plain')
 }

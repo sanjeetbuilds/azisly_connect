@@ -7,6 +7,7 @@ import {
   RowMenu,
   CandidateTable,
   CandidateDetail,
+  CandidateReport,
   MatchingProgress,
 } from '../components'
 import ShareWithManagerModal from '../components/ShareWithManagerModal.jsx'
@@ -20,11 +21,12 @@ import {
   MailIcon,
   PhoneIcon,
   DownloadIcon,
+  FileTextIcon,
 } from '../components/icons.jsx'
 import { candidates as ALL, contactsFor } from '../data/candidates.js'
 import { interviews } from '../data/interviews.js'
 import { buildInterviewLink } from '../lib/magicLink.js'
-import { downloadCsv, downloadCv } from '../lib/exports.js'
+import { downloadCsv, downloadCv, downloadCvPack, downloadReport, downloadReportPack } from '../lib/exports.js'
 
 const HM_NAME = 'Anjali Rao'
 const SEED_TAKEN = ALL.filter((c) => c.stage === 'Taken forward' || c.stage === 'Moving forward').map((c) => c.id)
@@ -94,6 +96,7 @@ export default function CandidatesScreen({
   roleId = 'r-spe',
   requirements,
   runMatch = false,
+  onReviewInterview,
 }) {
   const [phase, setPhase] = useState(runMatch ? 'matching' : 'list')
   const [tab, setTab] = useState('matched')
@@ -104,6 +107,8 @@ export default function CandidatesScreen({
   const [picked, setPicked] = useState(() => new Set())
   const [shareIds, setShareIds] = useState(null)
   const [contactId, setContactId] = useState(null)
+  const [reportId, setReportId] = useState(null)
+  const [inviteNudge, setInviteNudge] = useState(null)
   const [rejectIds, setRejectIds] = useState(null)
   const [hmNotice, setHmNotice] = useState(null)
   const [toast, setToast] = useState(null)
@@ -164,11 +169,34 @@ export default function CandidatesScreen({
       ;[].concat(ids).forEach((id) => next.delete(id))
       return next
     })
-  const invite = (ids) => {
+  const doInvite = (ids) => {
     const list = [].concat(ids)
     add(setInvited)(list)
     dropPicked(list)
     showToast(list.length === 1 ? `Invite sent to ${nameOf(list[0])}` : `${list.length} invites sent`)
+  }
+  // The interview only matters once a candidate is invited, so it never blocks
+  // sourcing. If the recruiter invites without ever looking, nudge them once.
+  const interviewSeen = () => {
+    try {
+      return localStorage.getItem('azisly.interviewReviewed') === 'yes'
+    } catch {
+      return true
+    }
+  }
+  const markInterviewSeen = () => {
+    try {
+      localStorage.setItem('azisly.interviewReviewed', 'yes')
+    } catch {
+      /* storage may be unavailable */
+    }
+  }
+  const invite = (ids) => {
+    if (!interviewSeen()) {
+      setInviteNudge([].concat(ids))
+      return
+    }
+    doInvite(ids)
   }
   const takeForward = (ids) => {
     add(setMoved)(ids)
@@ -341,7 +369,13 @@ export default function CandidatesScreen({
     }
     if (st === 'taken_forward') {
       return (
-        <RowMenu items={[{ label: 'Download CV', icon: <DownloadIcon className="h-3.5 w-3.5" />, onClick: () => downloadCv(c) }]} />
+        <RowMenu
+          items={[
+            { label: 'Open report', icon: <FileTextIcon className="h-3.5 w-3.5" />, onClick: () => setReportId(c.id) },
+            { label: 'Download report', icon: <DownloadIcon className="h-3.5 w-3.5" />, onClick: () => downloadReport(c) },
+            { label: 'Download CV', icon: <DownloadIcon className="h-3.5 w-3.5" />, onClick: () => downloadCv(c) },
+          ]}
+        />
       )
     }
     return null
@@ -488,12 +522,23 @@ export default function CandidatesScreen({
                   />
                 </FilterField>
 
-                <div className="ml-auto flex items-center gap-2.5">
+                <div className="ml-auto flex flex-wrap items-center gap-2.5">
                   {inTaken && takenList.length > 0 && (
-                    <Button variant="secondary" onClick={() => downloadCsv(takenList)}>
-                      <DownloadIcon className="h-4 w-4" />
-                      Download CSV
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Export</span>
+                      <Button variant="secondary" onClick={() => downloadCsv(takenList)} className="!px-3 !py-2 !text-[13px]">
+                        <DownloadIcon className="h-3.5 w-3.5" />
+                        CSV
+                      </Button>
+                      <Button variant="secondary" onClick={() => downloadCvPack(takenList)} className="!px-3 !py-2 !text-[13px]">
+                        <DownloadIcon className="h-3.5 w-3.5" />
+                        CVs
+                      </Button>
+                      <Button variant="secondary" onClick={() => downloadReportPack(takenList)} className="!px-3 !py-2 !text-[13px]">
+                        <FileTextIcon className="h-3.5 w-3.5" />
+                        Reports
+                      </Button>
+                    </div>
                   )}
                   <button
                     type="button"
@@ -571,6 +616,7 @@ export default function CandidatesScreen({
                 onReject: () => askReject(selected.id),
                 onReachOut: () => setContactId(selected.id),
                 onDownloadCv: () => downloadCv(selected),
+                onOpenReport: selected.score != null ? () => setReportId(selected.id) : undefined,
               }}
             />
           </div>
@@ -593,6 +639,30 @@ export default function CandidatesScreen({
       {/* Reach out */}
       {contactId && (
         <ContactModal candidate={ALL.find((c) => c.id === contactId)} onClose={() => setContactId(null)} />
+      )}
+
+      {/* Shareable report */}
+      {reportId && (
+        <CandidateReport candidate={ALL.find((c) => c.id === reportId)} onClose={() => setReportId(null)} />
+      )}
+
+      {/* Light nudge: invited without ever looking at the interview. Never a block. */}
+      {inviteNudge && (
+        <InviteNudge
+          count={inviteNudge.length}
+          onReview={() => {
+            markInterviewSeen()
+            setInviteNudge(null)
+            onReviewInterview?.()
+          }}
+          onInviteAnyway={() => {
+            markInterviewSeen()
+            const ids = inviteNudge
+            setInviteNudge(null)
+            doInvite(ids)
+          }}
+          onClose={() => setInviteNudge(null)}
+        />
       )}
 
       {/* Reject confirmation */}
@@ -643,6 +713,37 @@ function CopyRow({ icon, value }) {
         <span className="text-[12px] text-secondary">Copy</span>
       )}
     </button>
+  )
+}
+
+/* A light nudge, not a block: the recruiter is about to invite without having
+   looked at the interview. They can review it or invite anyway. */
+function InviteNudge({ count, onReview, onInviteAnyway, onClose }) {
+  return (
+    <>
+      <button
+        type="button"
+        aria-label="Close"
+        onClick={onClose}
+        className="absolute inset-0 z-40 animate-fade-in cursor-default bg-ink/20 backdrop-blur-[1px]"
+      />
+      <div className="absolute inset-0 z-50 flex items-center justify-center p-6">
+        <div className="w-full max-w-md animate-fade-in-up rounded-card border border-hairline bg-surface p-6 shadow-overlay">
+          <h2 className="text-lg font-semibold text-ink">Want to look at the interview first?</h2>
+          <p className="mt-1.5 text-sm leading-relaxed text-secondary">
+            {count === 1 ? 'This candidate' : `These ${count} candidates`} will get the interview set we
+            built from your role card. You have not reviewed it yet. It is optional, you can always
+            review it later.
+          </p>
+          <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
+            <Button variant="secondary" onClick={onInviteAnyway}>
+              Invite anyway
+            </Button>
+            <Button onClick={onReview}>Review</Button>
+          </div>
+        </div>
+      </div>
+    </>
   )
 }
 

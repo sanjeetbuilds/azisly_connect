@@ -133,6 +133,21 @@ export const MailIcon = ({ className = 'h-4 w-4' }) => (
   </svg>
 )
 
+export const PencilIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.4" className={className}>
+    <path d="M11 3.2l1.8 1.8-6.5 6.5-2.3.5.5-2.3 6.5-6.5z" strokeLinejoin="round" />
+    <path d="M10.2 4l1.8 1.8" strokeLinecap="round" />
+  </svg>
+)
+
+export const FileTextIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.4" className={className}>
+    <path d="M4 2.5h5l3 3v8a0 0 0 0 1 0 0H4a0 0 0 0 1 0 0v-11z" strokeLinejoin="round" />
+    <path d="M9 2.5v3h3" strokeLinejoin="round" />
+    <path d="M5.8 8.5h4.4M5.8 10.5h4.4" strokeLinecap="round" />
+  </svg>
+)
+
 export const PhoneIcon = ({ className = 'h-4 w-4' }) => (
   <svg {...base} strokeWidth="1.4" className={className}>
     <path

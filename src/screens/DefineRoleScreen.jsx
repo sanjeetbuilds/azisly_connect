@@ -1,190 +1,180 @@
-import { useState } from 'react'
-import { Button, Card, Tag } from '../components'
+import { useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { Button } from '../components'
 import {
-  SparkleIcon,
-  SendIcon,
-  PaperclipIcon,
   ArrowLeftIcon,
   CheckIcon,
+  XIcon,
+  PlusIcon,
+  MoreIcon,
+  PaperclipIcon,
   MicIcon,
-  ChatIcon,
+  SendIcon,
 } from '../components/icons.jsx'
-import { roleScorecard, domainSummary, BASELINE_LINE } from '../data/scorecard.js'
+import { roleCriteria, REUSE_POOL, translateConcern, competencyMeaning } from '../data/scorecard.js'
 
-const QUESTIONS = [
-  'What does success look like for this role in the first six months?',
-  'Beyond the fundamentals, which one or two qualities should this role lean on most?',
-  'What is the seniority and scope: who do they work with day to day?',
+const GROUPS = [
+  { key: 'essential', label: 'Essential', purpose: 'Everyone we put forward must have this.' },
+  { key: 'veryImportant', label: 'Very important', purpose: 'We weigh this heavily.' },
+  { key: 'nice', label: 'Nice to have', purpose: 'A plus, not a filter.' },
 ]
+const GROUP_LABEL = Object.fromEntries(GROUPS.map((g) => [g.key, g.label]))
+const WORD = { 2: 'Two', 3: 'Three', 4: 'Four', 5: 'Five', 6: 'Six', 7: 'Seven' }
+const word = (n) => WORD[n] ?? String(n)
 
-// Canned answers the mocked voice mode "hears" — keyed to each question.
-const VOICE_ANSWERS = [
-  'Two meaningful launches and a clear lift in activation within the first six months.',
-  'Ownership and problem solving above all; they need to drive features without hand-holding.',
-  'Senior individual contributor, working day to day with design, product, and a tech lead.',
-]
+let nextId = 3000
 
-/* ── chat primitives ─────────────────────────────────────────── */
-function AiRow({ children }) {
-  return (
-    <div className="flex gap-3">
-      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-strong">
-        <SparkleIcon className="h-3.5 w-3.5" />
-      </span>
-      <div className="flex-1 pt-0.5 text-[15px] leading-relaxed text-ink">{children}</div>
-    </div>
-  )
+// Turn a typed or spoken phrase into a criterion, in recruiter language.
+function criterionFromPhrase(text) {
+  const t = text.trim()
+  if (t.length < 3) return null
+  if (/stakeholder|cross-?functional|align/i.test(t))
+    return { name: 'Stakeholder Management', desc: 'Keeps the people around the work aligned and moving.', comp: 'Communication', importance: 'veryImportant' }
+  if (/remote|distributed|time ?zone|async/i.test(t))
+    return { name: 'Working Remotely', desc: 'Stays effective and visible without an office.', comp: 'Collaboration', importance: 'veryImportant' }
+  if (/mentor|coach|grow|junior/i.test(t))
+    return { name: 'Mentoring', desc: 'Helps the people around them get better.', comp: 'Collaboration', importance: 'nice' }
+  if (/data|metric|number|analytic/i.test(t))
+    return { name: 'Data Literacy', desc: 'Comfortable reading numbers and drawing a conclusion.', comp: 'Learning Agility', importance: 'veryImportant' }
+  const mapped = translateConcern(t)
+  if (mapped) return { name: mapped.primary, desc: competencyMeaning(mapped.primary), comp: mapped.primary, importance: 'veryImportant' }
+  return null
 }
 
-function UserRow({ children }) {
+/* Per-card menu. Renders in a portal above everything, so it is never clipped by
+   or hidden behind another card. Click to open, not hover. */
+function CardMenu({ importance, onMove, onEdit, onRemove }) {
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState(null)
+  const btnRef = useRef(null)
+
+  const toggle = () => {
+    if (open) {
+      setOpen(false)
+      return
+    }
+    const r = btnRef.current.getBoundingClientRect()
+    setPos({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) })
+    setOpen(true)
+  }
+  const close = () => setOpen(false)
+  const run = (fn) => () => {
+    close()
+    fn()
+  }
+
   return (
-    <div className="flex justify-end">
-      <div className="max-w-[80%] rounded-2xl rounded-tr-md border border-hairline bg-background px-4 py-2.5 text-[15px] leading-relaxed text-ink">
-        {children}
-      </div>
-    </div>
-  )
-}
-
-function Spinner({ className = 'h-4 w-4' }) {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" className={`animate-spin ${className}`}>
-      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.2" strokeWidth="2" />
-      <path d="M8 2a6 6 0 0 1 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-function BotFace({ className = 'h-10 w-10' }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <circle cx="9" cy="10.5" r="1.2" fill="currentColor" />
-      <circle cx="15" cy="10.5" r="1.2" fill="currentColor" />
-      <path d="M8.5 14.5c1.1 1.1 5.9 1.1 7 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-function ModeToggle({ value, onChange }) {
-  const opts = [
-    { key: 'chat', label: 'Chat', Icon: ChatIcon },
-    { key: 'voice', label: 'Voice', Icon: MicIcon },
-  ]
-  return (
-    <div className="inline-flex rounded-lg border border-hairline bg-background p-0.5">
-      {opts.map(({ key, label, Icon }) => {
-        const active = value === key
-        return (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onChange(key)}
-            aria-pressed={active}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-              active ? 'bg-surface text-ink shadow-card' : 'text-secondary hover:text-ink'
-            }`}
-          >
-            <Icon className="h-3.5 w-3.5" />
-            {label}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-function VoiceAvatar({ state }) {
-  const active = state === 'speaking' || state === 'listening'
-  const ring = state === 'listening' ? 'bg-accent/25' : 'bg-accent/12'
-  return (
-    <span className="relative flex h-24 w-24 items-center justify-center">
-      {active && <span className={`absolute inset-0 rounded-full ${ring} animate-ping`} />}
-      <span className="relative flex h-24 w-24 items-center justify-center rounded-full bg-accent-soft text-strong ring-1 ring-accent/15">
-        <BotFace />
-      </span>
-    </span>
-  )
-}
-
-function MicButton({ state, onClick }) {
-  const listening = state === 'listening'
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={state === 'thinking'}
-      aria-label={listening ? 'Listening' : 'Tap to answer'}
-      className={`flex h-14 w-14 items-center justify-center rounded-full shadow-panel transition-colors disabled:opacity-50 ${
-        listening ? 'bg-danger text-white' : 'bg-accent text-white hover:bg-accent-hover'
-      }`}
-    >
-      <MicIcon className="h-6 w-6" />
-    </button>
-  )
-}
-
-/* The role card the AI assembles from the conversation. Four distinct parts:
-   the Domain (what makes the role what it is), the one or two universals it leans
-   on as a tier, the baseline every candidate meets, and the hard must-haves. No
-   percentages — the recruiter never chose precise numbers. */
-function RoleCardPreview({ title, openings }) {
-  const { domain, emphasis } = roleScorecard({ title })
-  return (
-    <Card className="flex w-full flex-col gap-5 p-6">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-semibold text-ink">{title}</h3>
-          <p className="mt-0.5 text-[13px] text-secondary">
-            {openings} opening{openings === 1 ? '' : 's'} · Remote · Europe · Full-time
-          </p>
-        </div>
-        <Tag color="purple">Draft</Tag>
-      </div>
-
-      {/* Domain — the differentiator, shown prominently as the core of the role */}
-      <div className="rounded-card border border-hairline bg-background/60 p-4">
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <span className="text-[15px] font-semibold text-ink">{domain}</span>
-          <span className="text-[11px] font-medium uppercase tracking-wide text-muted">
-            Core of the role
-          </span>
-        </div>
-        <p className="mt-1 text-[13px] leading-relaxed text-secondary">{domainSummary(domain)}</p>
-      </div>
-
-      {/* Leans on — only the emphasised universals, as tiers */}
-      <div className="flex flex-col gap-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Leans on</p>
-        {emphasis.length > 0 ? (
-          <div className="flex flex-col gap-1">
-            {emphasis.map((c) => (
-              <div
-                key={c.name}
-                className="flex items-center justify-between border-b border-hairline py-1.5 text-sm last:border-b-0"
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={toggle}
+        aria-label="Criterion menu"
+        aria-haspopup="menu"
+        className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+          open ? 'bg-background text-ink' : 'text-muted hover:bg-background hover:text-ink'
+        }`}
+      >
+        <MoreIcon className="h-4 w-4" />
+      </button>
+      {open &&
+        createPortal(
+          <>
+            <button type="button" aria-hidden="true" tabIndex={-1} onClick={close} className="fixed inset-0 z-[100] cursor-default" />
+            <div
+              role="menu"
+              className="fixed z-[101] w-52 overflow-hidden rounded-lg border border-hairline bg-surface p-1 shadow-dropdown"
+              style={{ top: pos.top, right: pos.right }}
+            >
+              {GROUPS.map((g) => (
+                <button
+                  key={g.key}
+                  type="button"
+                  onClick={run(() => onMove(g.key))}
+                  className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm text-ink transition-colors hover:bg-background"
+                >
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                    {importance === g.key && <CheckIcon className="h-3.5 w-3.5 text-strong" />}
+                  </span>
+                  Move to {g.label}
+                </button>
+              ))}
+              <div className="my-1 h-px bg-hairline" />
+              <button
+                type="button"
+                onClick={run(onEdit)}
+                className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm text-ink transition-colors hover:bg-background"
               >
-                <span className="text-ink">{c.name}</span>
-                <span className="inline-flex items-center rounded-full bg-accent-soft px-2 py-0.5 text-[12px] font-semibold text-strong">
-                  {c.tier}
+                <span className="h-4 w-4 shrink-0" /> Edit
+              </button>
+              <button
+                type="button"
+                onClick={run(onRemove)}
+                className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm text-danger transition-colors hover:bg-danger-soft/60"
+              >
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                  <XIcon className="h-3.5 w-3.5" />
                 </span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-secondary">Balanced role, no single quality emphasised.</p>
+                Remove
+              </button>
+            </div>
+          </>,
+          document.body,
         )}
-      </div>
+    </>
+  )
+}
 
-      {/* Baseline — one quiet line, never the six universals as scored rows */}
-      <p className="text-[12px] leading-relaxed text-muted">{BASELINE_LINE}</p>
-    </Card>
+/* One criterion card. No rail, no dot. Essential cards get a very slightly
+   stronger border, nothing more. Highlights briefly when the composer changes it. */
+function CriterionCard({ item, essential, highlighted, editing, name, desc, setName, setDesc, onMove, onEdit, onRemove, onSave, onCancel }) {
+  if (editing) {
+    return (
+      <div className="flex flex-col gap-2 rounded-card border border-accent bg-surface p-4 shadow-card">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus
+          className="w-full rounded-md border border-hairline bg-surface px-2.5 py-1.5 text-sm font-semibold text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+        />
+        <textarea
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+          rows={2}
+          className="w-full resize-none rounded-md border border-hairline bg-surface px-2.5 py-1.5 text-[13px] leading-relaxed text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+        />
+        <div className="flex items-center justify-end gap-2">
+          <button type="button" onClick={onCancel} className="text-[13px] font-medium text-secondary hover:text-ink">
+            Cancel
+          </button>
+          <button type="button" onClick={onSave} className="text-[13px] font-medium text-strong hover:underline">
+            Save
+          </button>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div
+      className={`flex animate-fade-in-up items-start justify-between gap-2 rounded-card border bg-surface p-4 shadow-card transition-shadow duration-500 ${
+        essential ? 'border-ink/20' : 'border-hairline'
+      } ${highlighted ? 'ring-2 ring-accent' : 'ring-0'}`}
+    >
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-ink">{item.name}</p>
+        <p className="mt-0.5 text-[13px] leading-relaxed text-secondary">{item.desc}</p>
+      </div>
+      <CardMenu importance={item.importance} onMove={onMove} onEdit={onEdit} onRemove={onRemove} />
+    </div>
   )
 }
 
 /**
- * DefineRoleScreen — define the role's competency scorecard with AI. The whole
- * screen is just that: Chat or Voice with the assistant, or paste/upload a job
- * description to work from. Nothing else lives here; narrowing by experience or
- * location happens later as filters on the matched list.
+ * DefineRoleScreen — the criteria that matter for the role, in a two-column
+ * composition: a quiet left margin naming each importance group, a wide right
+ * column of criteria as a 2-up grid. No rails, no dots. A composer bar at the
+ * bottom lets the recruiter type, speak, or drop a JD to enrich the card; it is
+ * optional. A hiring manager on a magic link sees this identical screen.
  */
 export default function DefineRoleScreen({
   roleTitle = 'New role',
@@ -192,90 +182,119 @@ export default function DefineRoleScreen({
   onBack,
   onComplete,
   onAskManager,
-  reviewLabel = 'Review role',
+  reviewLabel = 'Looks good, continue',
 }) {
-  const [mode, setMode] = useState('chat')
-  const [messages, setMessages] = useState([{ from: 'ai', text: QUESTIONS[0] }])
-  const [step, setStep] = useState(0)
-  const [input, setInput] = useState('')
-  const [phase, setPhase] = useState('asking') // asking | building | ready
-  const [jdOpen, setJdOpen] = useState(false)
-  const [jdText, setJdText] = useState('')
-  const [jdUpload, setJdUpload] = useState('idle') // idle | uploading | uploaded
-  const [jdFetching, setJdFetching] = useState(false)
-  const [voiceState, setVoiceState] = useState('speaking')
+  const [criteria, setCriteria] = useState(() => roleCriteria(roleTitle))
+  const [editingId, setEditingId] = useState(null)
+  const [editName, setEditName] = useState('')
+  const [editDesc, setEditDesc] = useState('')
+  const [highlightIds, setHighlightIds] = useState(() => new Set())
+  const [panel, setPanel] = useState(null) // add | reuse | null
+  const [composer, setComposer] = useState('')
+  const [changeSummary, setChangeSummary] = useState(null) // { text, snapshot }
 
-  const currentQuestion = [...messages].reverse().find((m) => m.from === 'ai')?.text
+  const [newName, setNewName] = useState('')
+  const [newDesc, setNewDesc] = useState('')
+  const [newGroup, setNewGroup] = useState('veryImportant')
 
-  const advance = (text) => {
-    const next = step + 1
-    if (next < QUESTIONS.length) {
-      setMessages((m) => [...m, { from: 'user', text }, { from: 'ai', text: QUESTIONS[next] }])
-      setStep(next)
-      setVoiceState('speaking')
+  const flash = (ids) => {
+    setHighlightIds(new Set(ids))
+    setTimeout(() => setHighlightIds(new Set()), 1800)
+  }
+
+  const moveTo = (id, importance) => {
+    setCriteria((prev) => prev.map((c) => (c.id === id ? { ...c, importance } : c)))
+    flash([id])
+  }
+  const remove = (id) => setCriteria((prev) => prev.filter((c) => c.id !== id))
+  const hasName = (n) => criteria.some((c) => c.name.toLowerCase() === n.toLowerCase())
+
+  const startEdit = (item) => {
+    setEditingId(item.id)
+    setEditName(item.name)
+    setEditDesc(item.desc)
+  }
+  const saveEdit = () => {
+    if (!editName.trim() || !editDesc.trim()) return
+    setCriteria((prev) => prev.map((c) => (c.id === editingId ? { ...c, name: editName.trim(), desc: editDesc.trim() } : c)))
+    setEditingId(null)
+    flash([editingId])
+  }
+
+  const addCriterion = (item, importance) => {
+    if (hasName(item.name)) return null
+    const id = `u${nextId++}`
+    const comp = item.comp ?? translateConcern(`${item.name}. ${item.desc}`)?.primary ?? 'Problem Solving'
+    setCriteria((prev) => [...prev, { id, name: item.name, desc: item.desc, importance, comp }])
+    return id
+  }
+
+  const submitNew = () => {
+    if (!newName.trim() || !newDesc.trim()) return
+    const id = addCriterion({ name: newName.trim(), desc: newDesc.trim() }, newGroup)
+    if (id) flash([id])
+    setNewName('')
+    setNewDesc('')
+    setNewGroup('veryImportant')
+    setPanel(null)
+  }
+
+  // Composer: type or speak enriches the card and highlights the change.
+  const applyPhrase = (text) => {
+    const c = criterionFromPhrase(text)
+    if (!c) return
+    const existing = criteria.find((x) => x.name.toLowerCase() === c.name.toLowerCase())
+    if (existing) {
+      setCriteria((prev) => prev.map((x) => (x.id === existing.id ? { ...x, importance: c.importance } : x)))
+      flash([existing.id])
     } else {
-      setMessages((m) => [...m, { from: 'user', text }])
-      setPhase('building')
-      setVoiceState('thinking')
-      setTimeout(() => {
-        setPhase('ready')
-        setVoiceState('idle')
-      }, 1400)
+      const id = addCriterion(c, c.importance)
+      if (id) flash([id])
     }
   }
-
-  const submitAnswer = () => {
-    const text = input.trim()
+  const sendComposer = () => {
+    const text = composer.trim()
     if (!text) return
-    setInput('')
-    advance(text)
+    setComposer('')
+    applyPhrase(text)
+  }
+  const speak = () => applyPhrase('This role is heavy on stakeholder work.')
+
+  // Drop a JD: a more substantial update, with a summary and an undo. The summary
+  // reflects the real changes, so it never claims something it did not do.
+  const applyJd = () => {
+    const snapshot = criteria
+    let next = [...criteria]
+    const changed = []
+    const parts = []
+
+    if (!hasName('Stakeholder Management')) {
+      const id = `u${nextId++}`
+      next = [...next, { id, name: 'Stakeholder Management', desc: 'Keeps the people around the work aligned and moving.', importance: 'veryImportant', comp: 'Communication' }]
+      changed.push(id)
+      parts.push('added Stakeholder Management')
+    }
+    // Raise one criterion to Essential: Communication if it is not already, else
+    // the first Very Important that is not the one we just added.
+    const raise =
+      next.find((c) => c.name === 'Communication' && c.importance !== 'essential') ??
+      next.find((c) => c.importance === 'veryImportant' && c.name !== 'Stakeholder Management')
+    if (raise) {
+      next = next.map((c) => (c.id === raise.id ? { ...c, importance: 'essential' } : c))
+      changed.push(raise.id)
+      parts.push(`raised ${raise.name} to Essential`)
+    }
+
+    setCriteria(next)
+    if (parts.length) setChangeSummary({ text: `From your JD I ${parts.join(' and ')}.`, snapshot })
+    flash(changed)
+  }
+  const undoJd = () => {
+    if (changeSummary?.snapshot) setCriteria(changeSummary.snapshot)
+    setChangeSummary(null)
   }
 
-  const startUpload = () => {
-    setJdUpload('uploading')
-    setTimeout(() => setJdUpload('uploaded'), 1200)
-  }
-  const removeJd = () => setJdUpload('idle')
-
-  // Use the JD: the system "fetches role detail" from it, then builds the card.
-  const useJd = () => {
-    if (jdUpload !== 'uploaded' && !jdText.trim()) return
-    setJdFetching(true)
-    setTimeout(() => {
-      setJdFetching(false)
-      setJdOpen(false)
-      setJdUpload('idle')
-      setMessages((m) => [...m, { from: 'user', text: 'Shared a job description to work from.' }])
-      setPhase('building')
-      setTimeout(() => setPhase('ready'), 1400)
-    }, 900)
-  }
-
-  const micTap = () => {
-    if (voiceState === 'listening' || voiceState === 'thinking') return
-    setVoiceState('listening')
-    setTimeout(() => advance(VOICE_ANSWERS[step] ?? 'Sounds good.'), 1500)
-  }
-
-  const progress =
-    phase === 'ready' ? (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-medium text-strong">
-        <CheckIcon className="h-3 w-3" /> Scorecard ready
-      </span>
-    ) : phase === 'building' ? (
-      <span className="text-sm text-secondary">Building…</span>
-    ) : (
-      <span className="hidden text-sm text-secondary sm:inline">
-        Question {step + 1} of {QUESTIONS.length}
-      </span>
-    )
-
-  const voiceStatus =
-    phase === 'building' || voiceState === 'thinking'
-      ? 'Thinking…'
-      : voiceState === 'listening'
-        ? 'Listening…'
-        : 'Azzy is asking'
+  const reusable = REUSE_POOL.filter((s) => !hasName(s.name))
 
   return (
     <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-background">
@@ -295,236 +314,221 @@ export default function DefineRoleScreen({
           <p className="text-[13px] font-medium text-secondary">Define the role</p>
           <h1 className="truncate text-xl font-bold text-ink">{roleTitle}</h1>
         </div>
-        {onAskManager && phase !== 'ready' && (
+        {onAskManager && (
           <Button variant="secondary" onClick={onAskManager} className="!px-3.5 !py-2 !text-[13px]">
             Ask a manager to define
           </Button>
         )}
-        {progress}
-        <ModeToggle value={mode} onChange={setMode} />
       </div>
 
-      {/* Progress track */}
-      <div className="h-1 w-full shrink-0 bg-track">
-        <div
-          className="h-full bg-accent transition-[width] duration-500 ease-out"
-          style={{ width: `${(phase === 'asking' ? step / QUESTIONS.length : 1) * 100}%` }}
-        />
-      </div>
-
-      {/* Body */}
-      {mode === 'chat' ? (
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 lg:px-8">
-          <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 py-6">
-            <div className="rounded-card border border-hairline bg-accent-soft/50 p-5">
-              <div className="flex items-center gap-2 text-sm font-medium text-ink">
-                <SparkleIcon className="h-4 w-4 text-strong" />
-                How this works
-              </div>
-              <p className="mt-1.5 text-sm leading-relaxed text-secondary">
-                I&rsquo;ll ask a few short questions to build a clear, scoreable role card. Answer in
-                your own words, or paste an existing job description and I&rsquo;ll work from that.
-              </p>
-            </div>
-
-            {messages.map((m, i) =>
-              m.from === 'ai' ? <AiRow key={i}>{m.text}</AiRow> : <UserRow key={i}>{m.text}</UserRow>,
-            )}
-
-            {phase === 'building' && (
-              <AiRow>
-                <span className="flex items-center gap-2.5 text-secondary">
-                  <Spinner /> Building your role card…
-                </span>
-              </AiRow>
-            )}
-
-            {phase === 'ready' && (
-              <>
-                <AiRow>Here&rsquo;s the scorecard I put together. Review it and adjust anything.</AiRow>
-                <RoleCardPreview title={roleTitle} openings={openings} />
-              </>
-            )}
+      {/* The list is the screen */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-8 lg:px-10">
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-10">
+          {/* One quiet line */}
+          <div>
+            <h2 className="text-2xl font-bold text-ink">{roleTitle}</h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-secondary">
+              Here is what usually matters for a {roleTitle}. Change anything that is not right for you.
+            </p>
           </div>
-        </div>
-      ) : (
-        <div className="flex min-h-0 flex-1 flex-col">
-          {phase === 'ready' ? (
-            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-8 lg:px-8">
-              <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-6">
-                <VoiceAvatar state="idle" />
-                <p className="text-[15px] text-ink">All set. Here&rsquo;s the scorecard from our conversation.</p>
-                <RoleCardPreview title={roleTitle} openings={openings} />
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 py-6 text-center">
-                <VoiceAvatar state={phase === 'building' ? 'thinking' : voiceState} />
-                <div className="flex flex-col gap-2">
-                  <p className="text-[13px] font-medium uppercase tracking-wide text-strong">{voiceStatus}</p>
-                  <p className="mx-auto max-w-md text-lg leading-relaxed text-ink">{currentQuestion}</p>
-                  <p className="text-[13px] text-secondary">
-                    Question {step + 1} of {QUESTIONS.length}
+
+          {/* Groups: quiet left margin, 2-up grid on the right */}
+          {GROUPS.map((g) => {
+            const items = criteria.filter((c) => c.importance === g.key)
+            const warn = g.key === 'essential' && items.length > 2
+            return (
+              <section key={g.key} className="flex flex-col gap-4 sm:flex-row sm:gap-8">
+                <div className="sm:w-[200px] sm:shrink-0 sm:pt-1">
+                  <h3 className="text-sm font-bold uppercase tracking-wide text-ink">{g.label}</h3>
+                  <p className="mt-0.5 text-[13px] font-medium text-muted">
+                    {items.length} criteri{items.length === 1 ? 'on' : 'a'}
+                  </p>
+                  <p className={`mt-1.5 text-[13px] leading-relaxed ${warn ? 'font-medium text-attention' : 'text-secondary'}`}>
+                    {warn
+                      ? `${word(items.length)} essentials. Each one rules people out fast. Consider keeping the two that matter most.`
+                      : g.purpose}
                   </p>
                 </div>
-              </div>
+                <div className="min-w-0 flex-1">
+                  {items.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {items.map((c) => (
+                        <CriterionCard
+                          key={`${c.id}-${c.importance}`}
+                          item={c}
+                          essential={g.key === 'essential'}
+                          highlighted={highlightIds.has(c.id)}
+                          editing={editingId === c.id}
+                          name={editName}
+                          desc={editDesc}
+                          setName={setEditName}
+                          setDesc={setEditDesc}
+                          onMove={(imp) => moveTo(c.id, imp)}
+                          onEdit={() => startEdit(c)}
+                          onRemove={() => remove(c.id)}
+                          onSave={saveEdit}
+                          onCancel={() => setEditingId(null)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="pt-1 text-[13px] text-muted">Nothing here yet.</p>
+                  )}
+                </div>
+              </section>
+            )
+          })}
 
-              <div className="shrink-0 border-t border-hairline bg-surface px-6 py-3 lg:px-8">
-                <div className="mx-auto w-full max-w-2xl">
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Live transcript</p>
-                  <div className="flex max-h-24 flex-col gap-2 overflow-y-auto">
-                    {messages.map((m, i) => (
-                      <p key={i} className="text-sm leading-relaxed">
-                        <span className={m.from === 'ai' ? 'text-strong' : 'text-secondary'}>
-                          {m.from === 'ai' ? 'Azzy' : 'You'}
-                        </span>{' '}
-                        <span className="text-ink">{m.text}</span>
-                      </p>
-                    ))}
-                    {voiceState === 'listening' && (
-                      <p className="text-sm text-secondary">
-                        <span className="text-secondary">You</span> <span className="italic">listening…</span>
-                      </p>
-                    )}
-                  </div>
+          {/* Add / Reuse */}
+          <div className="flex flex-wrap gap-2 sm:pl-[232px]">
+            <button
+              type="button"
+              onClick={() => setPanel(panel === 'add' ? null : 'add')}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-surface px-3.5 py-2 text-[13px] font-medium text-ink shadow-card transition-colors hover:border-ink/20"
+            >
+              <PlusIcon className="h-4 w-4" /> Add criterion
+            </button>
+            <button
+              type="button"
+              onClick={() => setPanel(panel === 'reuse' ? null : 'reuse')}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-surface px-3.5 py-2 text-[13px] font-medium text-ink shadow-card transition-colors hover:border-ink/20"
+            >
+              Reuse from another role
+            </button>
+          </div>
+
+          {panel === 'add' && (
+            <div className="flex flex-col gap-3 rounded-card border border-hairline bg-surface p-4 shadow-card sm:ml-[232px]">
+              <input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                autoFocus
+                placeholder="Criterion name, e.g. Prioritisation"
+                className="w-full rounded-md border border-hairline bg-surface px-3 py-2 text-sm font-medium text-ink shadow-card transition-colors placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+              />
+              <textarea
+                value={newDesc}
+                onChange={(e) => setNewDesc(e.target.value)}
+                rows={2}
+                placeholder="One plain line: what it means for this role."
+                className="w-full resize-none rounded-md border border-hairline bg-surface px-3 py-2 text-sm leading-relaxed text-ink shadow-card transition-colors placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+              />
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap gap-1.5">
+                  {GROUPS.map((g) => (
+                    <button
+                      key={g.key}
+                      type="button"
+                      onClick={() => setNewGroup(g.key)}
+                      className={`rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors ${
+                        newGroup === g.key ? 'bg-ink text-white' : 'border border-hairline bg-surface text-secondary hover:text-ink'
+                      }`}
+                    >
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="secondary" onClick={() => setPanel(null)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={submitNew} disabled={!newName.trim() || !newDesc.trim()}>
+                    Add
+                  </Button>
                 </div>
               </div>
-            </>
+            </div>
+          )}
+
+          {panel === 'reuse' && (
+            <div className="flex flex-col gap-2 rounded-card border border-hairline bg-surface p-4 shadow-card sm:ml-[232px]">
+              <p className="text-[13px] font-medium text-ink">Criteria from your other roles</p>
+              {reusable.length > 0 ? (
+                reusable.map((s) => (
+                  <div key={s.name} className="flex items-start gap-3 rounded-lg border border-hairline bg-surface px-3.5 py-2.5">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-baseline gap-x-2">
+                        <span className="text-sm font-medium text-ink">{s.name}</span>
+                        <span className="text-[11px] text-muted">from {s.from}</span>
+                      </div>
+                      <p className="mt-0.5 text-[13px] leading-relaxed text-secondary">{s.desc}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const id = addCriterion(s, 'veryImportant')
+                        if (id) flash([id])
+                      }}
+                      className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md border border-hairline px-2.5 py-1.5 text-[13px] font-medium text-ink transition-colors hover:border-ink/20"
+                    >
+                      <PlusIcon className="h-3.5 w-3.5" /> Add
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <p className="py-2 text-[13px] text-secondary">All of those are already on the list.</p>
+              )}
+            </div>
           )}
         </div>
-      )}
+      </div>
 
-      {/* Footer — input / mic / JD paste / save */}
-      <div className="shrink-0 border-t border-hairline bg-surface px-6 py-4 lg:px-8">
-        <div className="mx-auto w-full max-w-2xl">
-          {phase === 'ready' ? (
-            <div className="flex items-center justify-end gap-3">
-              <Button variant="secondary" onClick={() => setPhase('asking')}>
-                Keep editing
-              </Button>
-              <Button onClick={onComplete}>{reviewLabel}</Button>
-            </div>
-          ) : phase === 'building' ? (
-            <div className="flex items-center justify-center gap-2.5 py-1 text-sm text-secondary">
-              <Spinner /> Building your role card…
-            </div>
-          ) : mode === 'voice' ? (
-            <div className="flex flex-col items-center gap-2">
-              <MicButton state={voiceState} onClick={micTap} />
-              <p className="text-[13px] text-secondary">
-                {voiceState === 'listening'
-                  ? 'Listening… tap to stop'
-                  : voiceState === 'thinking'
-                    ? 'One moment…'
-                    : 'Tap the mic to answer'}
-              </p>
-            </div>
-          ) : jdOpen ? (
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-ink">Paste or upload a job description</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setJdOpen(false)
-                    setJdUpload('idle')
-                  }}
-                  className="text-[13px] text-secondary transition-colors hover:text-ink"
-                >
-                  Cancel
-                </button>
-              </div>
-
-              {jdUpload === 'uploading' ? (
-                <div className="flex items-center gap-2.5 rounded-md border border-hairline bg-surface px-3.5 py-3 text-sm text-secondary shadow-card">
-                  <Spinner /> Uploading senior-product-engineer-jd.pdf
-                </div>
-              ) : jdUpload === 'uploaded' ? (
-                <div className="flex items-center gap-3 rounded-md border border-hairline bg-surface px-3.5 py-3 shadow-card">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-accent-soft text-strong">
-                    <PaperclipIcon className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium text-ink">senior-product-engineer-jd.pdf</div>
-                    <div className="text-[12px] text-secondary">Uploaded</div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={startUpload}
-                    className="text-[13px] font-medium text-strong transition-colors hover:underline"
-                  >
-                    Update
-                  </button>
-                  <button
-                    type="button"
-                    onClick={removeJd}
-                    className="text-[13px] text-secondary transition-colors hover:text-ink"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <textarea
-                    value={jdText}
-                    onChange={(e) => setJdText(e.target.value)}
-                    rows={4}
-                    placeholder="Paste the job description here"
-                    className="w-full resize-none rounded-md border border-hairline bg-surface p-3 text-sm leading-relaxed text-ink shadow-card transition-colors placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
-                  />
-                  <button
-                    type="button"
-                    onClick={startUpload}
-                    className="flex items-center gap-2 self-start rounded-md border border-hairline bg-surface px-3 py-2 text-sm text-secondary shadow-card transition-colors hover:text-ink"
-                  >
-                    <PaperclipIcon className="h-4 w-4" /> Upload a file instead
-                  </button>
-                </>
-              )}
-
-              <div className="flex items-center justify-end gap-3">
-                {jdFetching ? (
-                  <span className="flex items-center gap-2 text-sm text-secondary">
-                    <Spinner /> Fetching role detail
-                  </span>
-                ) : (
-                  <Button onClick={useJd} disabled={jdUpload !== 'uploaded' && !jdText.trim()}>
-                    Use this JD
-                  </Button>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2.5">
-              <div className="flex items-end gap-2">
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      submitAnswer()
-                    }
-                  }}
-                  rows={1}
-                  placeholder="Type your answer…"
-                  className="flex-1 resize-none rounded-md border border-hairline bg-surface px-3 py-2.5 text-sm leading-relaxed text-ink shadow-card transition-colors placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
-                />
-                <Button onClick={submitAnswer} disabled={!input.trim()} aria-label="Send" className="!px-3.5">
-                  <SendIcon className="h-4 w-4" />
-                </Button>
-              </div>
-              <button
-                type="button"
-                onClick={() => setJdOpen(true)}
-                className="flex items-center gap-1.5 self-start text-[13px] text-secondary transition-colors hover:text-ink"
-              >
-                <PaperclipIcon className="h-3.5 w-3.5" />
-                Paste or upload a job description instead
+      {/* Composer bar: type, speak, or drop a JD to enrich the card. Optional. */}
+      <div className="shrink-0 border-t border-hairline bg-surface px-6 py-3 lg:px-10">
+        <div className="mx-auto w-full max-w-4xl">
+          {changeSummary && (
+            <div className="mb-2.5 flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-accent-soft/50 px-3.5 py-2 text-[13px] text-ink">
+              <span className="min-w-0 flex-1">{changeSummary.text}</span>
+              <button type="button" onClick={undoJd} className="font-medium text-strong transition-colors hover:underline">
+                Undo
+              </button>
+              <button type="button" onClick={() => setChangeSummary(null)} aria-label="Dismiss" className="text-secondary hover:text-ink">
+                <XIcon className="h-3.5 w-3.5" />
               </button>
             </div>
           )}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={applyJd}
+              aria-label="Attach a job description"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-secondary transition-colors hover:bg-background hover:text-ink"
+            >
+              <PaperclipIcon className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={speak}
+              aria-label="Speak"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-secondary transition-colors hover:bg-background hover:text-ink"
+            >
+              <MicIcon className="h-4 w-4" />
+            </button>
+            <div className="h-6 w-px bg-hairline" />
+            <input
+              value={composer}
+              onChange={(e) => setComposer(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  sendComposer()
+                }
+              }}
+              placeholder="Tell me more about this role, or drop a JD…"
+              className="min-w-0 flex-1 bg-transparent px-1 text-sm text-ink placeholder:text-muted focus:outline-none"
+            />
+            <Button onClick={sendComposer} disabled={!composer.trim()} aria-label="Send" className="!px-3.5">
+              <SendIcon className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Primary CTA */}
+      <div className="shrink-0 border-t border-hairline bg-surface px-6 py-4 lg:px-10">
+        <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-3">
+          <span className="text-[13px] text-secondary">{criteria.length} criteria</span>
+          <Button onClick={onComplete}>{reviewLabel}</Button>
         </div>
       </div>
     </div>

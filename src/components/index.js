@@ -19,6 +19,8 @@ export { default as Nav } from './Nav.jsx'
 export { default as EvidenceQuote } from './EvidenceQuote.jsx'
 export { default as StaggerList } from './StaggerList.jsx'
 export { default as Chip } from './Chip.jsx'
+export { default as RungTag } from './RungTag.jsx'
+export { default as CompetencyBreakdown } from './CompetencyBreakdown.jsx'
 
 // Functional furniture
 export { default as Tag, skillColor } from './Tag.jsx'
@@ -37,3 +39,4 @@ export { default as JudgeControls } from './JudgeControls.jsx'
 export { default as ApprovedView } from './ApprovedView.jsx'
 export { default as ManagerPicker } from './ManagerPicker.jsx'
 export { default as CandidateDetail } from './CandidateDetail.jsx'
+export { default as CandidateReport } from './CandidateReport.jsx'

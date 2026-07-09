@@ -19,6 +19,7 @@ import {
   LockIcon,
   DownloadIcon,
   ChevronDownIcon,
+  FileTextIcon,
 } from './icons.jsx'
 import {
   GATE,
@@ -27,9 +28,11 @@ import {
   contactsFor,
   GATED_COMPETENCIES,
   ROLE_TARGETS,
+  ROLE_PROBES,
   interviewStatus,
 } from '../data/candidates.js'
 import { roleScorecard } from '../data/scorecard.js'
+import { gapFinding } from '../lib/reportData.js'
 
 const SectionLabel = ({ children }) => (
   <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{children}</p>
@@ -39,6 +42,66 @@ const RECO = {
   strong: 'Recommend advancing.',
   promising: 'Promising, worth a closer look.',
   'not-yet': 'Not yet, needs a human review.',
+}
+
+/* Forward actions drawn from the scored competencies: what to DO next, not just
+   the numbers. Failures first (they decide the outcome), then reads worth
+   probing, then strengths worth confirming. */
+function recommendations(sortedComps) {
+  const fails = []
+  const probes = []
+  const goods = []
+  for (const c of sortedComps) {
+    const isDomain = c.name === DOMAIN_LABEL
+    const gated = GATED_COMPETENCIES.includes(c.name)
+    if (gated && c.score < GATE) {
+      fails.push({
+        tone: 'fail',
+        text: `Fails the ${c.name} gate, a hard requirement for this role. Do not advance on the strength of other scores.`,
+      })
+    } else if (!isDomain && c.score < UNIVERSAL_FLOOR) {
+      probes.push({
+        tone: 'fail',
+        text: `Below the floor on ${c.name}, the baseline of a strong candidate. Probe whether it was nerves before ruling them out.`,
+      })
+    } else if (isDomain && ROLE_TARGETS[c.name] != null && c.score < ROLE_TARGETS[c.name]) {
+      probes.push({
+        tone: 'warn',
+        text: `The interview did not get a clean read on ${c.name}. Probe it next round.`,
+      })
+    }
+  }
+  const top = sortedComps[0]
+  if (top && top.score >= UNIVERSAL_FLOOR) {
+    goods.push({ tone: 'good', text: `Strong on ${top.name}. Worth confirming with a reference.` })
+  }
+  const out = [...fails, ...probes, ...goods]
+  if (!fails.length && !probes.length) {
+    out.push({ tone: 'good', text: 'No gaps flagged. Ready to share with the hiring manager.' })
+  }
+  return out.slice(0, 4)
+}
+
+/* A recommendation's marker, coloured by tone. Failures read red, the same
+   loudness as the failed-gate pills, so a no is never quiet. */
+function RecMarker({ tone }) {
+  if (tone === 'fail') {
+    return (
+      <span className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-danger-soft text-danger">
+        <XIcon className="h-2.5 w-2.5" />
+      </span>
+    )
+  }
+  if (tone === 'warn') {
+    return (
+      <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-attention" aria-hidden="true" />
+    )
+  }
+  return (
+    <span className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
+      <CheckIcon className="h-2.5 w-2.5" />
+    </span>
+  )
 }
 
 function InterviewVideo({ candidate, summary }) {
@@ -83,15 +146,16 @@ function CompetencyRow({ comp, ev, open, onToggle, emphasised }) {
 
   const fill = loud ? 'bg-danger' : belowTarget ? 'bg-attention' : 'bg-strong'
   const scoreColor = loud ? 'text-danger' : belowTarget ? 'text-attention' : 'text-ink'
+  const probe = ROLE_PROBES[comp.name] // the recruiter's words, if they asked for this
+  // Lead with the finding, in our words. The verbatim quote is support, one tap
+  // away. A weak competency gets the same treatment, never silence.
+  const finding = ev?.finding ?? gapFinding(comp.name, { gateFail, belowFloor, belowTarget })
+  const quote = ev?.quote
   return (
     <div className="flex flex-col">
       <div
-        role={ev ? 'button' : undefined}
-        tabIndex={ev ? 0 : undefined}
-        onClick={ev ? onToggle : undefined}
-        onKeyDown={ev ? (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onToggle()) : undefined}
-        className={`flex items-center gap-3 px-4 py-2.5 ${loud ? 'bg-danger-soft/40' : ''} ${
-          ev ? 'cursor-pointer hover:bg-background' : ''
+        className={`flex items-center gap-3 border-l-2 px-4 py-2.5 ${
+          loud ? 'border-danger bg-danger-soft/50' : 'border-transparent'
         }`}
       >
         <div className="w-[126px] shrink-0">
@@ -102,8 +166,8 @@ function CompetencyRow({ comp, ev, open, onToggle, emphasised }) {
             </span>
           ) : (
             emphasised && (
-              <span className="mt-0.5 inline-flex items-center rounded-full bg-accent-soft px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-strong">
-                Emphasis
+              <span className="mt-0.5 inline-flex items-center rounded-full bg-warning-soft px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-attention">
+                Very Important
               </span>
             )
           )}
@@ -187,18 +251,42 @@ function CompetencyRow({ comp, ev, open, onToggle, emphasised }) {
               </span>
             )
           )}
-          {ev && <ChevronDownIcon className={`h-3.5 w-3.5 text-muted transition-transform ${open ? 'rotate-180' : ''}`} />}
         </span>
       </div>
-      {ev && open && (
-        <div className="px-4 pb-3">
-          <div className="rounded-lg border border-hairline bg-background px-3 py-2.5">
-            <p className="text-[13px] leading-relaxed text-ink">&ldquo;{ev.quote}&rdquo;</p>
-            <p className="mt-1 text-[12px] text-secondary">
-              Supports {ev.competency}
-              {ev.source ? ` · ${ev.source}` : ''}
-            </p>
+
+      {probe && (
+        <p className="px-4 pb-1.5 text-[11px] leading-relaxed text-muted">
+          <span className="text-secondary">You asked us to test</span> &ldquo;{probe}&rdquo;, scored
+          under {comp.name}.
+        </p>
+      )}
+
+      {/* The finding, in our words. Provenance small underneath; the verbatim
+          exchange one tap away for a recruiter who wants to verify. */}
+      {finding && (
+        <div className="px-4 pb-3.5">
+          <p className={`text-[13px] leading-relaxed ${ev?.finding ? 'text-ink' : 'text-secondary'}`}>
+            {finding}
+          </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+            {ev?.source && <span className="text-[12px] text-muted">{ev.source}</span>}
+            {quote && (
+              <button
+                type="button"
+                onClick={onToggle}
+                aria-expanded={open}
+                className="inline-flex items-center gap-1 text-[12px] font-medium text-strong transition-colors hover:underline"
+              >
+                {open ? 'Hide the exchange' : 'Expand'}
+                <ChevronDownIcon className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} />
+              </button>
+            )}
           </div>
+          {quote && open && (
+            <div className="mt-2 rounded-lg border border-hairline bg-background px-3 py-2.5">
+              <p className="text-[13px] italic leading-relaxed text-ink">&ldquo;{quote}&rdquo;</p>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -234,16 +322,16 @@ export default function CandidateDetail({ candidate, onBack, interview, decided,
   })
   const sortedComps = [...assessed].sort((a, b) => b.score - a.score)
   // Which universals this role leaned on when it was defined, so the panel can
-  // mark them apart from the ones simply held at the floor.
+  // mark them apart from the ones simply held at the floor. A competency the
+  // recruiter's own phrase drove counts too: it was turned up on purpose.
   const emphasisNames = new Set(roleScorecard({ title: candidate.role }).emphasis.map((e) => e.name))
+  Object.keys(ROLE_PROBES).forEach((name) => emphasisNames.add(name))
   const strengths = sortedComps.slice(0, 2).map((c) => c.name)
   const gapComps = sortedComps.filter((c) => GATED_COMPETENCIES.includes(c.name) && c.score < GATE)
   const gaps = (gapComps.length ? gapComps : sortedComps.slice(-1)).map((c) => c.name)
 
-  // Only the standout's evidence is open by default; everything else is one tap.
-  const [openRows, setOpenRows] = useState(() =>
-    strengths[0] && evByComp[strengths[0]] ? new Set([strengths[0]]) : new Set(),
-  )
+  // Findings are always visible; the verbatim quotes start collapsed, one tap away.
+  const [openRows, setOpenRows] = useState(() => new Set())
   const toggleRow = (name) =>
     setOpenRows((prev) => {
       const next = new Set(prev)
@@ -309,6 +397,19 @@ export default function CandidateDetail({ candidate, onBack, interview, decided,
                 </p>
               )}
             </div>
+
+            {/* What to do next: forward actions drawn from the evidence */}
+            <Card className="flex flex-col gap-3 p-5">
+              <SectionLabel>What to do next</SectionLabel>
+              <ul className="flex flex-col gap-2.5">
+                {recommendations(sortedComps).map((r, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-[13px] leading-relaxed text-ink">
+                    <RecMarker tone={r.tone} />
+                    {r.text}
+                  </li>
+                ))}
+              </ul>
+            </Card>
 
             {/* Competency detail (sorted; the list carries the shape) */}
             <Card className="flex flex-col divide-y divide-hairline p-0 py-1">
@@ -500,6 +601,12 @@ export default function CandidateDetail({ candidate, onBack, interview, decided,
               Taken forward
             </span>
             <div className="ml-auto flex items-center gap-2">
+              {recruiter?.onOpenReport && (
+                <Button variant="secondary" onClick={recruiter.onOpenReport}>
+                  <FileTextIcon className="h-4 w-4" />
+                  Report
+                </Button>
+              )}
               {recruiter?.onDownloadCv && (
                 <Button variant="secondary" onClick={recruiter.onDownloadCv}>
                   <DownloadIcon className="h-4 w-4" />

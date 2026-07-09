@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Card, Tag } from '../components'
+import { Button, Card, Tag, RungTag } from '../components'
 import { CheckIcon, PlusIcon, XIcon, ArrowLeftIcon } from '../components/icons.jsx'
 import { roleScorecard, domainSummary, BASELINE_LINE } from '../data/scorecard.js'
 
@@ -13,28 +13,18 @@ const SectionLabel = ({ children }) => (
   <p className="text-sm font-medium tracking-normal text-secondary">{children}</p>
 )
 
-/* Emphasis is a tier, never a percentage. */
-function TierPill({ tier }) {
-  return (
-    <span className="inline-flex items-center rounded-full bg-accent-soft px-2.5 py-0.5 text-[12px] font-semibold text-strong">
-      {tier}
-    </span>
-  )
-}
-
 export default function ReviewRoleScreen({
   roleTitle = 'Senior Product Engineer',
   openings = 1,
   onBack,
   onApprove,
-  onStartSourcing,
+  onReviewInterview,
   onBackToRoles,
 }) {
   const scorecard = roleScorecard({ title: roleTitle })
   const { domain, emphasis } = scorecard
 
   const [editing, setEditing] = useState(false)
-  const [approved, setApproved] = useState(false)
   const [mustHaves, setMustHaves] = useState(scorecard.gates)
   const [jd, setJd] = useState(INITIAL_JD)
 
@@ -43,37 +33,11 @@ export default function ReviewRoleScreen({
   const removeMustHave = (i) => setMustHaves((prev) => prev.filter((_, idx) => idx !== i))
   const addMustHave = () => setMustHaves((prev) => [...prev, ''])
 
+  // Approving the card opens the "how we will interview" panel directly: no heavy
+  // step in between, they read it and start sourcing.
   const approve = () => {
     onApprove?.()
-    setApproved(true)
-  }
-
-  /* ── Approved / confirmation state ───────────────────────────── */
-  if (approved) {
-    return (
-      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="flex min-h-0 flex-1 items-center justify-center px-6 pb-16">
-          <div className="flex max-w-md flex-col items-center gap-5 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-soft text-accent">
-              <CheckIcon className="h-7 w-7" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <h2 className="text-xl text-ink">Role approved</h2>
-              <p className="text-sm leading-relaxed text-secondary">
-                The scorecard for <span className="text-ink">{roleTitle}</span> is locked in.
-                Azisly will start sourcing candidates. They&rsquo;ll appear as they come in.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <Button onClick={onStartSourcing}>Go to candidates</Button>
-              <Button variant="secondary" onClick={onBackToRoles}>
-                Back to roles
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+    onReviewInterview?.()
   }
 
   /* ── Card ready / editing states ─────────────────────────────── */
@@ -127,15 +91,18 @@ export default function ReviewRoleScreen({
               </div>
             </section>
 
-            {/* Leans on — the 1-2 universals turned up, as a tier */}
+            {/* Leans on — the 1-2 emphasised universals, on the Very important rung */}
             <section className="flex flex-col gap-3">
-              <SectionLabel>Leans on</SectionLabel>
+              <div className="flex items-center gap-2">
+                <SectionLabel>Leans on</SectionLabel>
+                {emphasis.length > 0 && <RungTag rung="veryImportant" />}
+              </div>
               {emphasis.length > 0 ? (
                 <div className="flex flex-col gap-2.5">
                   {emphasis.map((e) => (
                     <div key={e.name} className="flex items-center justify-between gap-3">
                       <span className="text-sm text-ink">{e.name}</span>
-                      <TierPill tier={e.tier} />
+                      <RungTag rung="veryImportant" />
                     </div>
                   ))}
                 </div>
@@ -144,17 +111,18 @@ export default function ReviewRoleScreen({
               )}
             </section>
 
-            {/* Baseline — the floor, one quiet line, never six scored rows */}
-            <section className="flex items-start gap-2.5">
-              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] text-muted">
-                <CheckIcon className="h-2.5 w-2.5" />
-              </span>
+            {/* Baseline — the floor, one quiet grey line, never six scored rows */}
+            <section className="flex flex-col gap-2">
+              <RungTag rung="baseline" className="self-start" />
               <p className="text-[13px] leading-relaxed text-muted">{BASELINE_LINE}</p>
             </section>
 
-            {/* Must-haves — the hard gates */}
+            {/* Must-haves — the hard gates, on the Must have rung */}
             <section className="flex flex-col gap-4">
-              <SectionLabel>Must-haves</SectionLabel>
+              <div className="flex items-center gap-2">
+                <SectionLabel>Must-haves</SectionLabel>
+                <RungTag rung="mustHave" />
+              </div>
               {editing ? (
                 <div className="flex flex-col gap-2">
                   {mustHaves.map((m, i) => (
@@ -187,7 +155,7 @@ export default function ReviewRoleScreen({
                 <ul className="flex flex-col gap-2.5">
                   {mustHaves.map((m, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-sm text-ink">
-                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
+                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-danger-soft text-danger">
                         <CheckIcon className="h-2.5 w-2.5" />
                       </span>
                       {m}
@@ -200,7 +168,7 @@ export default function ReviewRoleScreen({
                 <div className="flex flex-col gap-3">
                   <ul className="flex flex-col gap-2.5">
                     <li className="flex items-start gap-2.5 text-sm text-ink">
-                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
+                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-danger-soft text-danger">
                         <CheckIcon className="h-2.5 w-2.5" />
                       </span>
                       <span>

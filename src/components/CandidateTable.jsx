@@ -1,12 +1,79 @@
+import { useState } from 'react'
 import Avatar from './Avatar.jsx'
 import Tag, { skillColor } from './Tag.jsx'
 import Tooltip from './Tooltip.jsx'
 import VerdictTag from './VerdictTag.jsx'
+import CompetencyBreakdown from './CompetencyBreakdown.jsx'
 import { ScoreValue, InterviewScoreValue } from './Scores.jsx'
 import { CheckIcon } from './icons.jsx'
 import { topExperienceOf } from '../data/candidates.js'
 
 const MATCH_EXPLAINER = 'Match score: how well this candidate fits the role on paper, before the interview.'
+
+/* The interview score, with its breakdown on a compact popover. The SCORE is the
+   trigger, not the row: hovering or clicking it reveals the breakdown, offset to
+   the side so the rest of the list stays visible and hoverable. Moving to another
+   score swaps the popover; clicking the score pins it. */
+function ScorePopover({ candidate, children }) {
+  const [hovered, setHovered] = useState(false)
+  const [pinned, setPinned] = useState(false)
+  if (candidate.score == null) return children
+  const open = hovered || pinned
+  return (
+    <span
+      className="relative inline-flex"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <span
+        role="button"
+        tabIndex={0}
+        aria-label="Show interview breakdown"
+        onClick={(e) => {
+          e.stopPropagation()
+          setPinned((p) => !p)
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            e.stopPropagation()
+            setPinned((p) => !p)
+          }
+        }}
+        className="cursor-pointer rounded-md"
+      >
+        {children}
+      </span>
+      {open && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="absolute right-full top-1/2 z-50 w-80 -translate-y-1/2 rounded-card border border-hairline bg-surface p-3.5 shadow-dropdown"
+        >
+          <div className="mb-2.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+              Interview breakdown
+            </span>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
+              <span className="flex items-center gap-1">
+                <span className="h-2.5 w-[3px] rounded-full bg-danger" /> Must have
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="h-2.5 w-[3px] rounded-full bg-attention" /> Very important
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="h-2.5 w-[3px] rounded-full bg-ink" /> Domain
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="h-2.5 w-[3px] rounded-full bg-secondary/40" /> Baseline
+              </span>
+            </div>
+          </div>
+          <CompetencyBreakdown candidate={candidate} />
+        </div>
+      )}
+    </span>
+  )
+}
 
 // Pick whole skill chips that fit the budget; the rest become "+N". Never crop a
 // chip mid-word.
@@ -163,7 +230,9 @@ export default function CandidateTable({
               {/* Skills (pre-interview) or Interview score (post-interview) */}
               {showInterview ? (
                 <div className="flex w-[150px] shrink-0 items-center gap-2">
-                  <InterviewScoreValue candidate={c} size="lg" showGate={false} />
+                  <ScorePopover candidate={c}>
+                    <InterviewScoreValue candidate={c} size="lg" showGate={false} />
+                  </ScorePopover>
                   {c.verdict && <VerdictTag verdict={c.verdict} />}
                 </div>
               ) : (
