@@ -7,7 +7,9 @@ import LoginScreen from './screens/LoginScreen.jsx'
 import RolesScreen from './screens/RolesScreen.jsx'
 import CreateRoleScreen from './screens/CreateRoleScreen.jsx'
 import DefineRoleScreen from './screens/DefineRoleScreen.jsx'
+import UnmatchedTitleScreen from './screens/UnmatchedTitleScreen.jsx'
 import ReviewRoleScreen from './screens/ReviewRoleScreen.jsx'
+import { matchFamily } from './data/roleFamilies.js'
 import CandidatesScreen from './screens/CandidatesScreen.jsx'
 import ManagerDecisionScreen from './screens/ManagerDecisionScreen.jsx'
 import InviteScreen from './screens/InviteScreen.jsx'
@@ -55,10 +57,13 @@ export default function App() {
     return <ManagerReviewFlow token={reviewToken} />
   }
   if (inviteToken !== null) {
+    // Use a role whose title resolves to a family, so the define screen never
+    // renders a blank domain.
+    const invitedRole = seedRoles.find((r) => matchFamily(r.title)) ?? seedRoles[0]
     return (
       <ManagerFlow
         expired={inviteToken === 'expired'}
-        roleTitle={seedRoles[0].title}
+        roleTitle={invitedRole.title}
         company="Acme"
       />
     )
@@ -144,9 +149,23 @@ export default function App() {
           onCancel={() => setView('roles')}
           onContinue={(cfg) => {
             // The recruiter always defines by default; asking a manager to define
-            // is an optional action offered on the define screen.
+            // is an optional action offered on the define screen. A title that
+            // resolves to no family goes to the unmatched screen, never to a
+            // define screen with a blank domain.
             setDraft(cfg)
-            setView('define')
+            setView(matchFamily(cfg.title) ? 'define' : 'unmatched')
+          }}
+        />
+      )}
+
+      {view === 'unmatched' && (
+        <UnmatchedTitleScreen
+          title={draft?.title ?? ''}
+          onBack={() => setView('create')}
+          onPick={() => setView('define')}
+          onNoneOfThese={() => {
+            setDraft(null)
+            setView('roles')
           }}
         />
       )}
@@ -202,17 +221,12 @@ export default function App() {
       {view === 'review' && (
         <ReviewRoleScreen
           roleTitle={draft?.title ?? 'New role'}
-          openings={draft?.openings ?? 1}
           onBack={() => setView('define')}
-          onApprove={addRole}
-          onStartSourcing={() => {
+          onSubmit={() => {
+            addRole()
             setDraft(null)
             setRunMatch(true) // first submit of this role: run the matching animation
             setView('candidates')
-          }}
-          onBackToRoles={() => {
-            setDraft(null)
-            setView('roles')
           }}
         />
       )}

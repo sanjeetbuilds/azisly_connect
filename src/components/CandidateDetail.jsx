@@ -29,7 +29,6 @@ import {
   ROLE_TARGETS,
   interviewStatus,
 } from '../data/candidates.js'
-import { roleScorecard } from '../data/scorecard.js'
 
 const SectionLabel = ({ children }) => (
   <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{children}</p>
@@ -71,7 +70,7 @@ function InterviewVideo({ candidate, summary }) {
    clear (same across roles); on the domain it is this role's own target. The two
    markers are styled apart so the recruiter reads them as different questions.
    A failed gate and a below-floor universal are the loudest things here. */
-function CompetencyRow({ comp, ev, open, onToggle, emphasised }) {
+function CompetencyRow({ comp, ev, open, onToggle }) {
   const isDomain = comp.name === DOMAIN_LABEL
   const gated = GATED_COMPETENCIES.includes(comp.name)
   const domainTarget = isDomain ? ROLE_TARGETS[comp.name] : null
@@ -96,16 +95,10 @@ function CompetencyRow({ comp, ev, open, onToggle, emphasised }) {
       >
         <div className="w-[126px] shrink-0">
           <span className="block truncate text-[13px] text-ink">{comp.name}</span>
-          {isDomain ? (
+          {isDomain && (
             <span className="mt-0.5 inline-flex items-center rounded-full border border-ink/25 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-ink">
               Domain
             </span>
-          ) : (
-            emphasised && (
-              <span className="mt-0.5 inline-flex items-center rounded-full bg-accent-soft px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-strong">
-                Emphasis
-              </span>
-            )
           )}
         </div>
 
@@ -233,9 +226,6 @@ export default function CandidateDetail({ candidate, onBack, interview, decided,
     if (!evByComp[e.competency]) evByComp[e.competency] = e
   })
   const sortedComps = [...assessed].sort((a, b) => b.score - a.score)
-  // Which universals this role leaned on when it was defined, so the panel can
-  // mark them apart from the ones simply held at the floor.
-  const emphasisNames = new Set(roleScorecard({ title: candidate.role }).emphasis.map((e) => e.name))
   const strengths = sortedComps.slice(0, 2).map((c) => c.name)
   const gapComps = sortedComps.filter((c) => GATED_COMPETENCIES.includes(c.name) && c.score < GATE)
   const gaps = (gapComps.length ? gapComps : sortedComps.slice(-1)).map((c) => c.name)
@@ -330,7 +320,6 @@ export default function CandidateDetail({ candidate, onBack, interview, decided,
                   ev={evByComp[c.name]}
                   open={openRows.has(c.name)}
                   onToggle={() => toggleRow(c.name)}
-                  emphasised={emphasisNames.has(c.name)}
                 />
               ))}
             </Card>

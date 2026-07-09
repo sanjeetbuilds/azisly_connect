@@ -14,6 +14,7 @@ import './index.css'
 import App from './App.jsx'
 import ManagerDefineRoute from './routes/ManagerDefineRoute.jsx'
 import CandidateInterviewRoute from './routes/CandidateInterviewRoute.jsx'
+import StatesIndex from './screens/StatesIndex.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -21,6 +22,8 @@ createRoot(document.getElementById('root')).render(
       <Routes>
         <Route path="/m/define/:token" element={<ManagerDefineRoute />} />
         <Route path="/i/:token" element={<CandidateInterviewRoute />} />
+        <Route path="/states" element={<StatesIndex />} />
+        <Route path="/states/:id" element={<StatesIndex />} />
         <Route path="*" element={<App />} />
       </Routes>
     </BrowserRouter>

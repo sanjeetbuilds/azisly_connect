@@ -55,8 +55,6 @@ export default function ManagerFlow({
         <ManagerTopBar />
         <DefineRoleScreen
           roleTitle={roleTitle}
-          openings={1}
-          reviewLabel="Save and send back to recruiter"
           onBack={() => setPhase('entry')}
           onComplete={() => setPhase('done')}
         />

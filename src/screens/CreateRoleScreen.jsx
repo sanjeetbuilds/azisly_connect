@@ -2,19 +2,21 @@ import { useState } from 'react'
 import { Button, Card } from '../components'
 import { SearchIcon, CheckIcon, PlusIcon, MinusIcon } from '../components/icons.jsx'
 
+// Suggestions map to the eleven role families. No suggestion asserts a number of
+// years, a degree, a college, a tier, a salary, a location, or a named tool.
 const ROLE_SUGGESTIONS = [
-  'Senior Product Engineer',
-  'Product Engineer',
-  'Staff Software Engineer',
-  'Frontend Engineer',
-  'Backend Engineer',
-  'Platform Engineer',
-  'Infrastructure Engineer',
-  'Engineering Manager',
-  'Product Designer',
   'Product Manager',
-  'Data Engineer',
-  'Designer',
+  'Associate Product Manager',
+  'Program Manager',
+  'Software Engineer',
+  'AI/ML Engineer',
+  'Data Analyst',
+  'UI/UX Designer',
+  'Sales and Marketing',
+  'Customer Success',
+  'Operations and Supply Chain',
+  'Consulting Analyst',
+  'Financial Analyst',
 ]
 
 function FieldLabel({ children, hint }) {
@@ -94,7 +96,7 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
                     value={query}
                     onChange={(e) => handleType(e.target.value)}
                     onFocus={() => setOpen(true)}
-                    placeholder="e.g. Senior Product Engineer"
+                    placeholder="e.g. Product Manager"
                     className={`w-full rounded-lg border bg-surface py-2.5 pl-9 pr-9 text-sm text-ink shadow-card transition-colors placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-accent/15 ${
                       chosen ? 'border-accent' : 'border-hairline focus:border-accent'
                     }`}

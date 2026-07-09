@@ -1,51 +1,25 @@
 import { useState } from 'react'
-import { Button, Card, Tag } from '../components'
-import {
-  SparkleIcon,
-  SendIcon,
-  PaperclipIcon,
-  ArrowLeftIcon,
-  CheckIcon,
-  MicIcon,
-  ChatIcon,
-} from '../components/icons.jsx'
-import { roleScorecard, domainSummary, BASELINE_LINE } from '../data/scorecard.js'
+import { Button } from '../components'
+import RoleCard from '../components/RoleCard.jsx'
+import { CopyNeeded, FixtureTag } from '../components/Spec.jsx'
+import { SendIcon, PaperclipIcon, ArrowLeftIcon, MicIcon, XIcon } from '../components/icons.jsx'
+import { roleScorecard } from '../data/scorecard.js'
+import { classifyProbeStub } from '../lib/probeStub.js'
+import { DEMO_JD_FILENAME, DEMO_PASTED_JD, DEMO_VOICE_PARTIAL } from '../data/fixtures.js'
 
-const QUESTIONS = [
-  'What does success look like for this role in the first six months?',
-  'Beyond the fundamentals, which one or two qualities should this role lean on most?',
-  'What is the seniority and scope: who do they work with day to day?',
-]
-
-// Canned answers the mocked voice mode "hears" — keyed to each question.
-const VOICE_ANSWERS = [
-  'Two meaningful launches and a clear lift in activation within the first six months.',
-  'Ownership and problem solving above all; they need to drive features without hand-holding.',
-  'Senior individual contributor, working day to day with design, product, and a tech lead.',
-]
-
-/* ── chat primitives ─────────────────────────────────────────── */
-function AiRow({ children }) {
-  return (
-    <div className="flex gap-3">
-      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-strong">
-        <SparkleIcon className="h-3.5 w-3.5" />
-      </span>
-      <div className="flex-1 pt-0.5 text-[15px] leading-relaxed text-ink">{children}</div>
-    </div>
-  )
-}
-
-function UserRow({ children }) {
-  return (
-    <div className="flex justify-end">
-      <div className="max-w-[80%] rounded-2xl rounded-tr-md border border-hairline bg-background px-4 py-2.5 text-[15px] leading-relaxed text-ink">
-        {children}
-      </div>
-    </div>
-  )
-}
-
+/*
+ * DefineRoleScreen — the recruiter (or manager) defines the role.
+ *
+ * The Role card is on screen the moment they arrive: the family is already
+ * matched from the title, so the domain and the gates are known before a word is
+ * said. There is no step counter, no "Question 1 of N", no progress bar. One
+ * composer is pinned at the bottom: type, speak, or drop a JD.
+ *
+ * Whatever the recruiter types or says becomes a probe { phrase, competency }.
+ * The phrase is their exact words. The competency is assigned by a stub (see
+ * lib/probeStub.js). A probe carries no score, no tier, no weight. Nothing else
+ * the recruiter says changes the card.
+ */
 function Spinner({ className = 'h-4 w-4' }) {
   return (
     <svg viewBox="0 0 16 16" fill="none" className={`animate-spin ${className}`}>
@@ -55,231 +29,62 @@ function Spinner({ className = 'h-4 w-4' }) {
   )
 }
 
-function BotFace({ className = 'h-10 w-10' }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <circle cx="9" cy="10.5" r="1.2" fill="currentColor" />
-      <circle cx="15" cy="10.5" r="1.2" fill="currentColor" />
-      <path d="M8.5 14.5c1.1 1.1 5.9 1.1 7 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-function ModeToggle({ value, onChange }) {
-  const opts = [
-    { key: 'chat', label: 'Chat', Icon: ChatIcon },
-    { key: 'voice', label: 'Voice', Icon: MicIcon },
-  ]
-  return (
-    <div className="inline-flex rounded-lg border border-hairline bg-background p-0.5">
-      {opts.map(({ key, label, Icon }) => {
-        const active = value === key
-        return (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onChange(key)}
-            aria-pressed={active}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-              active ? 'bg-surface text-ink shadow-card' : 'text-secondary hover:text-ink'
-            }`}
-          >
-            <Icon className="h-3.5 w-3.5" />
-            {label}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-function VoiceAvatar({ state }) {
-  const active = state === 'speaking' || state === 'listening'
-  const ring = state === 'listening' ? 'bg-accent/25' : 'bg-accent/12'
-  return (
-    <span className="relative flex h-24 w-24 items-center justify-center">
-      {active && <span className={`absolute inset-0 rounded-full ${ring} animate-ping`} />}
-      <span className="relative flex h-24 w-24 items-center justify-center rounded-full bg-accent-soft text-strong ring-1 ring-accent/15">
-        <BotFace />
-      </span>
-    </span>
-  )
-}
-
-function MicButton({ state, onClick }) {
-  const listening = state === 'listening'
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={state === 'thinking'}
-      aria-label={listening ? 'Listening' : 'Tap to answer'}
-      className={`flex h-14 w-14 items-center justify-center rounded-full shadow-panel transition-colors disabled:opacity-50 ${
-        listening ? 'bg-danger text-white' : 'bg-accent text-white hover:bg-accent-hover'
-      }`}
-    >
-      <MicIcon className="h-6 w-6" />
-    </button>
-  )
-}
-
-/* The role card the AI assembles from the conversation. Four distinct parts:
-   the Domain (what makes the role what it is), the one or two universals it leans
-   on as a tier, the baseline every candidate meets, and the hard must-haves. No
-   percentages — the recruiter never chose precise numbers. */
-function RoleCardPreview({ title, openings }) {
-  const { domain, emphasis } = roleScorecard({ title })
-  return (
-    <Card className="flex w-full flex-col gap-5 p-6">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-semibold text-ink">{title}</h3>
-          <p className="mt-0.5 text-[13px] text-secondary">
-            {openings} opening{openings === 1 ? '' : 's'} · Remote · Europe · Full-time
-          </p>
-        </div>
-        <Tag color="purple">Draft</Tag>
-      </div>
-
-      {/* Domain — the differentiator, shown prominently as the core of the role */}
-      <div className="rounded-card border border-hairline bg-background/60 p-4">
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <span className="text-[15px] font-semibold text-ink">{domain}</span>
-          <span className="text-[11px] font-medium uppercase tracking-wide text-muted">
-            Core of the role
-          </span>
-        </div>
-        <p className="mt-1 text-[13px] leading-relaxed text-secondary">{domainSummary(domain)}</p>
-      </div>
-
-      {/* Leans on — only the emphasised universals, as tiers */}
-      <div className="flex flex-col gap-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Leans on</p>
-        {emphasis.length > 0 ? (
-          <div className="flex flex-col gap-1">
-            {emphasis.map((c) => (
-              <div
-                key={c.name}
-                className="flex items-center justify-between border-b border-hairline py-1.5 text-sm last:border-b-0"
-              >
-                <span className="text-ink">{c.name}</span>
-                <span className="inline-flex items-center rounded-full bg-accent-soft px-2 py-0.5 text-[12px] font-semibold text-strong">
-                  {c.tier}
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-secondary">Balanced role, no single quality emphasised.</p>
-        )}
-      </div>
-
-      {/* Baseline — one quiet line, never the six universals as scored rows */}
-      <p className="text-[12px] leading-relaxed text-muted">{BASELINE_LINE}</p>
-    </Card>
-  )
-}
-
-/**
- * DefineRoleScreen — define the role's competency scorecard with AI. The whole
- * screen is just that: Chat or Voice with the assistant, or paste/upload a job
- * description to work from. Nothing else lives here; narrowing by experience or
- * location happens later as filters on the matched list.
- */
 export default function DefineRoleScreen({
-  roleTitle = 'New role',
-  openings = 1,
+  roleTitle = '',
   onBack,
   onComplete,
   onAskManager,
-  reviewLabel = 'Review role',
+  reviewLabel = null, // no PRD string ⇒ CopyNeeded on the CTA
+  titleIsFixture = false,
+  initialProbes = [],
+  probesAreFixture = false,
+  initialJd = 'closed', // closed | panel | uploading | uploaded | reading | unreadable
+  initialVoice = 'off', // off | listening | notcaught | transcribing
 }) {
-  const [mode, setMode] = useState('chat')
-  const [messages, setMessages] = useState([{ from: 'ai', text: QUESTIONS[0] }])
-  const [step, setStep] = useState(0)
+  const scorecard = roleScorecard({ title: roleTitle })
+  const [probes, setProbes] = useState(initialProbes)
   const [input, setInput] = useState('')
-  const [phase, setPhase] = useState('asking') // asking | building | ready
-  const [jdOpen, setJdOpen] = useState(false)
-  const [jdText, setJdText] = useState('')
-  const [jdUpload, setJdUpload] = useState('idle') // idle | uploading | uploaded
-  const [jdFetching, setJdFetching] = useState(false)
-  const [voiceState, setVoiceState] = useState('speaking')
+  const [jd, setJd] = useState(initialJd)
+  const [jdText, setJdText] = useState(initialJd === 'uploaded' || initialJd === 'reading' ? '' : '')
+  const [voice, setVoice] = useState(initialVoice)
+  const [jdEchoed, setJdEchoed] = useState(false)
 
-  const currentQuestion = [...messages].reverse().find((m) => m.from === 'ai')?.text
-
-  const advance = (text) => {
-    const next = step + 1
-    if (next < QUESTIONS.length) {
-      setMessages((m) => [...m, { from: 'user', text }, { from: 'ai', text: QUESTIONS[next] }])
-      setStep(next)
-      setVoiceState('speaking')
-    } else {
-      setMessages((m) => [...m, { from: 'user', text }])
-      setPhase('building')
-      setVoiceState('thinking')
-      setTimeout(() => {
-        setPhase('ready')
-        setVoiceState('idle')
-      }, 1400)
-    }
-  }
-
-  const submitAnswer = () => {
-    const text = input.trim()
+  const addProbe = (phrase) => {
+    const text = phrase.trim()
     if (!text) return
+    setProbes((prev) => [...prev, { phrase: text, competency: classifyProbeStub(prev.length) }])
+  }
+
+  const submitType = () => {
+    if (!input.trim()) return
+    addProbe(input)
     setInput('')
-    advance(text)
   }
 
-  const startUpload = () => {
-    setJdUpload('uploading')
-    setTimeout(() => setJdUpload('uploaded'), 1200)
-  }
-  const removeJd = () => setJdUpload('idle')
+  // Voice — the real state sequence, faked timing only. It never invents words:
+  // in this build the mic captures nothing, so a spoken turn adds no probe.
+  const startListening = () => setVoice('listening')
+  const stopListening = () => setVoice('transcribing')
 
-  // Use the JD: the system "fetches role detail" from it, then builds the card.
-  const useJd = () => {
-    if (jdUpload !== 'uploaded' && !jdText.trim()) return
-    setJdFetching(true)
+  // JD — the real state sequence, extracts nothing. Filename and pasted text are
+  // shown back unchanged; no card field is written from a JD in this build.
+  const openJd = () => setJd('panel')
+  const closeJd = () => setJd('closed')
+  const doUpload = () => {
+    setJd('uploading')
+    setTimeout(() => setJd('uploaded'), 1000)
+  }
+  const readJd = () => {
+    setJd('reading')
     setTimeout(() => {
-      setJdFetching(false)
-      setJdOpen(false)
-      setJdUpload('idle')
-      setMessages((m) => [...m, { from: 'user', text: 'Shared a job description to work from.' }])
-      setPhase('building')
-      setTimeout(() => setPhase('ready'), 1400)
-    }, 900)
+      setJd('closed')
+      setJdEchoed(true)
+    }, 1000)
   }
-
-  const micTap = () => {
-    if (voiceState === 'listening' || voiceState === 'thinking') return
-    setVoiceState('listening')
-    setTimeout(() => advance(VOICE_ANSWERS[step] ?? 'Sounds good.'), 1500)
-  }
-
-  const progress =
-    phase === 'ready' ? (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-medium text-strong">
-        <CheckIcon className="h-3 w-3" /> Scorecard ready
-      </span>
-    ) : phase === 'building' ? (
-      <span className="text-sm text-secondary">Building…</span>
-    ) : (
-      <span className="hidden text-sm text-secondary sm:inline">
-        Question {step + 1} of {QUESTIONS.length}
-      </span>
-    )
-
-  const voiceStatus =
-    phase === 'building' || voiceState === 'thinking'
-      ? 'Thinking…'
-      : voiceState === 'listening'
-        ? 'Listening…'
-        : 'Azzy is asking'
 
   return (
     <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-background">
-      {/* Header */}
+      {/* Header — no step counter, no progress bar. */}
       <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-hairline bg-surface px-6 py-4 lg:px-8">
         {onBack && (
           <button
@@ -292,241 +97,215 @@ export default function DefineRoleScreen({
           </button>
         )}
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-medium text-secondary">Define the role</p>
-          <h1 className="truncate text-xl font-bold text-ink">{roleTitle}</h1>
+          {/* No PRD string for this eyebrow. */}
+          <p className="text-[13px] font-medium text-secondary">
+            <CopyNeeded note="define eyebrow" />
+          </p>
+          <h1 className="flex items-center gap-2 truncate text-xl font-bold text-ink">
+            {roleTitle}
+            {titleIsFixture && <FixtureTag />}
+          </h1>
         </div>
-        {onAskManager && phase !== 'ready' && (
+        {onAskManager && (
+          // "Ask a hiring manager to define" is PRD §E copy (the CTA in the header).
           <Button variant="secondary" onClick={onAskManager} className="!px-3.5 !py-2 !text-[13px]">
-            Ask a manager to define
+            Ask a hiring manager to define
           </Button>
         )}
-        {progress}
-        <ModeToggle value={mode} onChange={setMode} />
       </div>
 
-      {/* Progress track */}
-      <div className="h-1 w-full shrink-0 bg-track">
-        <div
-          className="h-full bg-accent transition-[width] duration-500 ease-out"
-          style={{ width: `${(phase === 'asking' ? step / QUESTIONS.length : 1) * 100}%` }}
-        />
-      </div>
+      {/* Body — the card is here from the first frame. */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 py-6">
+          <RoleCard
+            scorecard={scorecard}
+            roleTitle={roleTitle}
+            probes={probes}
+            probesAreFixture={probesAreFixture}
+          />
 
-      {/* Body */}
-      {mode === 'chat' ? (
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 lg:px-8">
-          <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 py-6">
-            <div className="rounded-card border border-hairline bg-accent-soft/50 p-5">
-              <div className="flex items-center gap-2 text-sm font-medium text-ink">
-                <SparkleIcon className="h-4 w-4 text-strong" />
-                How this works
+          {jdEchoed && (
+            <div className="rounded-card border border-hairline bg-surface p-4 text-sm text-secondary">
+              <div className="mb-1 flex items-center gap-2">
+                <span className="font-medium text-ink">{DEMO_JD_FILENAME}</span>
+                <FixtureTag />
               </div>
-              <p className="mt-1.5 text-sm leading-relaxed text-secondary">
-                I&rsquo;ll ask a few short questions to build a clear, scoreable role card. Answer in
-                your own words, or paste an existing job description and I&rsquo;ll work from that.
+              <p className="whitespace-pre-line">{DEMO_PASTED_JD}</p>
+              <p className="mt-2">
+                <CopyNeeded note="post-JD read-back — PRD string asserts extracted content this build does not produce" />
               </p>
             </div>
+          )}
+        </div>
+      </div>
 
-            {messages.map((m, i) =>
-              m.from === 'ai' ? <AiRow key={i}>{m.text}</AiRow> : <UserRow key={i}>{m.text}</UserRow>,
-            )}
-
-            {phase === 'building' && (
-              <AiRow>
-                <span className="flex items-center gap-2.5 text-secondary">
-                  <Spinner /> Building your role card…
-                </span>
-              </AiRow>
-            )}
-
-            {phase === 'ready' && (
-              <>
-                <AiRow>Here&rsquo;s the scorecard I put together. Review it and adjust anything.</AiRow>
-                <RoleCardPreview title={roleTitle} openings={openings} />
-              </>
+      {/* Voice overlay states */}
+      {voice !== 'off' && (
+        <div className="shrink-0 border-t border-hairline bg-surface px-6 py-3 lg:px-8">
+          <div className="mx-auto w-full max-w-2xl">
+            {voice === 'notcaught' ? (
+              // Verbatim PRD.
+              <p className="text-sm text-ink">Sorry, I did not catch that, could you say it again?</p>
+            ) : voice === 'transcribing' ? (
+              <p className="text-sm text-secondary">
+                <span className="text-ink">{DEMO_VOICE_PARTIAL}</span> <FixtureTag className="ml-1" />
+              </p>
+            ) : (
+              <p className="flex items-center gap-2 text-sm text-secondary">
+                <span className="h-2 w-2 animate-ping rounded-full bg-danger" />
+                <CopyNeeded note="listening label" />
+              </p>
             )}
           </div>
         </div>
-      ) : (
-        <div className="flex min-h-0 flex-1 flex-col">
-          {phase === 'ready' ? (
-            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-8 lg:px-8">
-              <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-6">
-                <VoiceAvatar state="idle" />
-                <p className="text-[15px] text-ink">All set. Here&rsquo;s the scorecard from our conversation.</p>
-                <RoleCardPreview title={roleTitle} openings={openings} />
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 py-6 text-center">
-                <VoiceAvatar state={phase === 'building' ? 'thinking' : voiceState} />
-                <div className="flex flex-col gap-2">
-                  <p className="text-[13px] font-medium uppercase tracking-wide text-strong">{voiceStatus}</p>
-                  <p className="mx-auto max-w-md text-lg leading-relaxed text-ink">{currentQuestion}</p>
-                  <p className="text-[13px] text-secondary">
-                    Question {step + 1} of {QUESTIONS.length}
-                  </p>
-                </div>
-              </div>
-
-              <div className="shrink-0 border-t border-hairline bg-surface px-6 py-3 lg:px-8">
-                <div className="mx-auto w-full max-w-2xl">
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Live transcript</p>
-                  <div className="flex max-h-24 flex-col gap-2 overflow-y-auto">
-                    {messages.map((m, i) => (
-                      <p key={i} className="text-sm leading-relaxed">
-                        <span className={m.from === 'ai' ? 'text-strong' : 'text-secondary'}>
-                          {m.from === 'ai' ? 'Azzy' : 'You'}
-                        </span>{' '}
-                        <span className="text-ink">{m.text}</span>
-                      </p>
-                    ))}
-                    {voiceState === 'listening' && (
-                      <p className="text-sm text-secondary">
-                        <span className="text-secondary">You</span> <span className="italic">listening…</span>
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
       )}
 
-      {/* Footer — input / mic / JD paste / save */}
+      {/* Composer — one, pinned. Type, speak, or drop a JD. */}
       <div className="shrink-0 border-t border-hairline bg-surface px-6 py-4 lg:px-8">
         <div className="mx-auto w-full max-w-2xl">
-          {phase === 'ready' ? (
-            <div className="flex items-center justify-end gap-3">
-              <Button variant="secondary" onClick={() => setPhase('asking')}>
-                Keep editing
-              </Button>
-              <Button onClick={onComplete}>{reviewLabel}</Button>
-            </div>
-          ) : phase === 'building' ? (
-            <div className="flex items-center justify-center gap-2.5 py-1 text-sm text-secondary">
-              <Spinner /> Building your role card…
-            </div>
-          ) : mode === 'voice' ? (
-            <div className="flex flex-col items-center gap-2">
-              <MicButton state={voiceState} onClick={micTap} />
-              <p className="text-[13px] text-secondary">
-                {voiceState === 'listening'
-                  ? 'Listening… tap to stop'
-                  : voiceState === 'thinking'
-                    ? 'One moment…'
-                    : 'Tap the mic to answer'}
-              </p>
-            </div>
-          ) : jdOpen ? (
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-ink">Paste or upload a job description</span>
+          {jd !== 'closed' && jd !== 'panel' ? (
+            <JdState jd={jd} onClose={closeJd} onRead={readJd} onReplace={doUpload} />
+          ) : jd === 'panel' ? (
+            <JdPanel jdText={jdText} setJdText={setJdText} onUpload={doUpload} onRead={readJd} onCancel={closeJd} />
+          ) : (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <CopyNeeded note="composer prompt: type, speak, or drop a JD" />
+              </div>
+              <div className="flex items-end gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setJdOpen(false)
-                    setJdUpload('idle')
-                  }}
-                  className="text-[13px] text-secondary transition-colors hover:text-ink"
+                  onClick={openJd}
+                  aria-label="Add a JD"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-hairline text-secondary transition-colors hover:text-ink"
                 >
-                  Cancel
+                  <PaperclipIcon className="h-4 w-4" />
                 </button>
-              </div>
-
-              {jdUpload === 'uploading' ? (
-                <div className="flex items-center gap-2.5 rounded-md border border-hairline bg-surface px-3.5 py-3 text-sm text-secondary shadow-card">
-                  <Spinner /> Uploading senior-product-engineer-jd.pdf
-                </div>
-              ) : jdUpload === 'uploaded' ? (
-                <div className="flex items-center gap-3 rounded-md border border-hairline bg-surface px-3.5 py-3 shadow-card">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-accent-soft text-strong">
-                    <PaperclipIcon className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium text-ink">senior-product-engineer-jd.pdf</div>
-                    <div className="text-[12px] text-secondary">Uploaded</div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={startUpload}
-                    className="text-[13px] font-medium text-strong transition-colors hover:underline"
-                  >
-                    Update
-                  </button>
-                  <button
-                    type="button"
-                    onClick={removeJd}
-                    className="text-[13px] text-secondary transition-colors hover:text-ink"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <textarea
-                    value={jdText}
-                    onChange={(e) => setJdText(e.target.value)}
-                    rows={4}
-                    placeholder="Paste the job description here"
-                    className="w-full resize-none rounded-md border border-hairline bg-surface p-3 text-sm leading-relaxed text-ink shadow-card transition-colors placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
-                  />
-                  <button
-                    type="button"
-                    onClick={startUpload}
-                    className="flex items-center gap-2 self-start rounded-md border border-hairline bg-surface px-3 py-2 text-sm text-secondary shadow-card transition-colors hover:text-ink"
-                  >
-                    <PaperclipIcon className="h-4 w-4" /> Upload a file instead
-                  </button>
-                </>
-              )}
-
-              <div className="flex items-center justify-end gap-3">
-                {jdFetching ? (
-                  <span className="flex items-center gap-2 text-sm text-secondary">
-                    <Spinner /> Fetching role detail
-                  </span>
-                ) : (
-                  <Button onClick={useJd} disabled={jdUpload !== 'uploaded' && !jdText.trim()}>
-                    Use this JD
-                  </Button>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2.5">
-              <div className="flex items-end gap-2">
                 <textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault()
-                      submitAnswer()
+                      submitType()
                     }
                   }}
                   rows={1}
-                  placeholder="Type your answer…"
-                  className="flex-1 resize-none rounded-md border border-hairline bg-surface px-3 py-2.5 text-sm leading-relaxed text-ink shadow-card transition-colors placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+                  placeholder=""
+                  className="flex-1 resize-none rounded-md border border-hairline bg-surface px-3 py-2.5 text-sm leading-relaxed text-ink shadow-card focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
                 />
-                <Button onClick={submitAnswer} disabled={!input.trim()} aria-label="Send" className="!px-3.5">
+                <button
+                  type="button"
+                  onClick={voice === 'listening' ? stopListening : startListening}
+                  aria-label="Speak"
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md transition-colors ${
+                    voice === 'listening' ? 'bg-danger text-white' : 'border border-hairline text-secondary hover:text-ink'
+                  }`}
+                >
+                  <MicIcon className="h-4 w-4" />
+                </button>
+                <Button onClick={submitType} disabled={!input.trim()} aria-label="Send" className="!px-3.5">
                   <SendIcon className="h-4 w-4" />
                 </Button>
               </div>
-              <button
-                type="button"
-                onClick={() => setJdOpen(true)}
-                className="flex items-center gap-1.5 self-start text-[13px] text-secondary transition-colors hover:text-ink"
-              >
-                <PaperclipIcon className="h-3.5 w-3.5" />
-                Paste or upload a job description instead
-              </button>
+              {onComplete && (
+                <div className="flex justify-end pt-1">
+                  <Button variant="secondary" onClick={onComplete} className="!py-1.5 !text-[13px]">
+                    {reviewLabel ?? <CopyNeeded note="review CTA" />}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+function JdPanel({ jdText, setJdText, onUpload, onRead, onCancel }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        {/* "Add a JD" is verbatim PRD. */}
+        <span className="text-sm font-medium text-ink">Add a JD</span>
+        <button type="button" onClick={onCancel} aria-label="Cancel" className="text-secondary hover:text-ink">
+          <XIcon className="h-4 w-4" />
+        </button>
+      </div>
+      <textarea
+        value={jdText}
+        onChange={(e) => setJdText(e.target.value)}
+        rows={4}
+        placeholder=""
+        className="w-full resize-none rounded-md border border-hairline bg-surface p-3 text-sm leading-relaxed text-ink shadow-card focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+      />
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={onUpload}
+          className="flex items-center gap-2 rounded-md border border-hairline bg-surface px-3 py-2 text-sm text-secondary shadow-card hover:text-ink"
+        >
+          <PaperclipIcon className="h-4 w-4" /> <CopyNeeded note="upload button" />
+        </button>
+        <Button onClick={onRead} disabled={!jdText.trim()}>
+          <CopyNeeded note="use-JD CTA" />
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function JdState({ jd, onClose, onRead, onReplace }) {
+  if (jd === 'uploading') {
+    return (
+      <div className="flex items-center gap-2.5 rounded-md border border-hairline bg-surface px-3.5 py-3 text-sm text-secondary shadow-card">
+        {/* Verbatim PRD. */}
+        <Spinner /> Uploading...
+      </div>
+    )
+  }
+  if (jd === 'uploaded') {
+    return (
+      <div className="flex items-center gap-3 rounded-md border border-hairline bg-surface px-3.5 py-3 shadow-card">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-accent-soft text-strong">
+          <PaperclipIcon className="h-4 w-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 truncate text-sm font-medium text-ink">
+            {DEMO_JD_FILENAME} <FixtureTag />
+          </div>
+          {/* Verbatim PRD. */}
+          <div className="text-[12px] text-secondary">Uploaded</div>
+        </div>
+        {/* "Replace" is verbatim PRD. */}
+        <button type="button" onClick={onReplace} className="text-[13px] font-medium text-strong hover:underline">
+          Replace
+        </button>
+        <button type="button" onClick={onClose} aria-label="Remove" className="text-secondary hover:text-ink">
+          <XIcon className="h-3.5 w-3.5" />
+        </button>
+        <Button onClick={onRead} className="!py-1.5 !text-[13px]">
+          <CopyNeeded note="use-JD CTA" />
+        </Button>
+      </div>
+    )
+  }
+  if (jd === 'reading') {
+    return (
+      <div className="flex items-center gap-2.5 rounded-md border border-hairline bg-surface px-3.5 py-3 text-sm text-secondary shadow-card">
+        {/* Verbatim PRD. */}
+        <Spinner /> Reading the JD...
+      </div>
+    )
+  }
+  // unreadable — verbatim PRD.
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md border border-danger/30 bg-danger-soft px-3.5 py-3 text-sm text-danger shadow-card">
+      <span>I could not read that file. Try another file or paste the text instead.</span>
+      <button type="button" onClick={onClose} aria-label="Dismiss" className="text-danger/70 hover:text-danger">
+        <XIcon className="h-3.5 w-3.5" />
+      </button>
     </div>
   )
 }
