@@ -96,6 +96,33 @@ export default function App() {
   )
   const approvedIds = candidates.filter((c) => c.stage === 'Taken forward').map((c) => c.id)
 
+  // Define and Review carry their own app shell (sidebar + top bar), so they
+  // render full-screen rather than inside the sidebar layout below.
+  if (view === 'define') {
+    return (
+      <DefineRoleScreen
+        roleTitle={draft?.title ?? 'New role'}
+        onBack={() => setView('create')}
+        onAskManager={() => setView('invite-manager')}
+        onComplete={() => setView('review')}
+      />
+    )
+  }
+  if (view === 'review') {
+    return (
+      <ReviewRoleScreen
+        roleTitle={draft?.title ?? 'New role'}
+        onBack={() => setView('define')}
+        onSubmit={() => {
+          addRole()
+          setDraft(null)
+          setRunMatch(true) // first submit of this role: run the matching animation
+          setView('candidates')
+        }}
+      />
+    )
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-background text-ink">
       <Sidebar
@@ -205,29 +232,6 @@ export default function App() {
             )
           }}
           onReviewCandidates={() => setView('candidates')}
-        />
-      )}
-
-      {view === 'define' && (
-        <DefineRoleScreen
-          roleTitle={draft?.title ?? 'New role'}
-          openings={draft?.openings ?? 1}
-          onBack={() => setView('create')}
-          onAskManager={() => setView('invite-manager')}
-          onComplete={() => setView('review')}
-        />
-      )}
-
-      {view === 'review' && (
-        <ReviewRoleScreen
-          roleTitle={draft?.title ?? 'New role'}
-          onBack={() => setView('define')}
-          onSubmit={() => {
-            addRole()
-            setDraft(null)
-            setRunMatch(true) // first submit of this role: run the matching animation
-            setView('candidates')
-          }}
         />
       )}
 

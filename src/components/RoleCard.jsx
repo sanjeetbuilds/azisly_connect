@@ -1,16 +1,16 @@
 import { AuthoringNeeded, FixtureTag } from './Spec.jsx'
 
-// The role card — a compact work tool, not an article. A surface container on the
-// page. No serif, no italics, no uppercase, no letter-spacing, no gutter rule,
-// no orientation line. Nothing on it is editable.
+// The role card. It is ordered by who spoke last.
 //
-//   header      "Built around" (12px muted) + the craft name (20px, 500)
-//   ladder      110px tier-label column, criteria to the right at 15px. Essential
-//               primary, the rest secondary. No counts. 16px between tiers.
-//   foundation  one muted 12px sentence.
-//   probes      above a 0.5px divider: the phrase (14px, quoted) and the promise
-//               (13px), with a FIXTURE chip right-aligned on the promise line.
-//               Never the competency, score, tier, weight, or percentage.
+//   No probes:   the craft name, then "What a strong candidate looks like" + the
+//                ladder.
+//   With probes: the card reorders once — the source label + the probes, a
+//                divider, then "We'll also test, for any <family>" + the ladder.
+//                It never reverses.
+//
+// Neutral throughout: no serif, italics, uppercase/letter-spacing, gutter rule,
+// colour, or editable copy. Probes fade in and slide up as they land; the card
+// border pulses when one does.
 
 const TIER_LABELS = ['Essential', 'Very important', 'Nice to have']
 
@@ -18,69 +18,61 @@ const TIER_LABELS = ['Essential', 'Very important', 'Nice to have']
 const FOUNDATION_LINE =
   'Communication, ownership and clarity are read from every answer, which is why this stays short.'
 
-const CONTAINER = 'w-full max-w-[760px] rounded-[12px] border-[0.5px] border-hairline bg-surface px-7 py-6'
+const CARD = 'rounded-[10px] border-[0.5px] border-hairline bg-surface px-6 py-5'
 
-export default function RoleCard({ scorecard, probes = [], highlight = false }) {
+function Ladder({ criteria }) {
+  if (criteria.length === 0) return <AuthoringNeeded note="criteria" />
+  return (
+    <div className="flex flex-col gap-4">
+      {TIER_LABELS.map((tier) => {
+        const items = criteria.filter((c) => c.tier === tier)
+        if (items.length === 0) return null
+        const primary = tier === 'Essential'
+        return (
+          <div key={tier} className="grid grid-cols-[100px_1fr] gap-x-3">
+            <p className="text-[13px] font-medium text-muted">{tier}</p>
+            <div className="flex flex-col gap-3">
+              {items.map((c, i) => (
+                <p key={i} className={`text-[14px] leading-[1.5] ${primary ? 'text-ink' : 'text-secondary'}`}>
+                  {c.text}
+                </p>
+              ))}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+export default function RoleCard({ scorecard, probes = [], pulse = false, className = '' }) {
   const { family, domainCompetency, criteria = [] } = scorecard ?? {}
 
-  // Never render a blank craft or the string null.
   if (!family || !domainCompetency) {
     return (
-      <div className={CONTAINER}>
+      <div className={`${CARD} ${className}`}>
         <AuthoringNeeded note="no family resolved — resolve the title before showing the card" />
       </div>
     )
   }
 
+  const hasProbes = probes.length > 0
+  const sourceLabel = probes[0]?.source === 'jd' ? 'From your JD' : 'What you told us'
+
   return (
-    <div className={CONTAINER}>
-      <div className="flex flex-col gap-4">
-        {/* Header. */}
-        <div className="flex flex-col gap-1">
-          <p className="text-[12px] text-muted">Built around</p>
-          <h2 className="text-[20px] font-medium text-ink">{domainCompetency}</h2>
-        </div>
-
-        {/* Ladder — 110px label column, 16px between tiers, no counts, no rule. */}
-        {criteria.length > 0 ? (
-          <div className="flex flex-col gap-4">
-            {TIER_LABELS.map((tier) => {
-              const items = criteria.filter((c) => c.tier === tier)
-              if (items.length === 0) return null // a tier with no criteria renders nothing
-              const primary = tier === 'Essential'
-              return (
-                <div key={tier} className="grid grid-cols-[110px_1fr] gap-x-3">
-                  <p className="text-[13px] font-medium text-muted">{tier}</p>
-                  <div className="flex flex-col gap-1">
-                    {items.map((c, i) => (
-                      <p key={i} className={`text-[15px] leading-[1.5] ${primary ? 'text-ink' : 'text-secondary'}`}>
-                        {c.text}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        ) : (
-          <AuthoringNeeded note="criteria" />
-        )}
-
-        {/* Foundation. */}
-        <p className="text-[12px] leading-[1.5] text-muted">{FOUNDATION_LINE}</p>
-
-        {/* Probes — 0.5px divider, 20px space, then a two-column grid. A faint
-            transient tint when a probe lands. */}
-        {probes.length > 0 && (
-          <div
-            className={`flex flex-col gap-4 border-t-[0.5px] border-hairline pt-5 transition-colors duration-300 ${
-              highlight ? 'bg-ink/[0.03]' : ''
-            }`}
-          >
-            <p className="text-[12px] text-muted">What you told us, and what we&rsquo;ll ask</p>
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+    <div className={`${CARD} ${pulse ? 'animate-card-pulse' : ''} ${className}`}>
+      <div className="flex flex-col gap-5">
+        {hasProbes ? (
+          <>
+            {/* Probes, on top, ordered by who spoke last. */}
+            <div className="flex flex-col gap-3">
+              <p className="text-[13px] font-medium text-ink">{sourceLabel}</p>
               {probes.map((p, i) => (
-                <div key={i} className="flex flex-col gap-1">
+                <div
+                  key={i}
+                  className="flex animate-probe-in flex-col gap-1"
+                  style={{ animationDelay: `${i * 150}ms` }}
+                >
                   <p className="text-[14px] leading-snug text-ink">&ldquo;{p.phrase}&rdquo;</p>
                   <div className="flex items-baseline justify-between gap-3">
                     <p className="text-[13px] leading-snug text-secondary">{p.promise}</p>
@@ -89,8 +81,31 @@ export default function RoleCard({ scorecard, probes = [], highlight = false }) 
                 </div>
               ))}
             </div>
-          </div>
+
+            <div className="border-t-[0.5px] border-hairline" />
+
+            {/* The ladder, now below, headed by the family. */}
+            <div className="flex flex-col gap-4">
+              <p className="text-[13px] font-medium text-secondary">We&rsquo;ll also test, for any {family}</p>
+              <Ladder criteria={criteria} />
+            </div>
+          </>
+        ) : (
+          <>
+            {/* No probes yet: the craft, then the ladder. */}
+            <div className="flex flex-col gap-1">
+              <p className="text-[12px] text-muted">Built around</p>
+              <h2 className="text-[18px] font-medium text-ink">{domainCompetency}</h2>
+            </div>
+            <div className="flex flex-col gap-4">
+              <p className="text-[13px] font-medium text-ink">What a strong candidate looks like</p>
+              <Ladder criteria={criteria} />
+            </div>
+          </>
         )}
+
+        {/* Foundation — above a 0.5px divider. */}
+        <p className="border-t-[0.5px] border-hairline pt-4 text-[12px] leading-[1.5] text-muted">{FOUNDATION_LINE}</p>
       </div>
     </div>
   )

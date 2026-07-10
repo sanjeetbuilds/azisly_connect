@@ -44,3 +44,6 @@ export const STUB_PROBE_PROMISES = [
   "We'll ask about a time priorities shifted under them, and what they did.",
   "We'll ask how they kept a small team pulling the same way.",
 ]
+
+// STUB DATA — the phrases a fake JD "extracts". No JD is parsed; these stand in.
+export const DEMO_JD_PHRASES = ['growth experiments', 'working closely with a small engineering team']

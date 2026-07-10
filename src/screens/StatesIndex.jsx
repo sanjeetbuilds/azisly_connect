@@ -78,66 +78,21 @@ const STATES = {
       </Full>
     ),
   },
-  'jd-uploading': {
+  'define-jd-beat3': {
     group: 'JD',
-    label: 'Uploading',
+    label: 'JD, third beat (probes landing)',
     render: () => (
       <Full>
-        <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture initialJd="uploading" />
+        <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture initialJdStage="beat3" onComplete={() => {}} />
       </Full>
     ),
   },
-  'jd-uploaded': {
+  'define-jd-landed': {
     group: 'JD',
-    label: 'Uploaded (filename + Replace)',
+    label: 'JD landed, two probes',
     render: () => (
       <Full>
-        <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture initialJd="uploaded" />
-      </Full>
-    ),
-  },
-  'jd-reading': {
-    group: 'JD',
-    label: 'Reading',
-    render: () => (
-      <Full>
-        <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture initialJd="reading" />
-      </Full>
-    ),
-  },
-  'jd-unreadable': {
-    group: 'JD',
-    label: 'Unreadable',
-    render: () => (
-      <Full>
-        <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture initialJd="unreadable" />
-      </Full>
-    ),
-  },
-  'voice-listening': {
-    group: 'Voice',
-    label: 'Listening',
-    render: () => (
-      <Full>
-        <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture initialVoice="listening" />
-      </Full>
-    ),
-  },
-  'voice-notcaught': {
-    group: 'Voice',
-    label: 'Not caught, re-asking',
-    render: () => (
-      <Full>
-        <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture initialVoice="notcaught" />
-      </Full>
-    ),
-  },
-  'voice-transcribing': {
-    group: 'Voice',
-    label: 'Transcript building',
-    render: () => (
-      <Full>
-        <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture initialVoice="transcribing" />
+        <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture initialJdStage="landed" onComplete={() => {}} />
       </Full>
     ),
   },

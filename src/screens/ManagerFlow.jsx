@@ -55,6 +55,7 @@ export default function ManagerFlow({
         <ManagerTopBar />
         <DefineRoleScreen
           roleTitle={roleTitle}
+          chrome={false}
           onBack={() => setPhase('entry')}
           onComplete={() => setPhase('done')}
         />
