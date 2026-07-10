@@ -2,19 +2,10 @@ import { useEffect, useState } from 'react'
 import Card from './Card.jsx'
 import Button from './Button.jsx'
 import { CheckIcon } from './icons.jsx'
-import { CopyNeeded } from './Spec.jsx'
 
-// The ABI matching engine as short reassuring step titles only. No sub-text:
-// the animation shows work is happening, it is not a document to read.
-// Nothing in this product weighs experience; that step's copy is unwritten.
-const COPY_NEEDED_STEP = '__COPY_NEEDED__'
-const STEPS = [
-  'Reading profiles',
-  'Mapping to competencies',
-  'Scoring against the rubric',
-  COPY_NEEDED_STEP,
-  'Ranking candidates',
-]
+// Matching runs before the interview: no rubric has run, so "Scoring against the
+// rubric" is gone. Four steps, no counter.
+const STEPS = ['Reading profiles', 'Mapping to competencies', 'Matching against the role', 'Ranking candidates']
 
 const STEP_MS = 1000
 
@@ -114,17 +105,11 @@ export default function MatchingProgress({ count = 0, onShow }) {
 
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-4 py-8">
-      <div className="flex justify-end">
-        <span className="text-[13px] text-secondary tabular-nums">
-          {doneCount} of {STEPS.length}
-        </span>
-      </div>
-
       <Card className="flex flex-col gap-5 p-6">
         {STEPS.map((title, i) => (
           <ProcessingStep
             key={i}
-            title={title === COPY_NEEDED_STEP ? <CopyNeeded note="matching step" /> : title}
+            title={title}
             n={i + 1}
             status={i < doneCount ? 'done' : i === active ? 'active' : 'pending'}
             fill={fill}

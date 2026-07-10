@@ -24,7 +24,7 @@ function startFor(token) {
  */
 export default function CandidateInterviewFlow({
   token,
-  role = 'Senior Product Engineer',
+  role = 'Product Engineer',
   company = 'Acme',
   expiresOn = 'Jul 12, 2026',
 }) {

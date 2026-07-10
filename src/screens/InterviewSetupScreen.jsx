@@ -181,7 +181,7 @@ function EngineerNote() {
  * the one that counts. The camera feed, mic level, and recording are stubbed.
  */
 export default function InterviewSetupScreen({
-  role = 'Senior Product Engineer',
+  role = 'Product Engineer',
   company = 'Acme',
   initialStage = 'check',
   initialPermission = 'prompt',

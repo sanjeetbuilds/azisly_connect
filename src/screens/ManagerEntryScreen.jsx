@@ -27,7 +27,7 @@ function Spinner() {
  */
 export default function ManagerEntryScreen({
   kind = 'define', // 'define' | 'review'
-  roleTitle = 'Senior Product Engineer',
+  roleTitle = 'Product Engineer',
   recruiter = 'Aryan Mehta',
   recruiterAvatar,
   company = 'Acme',

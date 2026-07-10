@@ -1,137 +1,93 @@
-import { Card, Tag } from './index.js'
-import { CopyNeeded, AuthoringNeeded, FixtureTag } from './Spec.jsx'
-import { ArrowRightIcon } from './icons.jsx'
-import { UNIVERSAL_COMPETENCIES } from '../data/roleFamilies.js'
+import { Card } from './index.js'
+import { AuthoringNeeded, FixtureTag } from './Spec.jsx'
 
-// The Role card has three parts: the domain, the criteria ladder, and a fixed
-// foundation band for the universals (never adjustable). Below a divider it also
-// shows the probes — the recruiter's own words, each mapped to the competency
-// we'll test it under. There is no emphasis. Gates are internal: the recruiter
-// never sees them, never sees the word gate, and never sees the word must-have.
+// The role card. No boxes, no colour, no colour-coded competencies.
 //
-// It renders exactly three kinds of string:
-//   1. words the recruiter typed        (roleTitle, probe phrases)
-//   2. words authored in roleFamilies   (family, domainCompetency, criteria, universals)
-//   3. words taken verbatim from the PRD or this build brief
-//      ("Role card", "Essential / Very important / Nice to have")
-// Every other label is an unwritten string, rendered as <CopyNeeded/>. An empty
-// criteria array renders <AuthoringNeeded/>. Nothing is filled with a default.
-// The probe→competency mapping is a stub, so every probe row is tagged FIXTURE.
+//   domain      one line of text (not a bordered container)
+//   ladder      a 130px left column of tier + count, criteria as lines of text to
+//               the right. Essential in primary text, the rest in secondary —
+//               importance carried by weight, not decoration.
+//   foundation  one sentence, not six chips.
+//   probes      below a heavier divider, only when a probe exists: the person's
+//               exact phrase (serif, primary) and, under it, what we'll ask the
+//               candidate (small, secondary). Never the competency, score, tier,
+//               weight, or percentage. The mapping is a stub, so each row is FIXTURE.
 
-// The importance ladder, top to bottom. Verbatim v2: "Criteria are grouped as
-// Essential, Very important, Nice to have."
 const TIER_LABELS = ['Essential', 'Very important', 'Nice to have']
 
-function Section({ heading, children }) {
-  return (
-    <section className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">{heading}</div>
-      {children}
-    </section>
-  )
-}
+// Verbatim PRD (§B): the one fixed line about the fundamentals.
+const FOUNDATION_LINE =
+  'Communication, ownership and clarity are read from every answer, which is why this stays short.'
 
-export default function RoleCard({ scorecard, roleTitle, probes = [], fixture = false, showOrientation = false }) {
+// A serif face for the recruiter's own words. No serif is bundled, so this falls
+// back to the OS serif — no runtime CDN dependency.
+const SERIF = { fontFamily: 'Georgia, "Times New Roman", serif' }
+
+export default function RoleCard({ scorecard, probes = [] }) {
   const { family, domainCompetency, criteria = [] } = scorecard ?? {}
 
-  // Never render a blank domain or the string null. A card is only shown for a
-  // matched family; without one, this component refuses rather than guesses.
+  // Never render a blank craft or the string null.
   if (!family || !domainCompetency) {
     return (
-      <Card className="flex w-full flex-col gap-2 p-6">
-        <AuthoringNeeded note="no family resolved — resolve the title before showing a card" />
+      <Card className="flex w-full flex-col gap-2 p-5">
+        <AuthoringNeeded note="no family resolved — resolve the title before showing the card" />
       </Card>
     )
   }
 
   return (
-    <Card className="flex w-full flex-col gap-4 p-5">
-      {/* Header. "Role card" is verbatim PRD. The title is the recruiter's own
-          words; the family is authored in roleFamilies.js. The family line shows
-          only when it differs from what the recruiter typed. */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Role card</p>
-          <h3 className="mt-1 truncate text-lg font-semibold text-ink">{roleTitle}</h3>
-          {family !== roleTitle && <p className="mt-0.5 text-[13px] text-secondary">{family}</p>}
-          {showOrientation && (
-            <p className="mt-2 text-sm leading-snug text-secondary">
-              Here is what we think a strong {family} looks like. Change anything that does not match.
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {fixture && <FixtureTag />}
-          <Tag color="purple">Draft</Tag>
-        </div>
-      </div>
+    <Card className="flex w-full flex-col gap-5 p-5">
+      {/* Domain — one line, no box. */}
+      <p className="text-[15px] font-semibold text-ink">{domainCompetency}</p>
 
-      {/* Domain — one line, no box: label ("Built around") + authored value. */}
-      <div className="flex flex-wrap items-baseline gap-x-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Built around</span>
-        <span className="text-[15px] font-semibold text-ink">{domainCompetency}</span>
-      </div>
-
-      {/* Criteria ladder — authored by hand. Empty renders AUTHORING NEEDED. When
-          present, criteria are grouped by tier; a tier with no criteria renders
-          nothing — no empty heading, no filler. */}
-      <Section heading={<span className="text-sm font-medium text-secondary">What a strong candidate looks like</span>}>
-        {criteria.length > 0 ? (
-          <div className="flex flex-col gap-3">
-            {TIER_LABELS.map((tier) => {
-              const items = criteria.filter((c) => c.tier === tier)
-              if (items.length === 0) return null
-              return (
-                <div key={tier} className="flex flex-col gap-1.5">
-                  {/* Tier label — verbatim v2. */}
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{tier}</p>
-                  <ul className="flex flex-col gap-1">
-                    {items.map((c, i) => (
-                      <li key={i} className="text-sm leading-snug text-ink">
-                        {c.text}
-                      </li>
-                    ))}
-                  </ul>
+      {/* Criteria ladder. */}
+      {criteria.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          {TIER_LABELS.map((tier) => {
+            const items = criteria.filter((c) => c.tier === tier)
+            if (items.length === 0) return null
+            const primary = tier === 'Essential'
+            return (
+              <div key={tier} className="flex gap-4">
+                <div className="w-[130px] shrink-0">
+                  <div className="text-sm text-ink">{tier}</div>
+                  <div className="text-[12px] text-muted tabular-nums">
+                    {items.length} of {criteria.length}
+                  </div>
                 </div>
-              )
-            })}
-          </div>
-        ) : (
-          <AuthoringNeeded note="criteria" />
-        )}
-      </Section>
-
-      {/* Foundation — the six universals, a fixed floor held on every role. It is
-          never adjustable and nobody in this flow sets it. */}
-      <Section heading={<CopyNeeded note="foundation band heading" />}>
-        <div className="rounded-card border border-hairline bg-background/60 p-3">
-          <div className="flex flex-wrap gap-2">
-            {UNIVERSAL_COMPETENCIES.map((u) => (
-              <span key={u} className="rounded-full bg-ink/[0.04] px-2.5 py-1 text-[12px] text-secondary">
-                {u}
-              </span>
-            ))}
-          </div>
+                <div className="flex flex-1 flex-col gap-1">
+                  {items.map((c, i) => (
+                    <p key={i} className={`text-sm leading-snug ${primary ? 'text-ink' : 'text-secondary'}`}>
+                      {c.text}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
         </div>
-      </Section>
+      ) : (
+        <AuthoringNeeded note="criteria" />
+      )}
 
-      {/* Probes — the recruiter's own words, under a divider, each with the
-          competency we'll test it under. The phrase is verbatim, never cleaned up
-          or summarised. The mapping is a stub, so every row is FIXTURE. No probes,
-          no section. */}
+      {/* Foundation — one sentence, not chips. */}
+      <p className="text-[13px] leading-relaxed text-muted">{FOUNDATION_LINE}</p>
+
+      {/* What you told us — below a heavier divider, only when there is a probe. */}
       {probes.length > 0 && (
-        <div className="flex flex-col gap-2.5 border-t border-hairline pt-4">
-          <p className="text-sm font-medium text-secondary">What you told us, and where we&rsquo;ll test it</p>
-          <ul className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3 border-t-2 border-hairline pt-5">
+          <p className="text-sm font-medium text-secondary">What you told us, and what we&rsquo;ll ask</p>
+          <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
             {probes.map((p, i) => (
-              <li key={i} className="flex items-center gap-2 text-sm">
-                <span className="min-w-0 flex-1 text-ink">&ldquo;{p.phrase}&rdquo;</span>
-                <ArrowRightIcon className="h-3.5 w-3.5 shrink-0 text-muted" />
-                <span className="shrink-0 text-ink">{p.competency}</span>
+              <div key={i} className="flex flex-col gap-1">
+                <p className="text-[15px] leading-snug text-ink" style={SERIF}>
+                  &ldquo;{p.phrase}&rdquo;
+                </p>
+                <p className="text-[12px] leading-snug text-secondary">{p.promise}</p>
                 <FixtureTag />
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       )}
     </Card>

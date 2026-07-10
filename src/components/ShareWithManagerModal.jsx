@@ -39,7 +39,7 @@ function CandidateRow({ c }) {
  * link for a specific set of candidates. Same pattern as the define-role link:
  * confirm (who + how many) → link with a Copy button.
  */
-export default function ShareWithManagerModal({ candidates, roleTitle = 'Senior Product Engineer', onClose }) {
+export default function ShareWithManagerModal({ candidates, roleTitle = 'Product Engineer', onClose }) {
   const [step, setStep] = useState('confirm') // confirm | link
   const [managerId, setManagerId] = useState(null)
   const [copied, setCopied] = useState(false)

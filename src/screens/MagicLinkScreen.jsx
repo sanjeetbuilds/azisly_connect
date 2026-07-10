@@ -9,7 +9,7 @@ import { LockIcon } from '../components/icons.jsx'
  *   expired        the link is expired on open
  *   expiredPaused  the link expired while they were paused mid-definition
  *
- * The expired copy is verbatim PRD, including the PRD's own {recruiter_name}
+ * The expired copy is verbatim PRD, including the PRD's own [recruiter_name]
  * placeholder — we do not invent a name.
  */
 export default function MagicLinkScreen({ variant = 'valid', roleTitle = '', titleIsFixture = false, onStart }) {
@@ -48,9 +48,9 @@ export default function MagicLinkScreen({ variant = 'valid', roleTitle = '', tit
             <CopyNeeded note="context: link expired while paused mid-definition" />
           </p>
         )}
-        {/* Verbatim PRD, including the PRD's own {recruiter_name} placeholder. */}
+        {/* Verbatim PRD, including the PRD's own [recruiter_name] placeholder. */}
         <p className="text-[15px] leading-relaxed text-ink">
-          This link has expired. Please ask {'{recruiter_name}'} to send a new one.
+          This link has expired. Please ask [recruiter_name] to send a new one.
         </p>
       </Card>
     </Shell>

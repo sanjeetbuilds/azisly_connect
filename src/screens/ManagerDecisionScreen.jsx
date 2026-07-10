@@ -111,7 +111,7 @@ function CompactRow({ candidate }) {
  */
 export default function ManagerDecisionScreen({
   manager = 'Anjali Rao',
-  roleTitle = 'Senior Product Engineer',
+  roleTitle = 'Product Engineer',
   candidates,
   approvedIds = [],
   interviews = {},

@@ -2,7 +2,7 @@
 // Avatars are placeholder photos (pravatar) keyed by a stable id.
 
 // The ABI engine scores seven competencies. Six are fixed; the seventh (Domain)
-// takes a label that changes per role. For the Senior Product Engineer role the
+// takes a label that changes per role. For the Product Engineer role the
 // Domain label is "Product craft". A competency scored below the gate threshold
 // fails a gate, even when the overall is healthy.
 export const GATE = 50
@@ -138,7 +138,7 @@ export const candidates = [
   {
     id: 'maya-okonkwo',
     name: 'Maya Okonkwo',
-    role: 'Senior Product Engineer',
+    role: 'Product Engineer',
     location: 'Lisbon',
     experience: '8 yrs',
     score: 86,
@@ -586,7 +586,7 @@ export const candidates = [
   },
 ]
 
-// One source of truth for the scoped role (Senior Product Engineer): the Roles
+// One source of truth for the scoped role (Product Engineer): the Roles
 // screen number, the title count, and the ready count all derive from this.
 export const roleTotals = {
   total: candidates.length,

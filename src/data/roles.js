@@ -29,7 +29,7 @@ export const APPROVE_BY_LABEL = {
 export const seedRoles = [
   {
     id: 'r-spe',
-    title: 'Senior Product Engineer',
+    title: 'Product Engineer',
     location: 'Remote · Europe',
     type: 'Full-time',
     state: 'ready',

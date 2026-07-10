@@ -104,7 +104,7 @@ const DECLINE_REASONS = ['Too busy right now', 'Not interested in the role', 'Co
  */
 export default function CandidateInterviewLanding({
   status = 'valid',
-  role = 'Senior Product Engineer',
+  role = 'Product Engineer',
   company = 'Acme',
   expiresOn = 'Jul 12, 2026',
   onContinue,

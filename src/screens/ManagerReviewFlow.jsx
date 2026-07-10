@@ -17,7 +17,7 @@ export default function ManagerReviewFlow({ token }) {
     return (
       <ManagerEntryScreen
         kind="review"
-        roleTitle="Senior Product Engineer"
+        roleTitle="Product Engineer"
         recruiter={workspace.name}
         recruiterAvatar={workspace.avatar}
         company="Acme"
@@ -30,7 +30,7 @@ export default function ManagerReviewFlow({ token }) {
 
   return (
     <ManagerReviewScreen
-      roleTitle="Senior Product Engineer"
+      roleTitle="Product Engineer"
       recruiter={workspace.name}
       candidates={shortlist}
       interviews={interviews}

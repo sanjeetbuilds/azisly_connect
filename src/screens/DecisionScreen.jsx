@@ -4,7 +4,7 @@ import { ArrowLeftIcon, CheckIcon, MailIcon, PhoneIcon, LinkIcon } from '../comp
 
 const FALLBACK = {
   name: 'Maya Okonkwo',
-  role: 'Senior Product Engineer',
+  role: 'Product Engineer',
   location: 'Lisbon',
   score: 86,
   verdict: 'strong',

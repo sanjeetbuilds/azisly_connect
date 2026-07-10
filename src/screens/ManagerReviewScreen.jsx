@@ -68,7 +68,7 @@ function RichRow({ candidate, forwarded, selected, onClick }) {
  * marked, submitted.
  */
 export default function ManagerReviewScreen({
-  roleTitle = 'Senior Product Engineer',
+  roleTitle = 'Product Engineer',
   recruiter = 'Aryan Mehta',
   candidates,
   interviews,

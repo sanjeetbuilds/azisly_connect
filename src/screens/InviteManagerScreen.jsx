@@ -8,7 +8,7 @@ const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
 
 export default function InviteManagerScreen({
   roleId,
-  roleTitle = 'Senior Product Engineer',
+  roleTitle = 'Product Engineer',
   preset = null, // a manager chosen inline on the create-role step; skip the picker
   onCancel,
   onDone,

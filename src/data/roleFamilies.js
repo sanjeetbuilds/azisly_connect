@@ -2,17 +2,17 @@
 //
 // The engine scores seven competencies: six universal (below) plus one Domain
 // competency whose label changes per family. A role family fixes the domain, the
-// two gates, and — once authored by hand — the criteria.
+// two gates, and — once authored by hand — the criteria ladder.
 //
 // PROHIBITIONS honoured here: no entry names a number of years, a degree, a
 // college, a college tier, a salary, a location, or a named tool. Not as a
 // value, not in a pattern, not in a comment that renders.
 //
-// criteria is authored by hand, per family, never computed and never inferred.
-// Two families are authored so far (Product Manager, Software Engineer). The
-// other nine ship an empty criteria array, which the UI flags AUTHORING NEEDED —
-// never filled with a default, a sample, or a guess. Each criterion is
-// { text, tier }, tier ∈ Essential | Very important | Nice to have.
+// criteria is authored by hand per family, each { text, tier } with tier ∈
+// Essential | Very important | Nice to have. Two families are authored so far
+// (Product Manager, Software Engineer). The other nine ship an empty criteria
+// array, which the UI flags AUTHORING NEEDED — never a default or a guess. The
+// person defining the role does not set how a candidate is scored.
 
 // The six universal competencies. The seventh is the family's Domain competency.
 export const UNIVERSAL_COMPETENCIES = [

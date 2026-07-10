@@ -6,7 +6,7 @@ import ReviewRoleScreen from './ReviewRoleScreen.jsx'
 import FindingCandidatesScreen from './FindingCandidatesScreen.jsx'
 import SubmitPeripheralScreen from './SubmitPeripheralScreen.jsx'
 import MagicLinkScreen from './MagicLinkScreen.jsx'
-import { DEMO_ROLE_TITLE, DEMO_UNMATCHED_TITLE, DEMO_UNAUTHORED_TITLE, DEMO_VOICE_ANSWERS } from '../data/fixtures.js'
+import { DEMO_ROLE_TITLE, DEMO_UNMATCHED_TITLE, DEMO_VOICE_ANSWERS } from '../data/fixtures.js'
 
 // Two answers already given by voice — the "conversed" demo state.
 const TWO_VOICE_ANSWERS = DEMO_VOICE_ANSWERS.slice(0, 2).map((text) => ({ text, fixture: true }))
@@ -137,13 +137,13 @@ const STATES = {
       </Full>
     ),
   },
-  'review-incomplete': {
+  'review-nofamily': {
     group: 'Review',
-    label: 'Card incomplete — Submit disabled',
+    label: 'No family — Submit disabled, reason named',
     render: () => (
       <Full>
-        {/* An un-authored family: empty criteria ⇒ AUTHORING NEEDED, Submit off. */}
-        <ReviewRoleScreen roleTitle={DEMO_UNAUTHORED_TITLE} />
+        {/* No family resolved ⇒ Submit disabled with the reason on screen. */}
+        <ReviewRoleScreen roleTitle={DEMO_UNMATCHED_TITLE} />
       </Full>
     ),
   },

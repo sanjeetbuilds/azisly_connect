@@ -90,7 +90,7 @@ function RowPrimary({ onClick, icon, children }) {
  * toast, reject dialog); statuses read in plain words.
  */
 export default function CandidatesScreen({
-  roleTitle = 'Senior Product Engineer',
+  roleTitle = 'Product Engineer',
   roleId = 'r-spe',
   requirements,
   runMatch = false,

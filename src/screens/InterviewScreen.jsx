@@ -128,7 +128,7 @@ function DeviceToggle({ on, onIcon: OnIcon, offIcon: OffIcon, label, onClick }) 
  * final quality.
  */
 export default function InterviewScreen({
-  role = 'Senior Product Engineer',
+  role = 'Product Engineer',
   company = 'Acme',
   initialPhase = 'interview',
   initialIndex = 0,

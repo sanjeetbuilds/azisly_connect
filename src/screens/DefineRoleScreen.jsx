@@ -16,26 +16,24 @@ import { classifyProbeStub } from '../lib/probeStub.js'
 import { DEMO_JD_FILENAME, DEMO_PASTED_JD, DEMO_VOICE_PARTIAL, DEMO_VOICE_ANSWERS } from '../data/fixtures.js'
 
 /*
- * DefineRoleScreen — the recruiter (or manager) defines the role by reacting to a
- * drafted card and talking to the AI.
+ * DefineRoleScreen — the recruiter (or manager) defines the role by reacting to
+ * the card and talking to the AI.
  *
- * The card is on screen on arrival, complete. Between the card and the composer
- * sits a one-band conversation strip: the AI's current question and the
- * recruiter's last answer, with earlier turns collapsed behind "Earlier". The AI
- * has already asked its first question — no start CTA, no greeting, no empty
- * state. Voice and chat are not modes; the same conversation accepts either.
+ * The card is on screen on arrival. The card and the conversation share one
+ * scroll region (the page scrolls); the composer is pinned. The AI has already
+ * asked its first question — no start CTA, no greeting, no empty state. Voice and
+ * chat are one conversation; there is no mode toggle. The mic is the larger
+ * control and is the only colour on the screen, and only when it is live.
  *
- * Each answer becomes a probe { phrase, competency }. The phrase is the exact
- * words. The competency is assigned by a STUB (lib/probeStub.js) that ignores the
- * phrase, so every probe row is tagged FIXTURE. A probe carries no score, no
- * tier, no weight.
+ * Each answer becomes a probe { phrase, competency, promise } via a STUB
+ * (lib/probeStub.js). The competency is internal and never shown; the promise is.
+ * Every probe row is tagged FIXTURE.
  */
 
-// Authored copy — treat as verbatim.
-const OPENING = "Tell me anything about this role I wouldn't get from the title."
+// Authored copy.
+const OPENING =
+  "Tell me about this person. How they'll work, who they'll deal with, what they'll be up against. Whatever you're picturing."
 const JD_OPENING = "I've read the JD. Tell me what it doesn't say."
-// The AI asks at most two of these, only about context the family cannot know.
-// It never asks about the criteria on the card, and never asks a third.
 const FOLLOWUPS = [
   "What's going to make this role hard? That's usually the thing worth testing.",
   'Who will they work with day to day?',
@@ -75,8 +73,7 @@ export default function DefineRoleScreen({
   const [landed, setLanded] = useState(0)
   const [highlight, setHighlight] = useState(false)
 
-  // The card briefly highlights when a probe lands, so the recruiter can see —
-  // without being told — that talking changed something.
+  // The card briefly highlights when a probe lands — a colourless flash.
   useEffect(() => {
     if (landed === 0) return
     setHighlight(true)
@@ -84,19 +81,15 @@ export default function DefineRoleScreen({
     return () => clearTimeout(t)
   }, [landed])
 
-  // The AI's questions: the opening (or its JD variant), then up to two follow-ups.
   const questions = [jdRead ? JD_OPENING : OPENING, ...FOLLOWUPS.slice(0, MAX_FOLLOWUPS)]
   const step = answers.length
   const currentQuestion = step < questions.length ? questions[step] : null
-  const complete = currentQuestion === null // the AI has nothing left to ask
+  const complete = currentQuestion === null
+  const onOpening = step === 0 && !jdRead
 
-  // Each answer is a probe. The competency is stubbed, so every row is FIXTURE.
-  const probes = answers.map((a, i) => ({
-    phrase: a.text,
-    competency: classifyProbeStub(i, scorecard.domainCompetency),
-  }))
+  // Each answer is a probe. The stub returns { phrase, competency, promise }.
+  const probes = answers.map((a, i) => classifyProbeStub(a.text, i, scorecard.domainCompetency))
 
-  // The transcript, and what the strip shows: the current question + last answer.
   const transcript = []
   answers.forEach((a, i) => {
     if (questions[i]) transcript.push({ from: 'ai', text: questions[i] })
@@ -116,7 +109,7 @@ export default function DefineRoleScreen({
   }
 
   // Voice — no speech-to-text exists, so a spoken turn plays back a fixture
-  // answer (tagged FIXTURE), which becomes a probe like any typed turn.
+  // answer (tagged FIXTURE), which becomes a probe like a typed turn.
   const micTap = () => {
     if (voice === 'listening' || answers.length >= DEMO_VOICE_ANSWERS.length) return
     setVoice('listening')
@@ -127,8 +120,6 @@ export default function DefineRoleScreen({
     }, 1200)
   }
 
-  // JD — the real state sequence, extracts nothing. After a read, the opening
-  // question is replaced by its JD variant; no card field is written from a JD.
   const openJd = () => setJd('panel')
   const closeJd = () => setJd('closed')
   const doUpload = () => {
@@ -146,7 +137,7 @@ export default function DefineRoleScreen({
 
   return (
     <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-background">
-      {/* Header — no step counter, no progress bar. */}
+      {/* Header — pinned. */}
       <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-hairline bg-surface px-6 py-4 lg:px-8">
         {onBack && (
           <button
@@ -166,18 +157,18 @@ export default function DefineRoleScreen({
           </h1>
         </div>
         {onAskManager && (
-          // "Ask a hiring manager to define" is PRD §E copy (the CTA in the header).
           <Button variant="secondary" onClick={onAskManager} className="shrink-0 !px-3.5 !py-2 !text-[13px]">
             Ask a hiring manager to define
           </Button>
         )}
       </div>
 
-      {/* Body — the single scroll region. The card is here from the first frame. */}
+      {/* One scroll region: the card and the conversation. The card is not a
+          scroll container; the page scrolls, the composer is pinned. */}
       <div className="min-h-0 flex-1 overflow-y-auto px-6 lg:px-8">
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 py-4">
-          <div className={`rounded-card transition-shadow duration-300 ${highlight ? 'ring-2 ring-accent' : 'ring-0'}`}>
-            <RoleCard scorecard={scorecard} roleTitle={roleTitle} probes={probes} showOrientation />
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 py-5">
+          <div className={`rounded-card transition-shadow duration-300 ${highlight ? 'ring-2 ring-ink/15' : 'ring-0'}`}>
+            <RoleCard scorecard={scorecard} probes={probes} />
           </div>
 
           {jdEchoed && (
@@ -192,75 +183,75 @@ export default function DefineRoleScreen({
               </p>
             </div>
           )}
-        </div>
-      </div>
 
-      {/* Conversation strip — one band, never a pane, never a second scroll. */}
-      <div className="shrink-0 border-t border-hairline bg-surface px-6 py-3 lg:px-8">
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-2">
-          {earlier.length > 0 && (
-            <div>
-              <button
-                type="button"
-                onClick={() => setEarlierOpen((o) => !o)}
-                className="flex items-center gap-1 text-[12px] font-medium text-secondary transition-colors hover:text-ink"
-              >
-                {earlierOpen ? <ChevronDownIcon className="h-3.5 w-3.5" /> : <ChevronRightIcon className="h-3.5 w-3.5" />}
-                Earlier
-              </button>
-              {earlierOpen && (
-                <div className="mt-2 flex flex-col gap-1.5 border-l border-hairline pl-3">
-                  {earlier.map((t, i) => (
-                    <p key={i} className="text-[13px] leading-snug">
-                      <span className={t.from === 'ai' ? 'text-strong' : 'text-secondary'}>
-                        {t.from === 'ai' ? 'Azzy' : 'You'}
-                      </span>{' '}
-                      <span className="text-ink">{t.text}</span>
-                      {t.fixture && <FixtureTag className="ml-1" />}
-                    </p>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {lastAnswer && (
-            <div className="flex justify-end">
-              <div className="flex items-center gap-2 rounded-2xl rounded-tr-md border border-hairline bg-background px-3 py-1.5 text-sm text-ink">
-                <span>{lastAnswer.text}</span>
-                {lastAnswer.fixture && <FixtureTag />}
+          {/* Conversation. */}
+          <div className="flex flex-col gap-2">
+            {earlier.length > 0 && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setEarlierOpen((o) => !o)}
+                  className="flex items-center gap-1 text-[12px] font-medium text-secondary transition-colors hover:text-ink"
+                >
+                  {earlierOpen ? <ChevronDownIcon className="h-3.5 w-3.5" /> : <ChevronRightIcon className="h-3.5 w-3.5" />}
+                  Earlier
+                </button>
+                {earlierOpen && (
+                  <div className="mt-2 flex flex-col gap-1.5 border-l border-hairline pl-3">
+                    {earlier.map((t, i) => (
+                      <p key={i} className="text-[13px] leading-snug">
+                        <span className="text-secondary">{t.from === 'ai' ? 'Azzy' : 'You'}</span>{' '}
+                        <span className="text-ink">{t.text}</span>
+                        {t.fixture && <FixtureTag className="ml-1" />}
+                      </p>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            )}
 
-          {currentQuestion && (
-            <div className="flex gap-2.5">
-              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-strong">
-                <SparkleIcon className="h-3 w-3" />
-              </span>
-              <p className="flex-1 text-[15px] leading-snug text-ink">{currentQuestion}</p>
-            </div>
-          )}
+            {lastAnswer && (
+              <div className="flex justify-end">
+                <div className="flex items-center gap-2 rounded-2xl rounded-tr-md border border-hairline bg-surface px-3 py-1.5 text-sm text-ink">
+                  <span>{lastAnswer.text}</span>
+                  {lastAnswer.fixture && <FixtureTag />}
+                </div>
+              </div>
+            )}
 
-          {voice === 'listening' && (
-            <p className="flex items-center gap-2 pl-[34px] text-[13px] text-secondary">
-              <span className="h-2 w-2 animate-ping rounded-full bg-danger" />
-              <CopyNeeded note="listening label" />
-            </p>
-          )}
-          {voice === 'notcaught' && (
-            // Verbatim PRD.
-            <p className="pl-[34px] text-[13px] text-ink">Sorry, I did not catch that, could you say it again?</p>
-          )}
-          {voice === 'transcribing' && (
-            <p className="pl-[34px] text-[13px] text-secondary">
-              <span className="text-ink">{DEMO_VOICE_PARTIAL}</span> <FixtureTag className="ml-1" />
-            </p>
-          )}
+            {currentQuestion && (
+              <div className="flex gap-2.5">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] text-secondary">
+                  <SparkleIcon className="h-3 w-3" />
+                </span>
+                <div className="flex-1">
+                  <p className="text-[15px] leading-snug text-ink">{currentQuestion}</p>
+                  {onOpening && <p className="mt-1 text-[13px] text-secondary">No wrong answers. Say as much as you like.</p>}
+                </div>
+              </div>
+            )}
+
+            {voice === 'listening' && (
+              <p className="flex items-center gap-2 pl-[34px] text-[13px] text-secondary">
+                <span className="h-2 w-2 animate-ping rounded-full bg-danger" /> Listening
+              </p>
+            )}
+            {voice === 'notcaught' && (
+              // The "not caught" line is not in the new PRD.
+              <p className="pl-[34px] text-[13px]">
+                <CopyNeeded note="voice not-caught line" />
+              </p>
+            )}
+            {voice === 'transcribing' && (
+              <p className="pl-[34px] text-[13px] text-secondary">
+                <span className="text-ink">{DEMO_VOICE_PARTIAL}</span> <FixtureTag className="ml-1" />
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Composer — mic is the primary control; typing is always available. */}
+      {/* Composer — pinned. Mic is the larger control; typing never blocked. */}
       <div className="shrink-0 border-t border-hairline bg-surface px-6 py-4 lg:px-8">
         <div className="mx-auto w-full max-w-2xl">
           {jd !== 'closed' && jd !== 'panel' ? (
@@ -270,18 +261,18 @@ export default function DefineRoleScreen({
           ) : (
             <div className="flex flex-col gap-2.5">
               <div className="flex items-end gap-3">
-                {/* Microphone — large, circular, accent fill, left of the input. */}
+                {/* Mic — larger control. The only colour on the screen, and only
+                    when live. Neutral (ink) otherwise. */}
                 <button
                   type="button"
                   onClick={micTap}
                   aria-label="Speak"
                   className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white shadow-panel transition-colors ${
-                    voice === 'listening' ? 'bg-danger' : 'bg-accent hover:bg-accent-hover'
+                    voice === 'listening' ? 'bg-danger' : 'bg-ink hover:bg-ink-hover'
                   }`}
                 >
                   <MicIcon className="h-5 w-5" />
                 </button>
-                {/* Input — typing never blocked; paperclip for the JD sits inside. */}
                 <div className="relative flex-1">
                   <textarea
                     value={input}
@@ -294,7 +285,7 @@ export default function DefineRoleScreen({
                     }}
                     rows={1}
                     placeholder="or type, or drop a JD"
-                    className="w-full resize-none rounded-lg border border-hairline bg-surface py-2.5 pl-3 pr-11 text-sm leading-relaxed text-ink shadow-card placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+                    className="w-full resize-none rounded-lg border border-hairline bg-surface py-2.5 pl-3 pr-11 text-sm leading-relaxed text-ink shadow-card placeholder:text-muted focus:border-ink/25 focus:outline-none"
                   />
                   <button
                     type="button"
@@ -308,12 +299,12 @@ export default function DefineRoleScreen({
               </div>
               {onComplete && (
                 <div className="flex justify-end">
-                  {/* Review becomes the primary action once the AI has nothing left
-                      to ask. Submit works whether or not the recruiter spoke. */}
+                  {/* Review is the loudest thing once the AI stops — by weight, not
+                      colour. */}
                   <Button
-                    variant={complete ? 'primary' : 'secondary'}
+                    variant="secondary"
                     onClick={onComplete}
-                    className="!py-1.5 !text-[13px]"
+                    className={`!py-1.5 !text-[13px] ${complete ? '!border-ink !bg-ink !text-white' : ''}`}
                   >
                     {reviewLabel ?? 'Review role'}
                   </Button>
@@ -342,7 +333,7 @@ function JdPanel({ jdText, setJdText, onUpload, onRead, onCancel }) {
         onChange={(e) => setJdText(e.target.value)}
         rows={4}
         placeholder=""
-        className="w-full resize-none rounded-md border border-hairline bg-surface p-3 text-sm leading-relaxed text-ink shadow-card focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+        className="w-full resize-none rounded-md border border-hairline bg-surface p-3 text-sm leading-relaxed text-ink shadow-card focus:border-ink/25 focus:outline-none"
       />
       <div className="flex items-center justify-between">
         <button
@@ -372,7 +363,7 @@ function JdState({ jd, onClose, onRead, onReplace }) {
   if (jd === 'uploaded') {
     return (
       <div className="flex items-center gap-3 rounded-md border border-hairline bg-surface px-3.5 py-3 shadow-card">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-accent-soft text-strong">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-ink/[0.06] text-secondary">
           <PaperclipIcon className="h-4 w-4" />
         </span>
         <div className="min-w-0 flex-1">
@@ -383,7 +374,7 @@ function JdState({ jd, onClose, onRead, onReplace }) {
           <div className="text-[12px] text-secondary">Uploaded</div>
         </div>
         {/* "Replace" is verbatim PRD. */}
-        <button type="button" onClick={onReplace} className="text-[13px] font-medium text-strong hover:underline">
+        <button type="button" onClick={onReplace} className="text-[13px] font-medium text-ink hover:underline">
           Replace
         </button>
         <button type="button" onClick={onClose} aria-label="Remove" className="text-secondary hover:text-ink">

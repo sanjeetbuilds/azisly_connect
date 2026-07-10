@@ -45,7 +45,7 @@ export default function App() {
     return (
       <CandidateInterviewFlow
         token={interviewToken}
-        role="Senior Product Engineer"
+        role="Product Engineer"
         company="Acme"
         expiresOn="Jul 12, 2026"
       />
@@ -104,7 +104,7 @@ export default function App() {
         onNavigate={(item) => {
           if (item === 'Roles') setView('roles')
           else {
-            setOpenRole(null) // the candidate view defaults to the Senior Product Engineer role
+            setOpenRole(null) // the candidate view defaults to the Product Engineer role
             setRunMatch(false) // returning to candidates: straight to the tabs, no re-animation
             setView('candidates')
           }
@@ -237,7 +237,7 @@ export default function App() {
           return (
             <CandidatesScreen
               key={`${pipelineRole?.id}-${runMatch ? 'match' : 'list'}`}
-              roleTitle={pipelineRole?.title ?? 'Senior Product Engineer'}
+              roleTitle={pipelineRole?.title ?? 'Product Engineer'}
               roleId={pipelineRole?.id ?? 'r-spe'}
               requirements={pipelineRole?.requirements}
               runMatch={runMatch}
@@ -249,7 +249,7 @@ export default function App() {
       {view === 'manager-decision' && (
         <ManagerDecisionScreen
           manager="Anjali Rao"
-          roleTitle="Senior Product Engineer"
+          roleTitle="Product Engineer"
           candidates={reviewed}
           approvedIds={approvedIds}
           interviews={interviews}
@@ -257,7 +257,7 @@ export default function App() {
       )}
 
       {view === 'invite' && (
-        <InviteScreen roleTitle="Senior Product Engineer" onBack={() => setView('candidates')} />
+        <InviteScreen roleTitle="Product Engineer" onBack={() => setView('candidates')} />
       )}
 
       {view === 'decision' && (

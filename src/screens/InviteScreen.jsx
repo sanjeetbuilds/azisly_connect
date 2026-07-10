@@ -61,7 +61,7 @@ function InviteLinkRow({ item }) {
 }
 
 export default function InviteScreen({
-  roleTitle = 'Senior Product Engineer',
+  roleTitle = 'Product Engineer',
   roleId = 'r-spe',
   companyId = 'acme',
   onBack,

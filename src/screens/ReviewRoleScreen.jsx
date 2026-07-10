@@ -5,27 +5,26 @@ import { ArrowLeftIcon } from '../components/icons.jsx'
 import { roleScorecard } from '../data/scorecard.js'
 
 /*
- * ReviewRoleScreen — review the finished card and submit.
+ * ReviewRoleScreen — review the panel and submit.
  *
- * There is no INITIAL_JD and no fabricated read-back. The card shown is the real
- * scorecard. "Submit role" is enabled only when the card is complete — it has its
- * gates and its criteria. When it is not, Submit is disabled and the reason is
- * named on screen (the missing authoring is flagged in red).
+ * "Submit role" is enabled as soon as the role family is set — a person who said
+ * nothing can still submit, because the family already defined the role. If it is
+ * disabled (no family), the reason is named on screen. Nothing on the panel is
+ * editable, so there is no edit control.
  */
-function isComplete(scorecard) {
-  return (scorecard?.gates?.length ?? 0) > 0 && (scorecard?.criteria?.length ?? 0) > 0
+function familySet(scorecard) {
+  return Boolean(scorecard?.family && scorecard?.domainCompetency)
 }
 
 export default function ReviewRoleScreen({
   roleTitle = '',
   scorecard: scorecardProp,
   probes = [],
-  cardFixture = false,
   onBack,
   onSubmit,
 }) {
   const scorecard = scorecardProp ?? roleScorecard({ title: roleTitle })
-  const complete = isComplete(scorecard)
+  const complete = familySet(scorecard)
 
   return (
     <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -41,10 +40,7 @@ export default function ReviewRoleScreen({
           </button>
         )}
         <div>
-          {/* No PRD string for this eyebrow / page title. */}
-          <p className="text-[13px] font-medium text-secondary">
-            <CopyNeeded note="review eyebrow" />
-          </p>
+          <p className="text-[13px] font-medium text-secondary">Review the role</p>
           <h1 className="mt-1 text-2xl font-bold text-ink">
             <CopyNeeded note="review page title" />
           </h1>
@@ -53,7 +49,7 @@ export default function ReviewRoleScreen({
 
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-28 pt-6 lg:px-8">
         <div className="mx-auto w-full max-w-2xl">
-          <RoleCard scorecard={scorecard} roleTitle={roleTitle} probes={probes} fixture={cardFixture} />
+          <RoleCard scorecard={scorecard} probes={probes} />
         </div>
       </div>
 
@@ -68,20 +64,16 @@ export default function ReviewRoleScreen({
             ) : (
               // The reason Submit is disabled, named on screen.
               <span className="flex flex-wrap items-center gap-2">
-                <AuthoringNeeded note="criteria — required before Submit" />
+                <AuthoringNeeded note="no role family set — required before Submit" />
                 <CopyNeeded note="submit-disabled reason sentence" />
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="secondary">
-              <CopyNeeded note="edit CTA" />
-            </Button>
+          {/* Nothing on the panel is editable, so there is no edit control. */}
+          <Button onClick={onSubmit} disabled={!complete}>
             {/* "Submit role" is verbatim PRD. */}
-            <Button onClick={onSubmit} disabled={!complete}>
-              Submit role
-            </Button>
-          </div>
+            Submit role
+          </Button>
         </div>
       </div>
     </div>
