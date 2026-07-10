@@ -62,15 +62,6 @@ const STATES = {
       </Full>
     ),
   },
-  'define-jd-beat3': {
-    group: 'JD',
-    label: 'JD, third beat (probes landing)',
-    render: () => (
-      <Full>
-        <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture initialJdStage="beat3" onComplete={() => {}} />
-      </Full>
-    ),
-  },
   'define-jd-landed': {
     group: 'JD',
     label: 'JD landed, two probes',

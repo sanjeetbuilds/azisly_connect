@@ -36,7 +36,7 @@ export default function ReviewRoleScreen({ roleTitle = '', scorecard: scorecardP
         </Button>
       }
     >
-      <div className="flex h-full w-full flex-col gap-4">
+      <div className="flex h-full w-full flex-col gap-4 overflow-y-auto">
         <RoleCard scorecard={scorecard} probes={probes} className="max-w-[720px]" />
 
         <div className="text-[13px]">

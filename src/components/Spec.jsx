@@ -24,12 +24,12 @@ export function AuthoringNeeded({ note }) {
   )
 }
 
-// A small 11px muted chip: subtle fill, 3px radius, 2px×7px padding. No
-// uppercase, no letter-spacing. Never the most visible thing in its row.
+// A 10px muted inline label at the end of the line it belongs to. Never a filled
+// pill, never the most visible thing in its row.
 export function FixtureTag({ className = '' }) {
   return (
     <span
-      className={`inline-block rounded-[3px] bg-ink/[0.06] px-[7px] py-[2px] text-[11px] text-muted ${className}`}
+      className={`text-[10px] text-muted ${className}`}
       title="Sample content from data/fixtures.js — not real"
     >
       fixture

@@ -2,7 +2,7 @@ import { AuthoringNeeded, FixtureTag } from './Spec.jsx'
 
 // The role card. It is ordered by who spoke last.
 //
-//   No probes:   the craft name, then "What a strong candidate looks like" + the
+//   No probes:   the craft name, then "What this role demands" + the
 //                ladder.
 //   With probes: the card reorders once — the source label + the probes, a
 //                divider, then "We'll also test, for any <family>" + the ladder.
@@ -98,7 +98,7 @@ export default function RoleCard({ scorecard, probes = [], pulse = false, classN
               <h2 className="text-[18px] font-medium text-ink">{domainCompetency}</h2>
             </div>
             <div className="flex flex-col gap-4">
-              <p className="text-[13px] font-medium text-ink">What a strong candidate looks like</p>
+              <p className="text-[13px] font-medium text-ink">What this role demands</p>
               <Ladder criteria={criteria} />
             </div>
           </>
