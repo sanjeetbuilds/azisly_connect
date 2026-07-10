@@ -28,7 +28,7 @@ export default function ReviewRoleScreen({
 
   return (
     <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="flex shrink-0 items-center gap-3 px-6 pt-8 lg:px-8">
+      <div className="flex shrink-0 items-center gap-3 pl-16 pr-8 pt-8">
         {onBack && (
           <button
             type="button"
@@ -46,15 +46,15 @@ export default function ReviewRoleScreen({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-28 pt-6 lg:px-8">
-        <div className="w-full max-w-2xl">
+      <div className="min-h-0 flex-1 overflow-y-auto pb-28 pl-16 pr-8 pt-6">
+        <div className="w-full max-w-[720px]">
           <RoleCard scorecard={scorecard} probes={probes} />
         </div>
       </div>
 
-      {/* Sticky action bar */}
-      <div className="absolute inset-x-0 bottom-0 border-t border-hairline bg-background/90 px-6 py-4 backdrop-blur lg:px-8">
-        <div className="flex w-full max-w-2xl items-center justify-between gap-3">
+      {/* Sticky action bar — aligned to the same margin and max-width as the card. */}
+      <div className="absolute inset-x-0 bottom-0 border-t border-hairline bg-background/90 py-4 pl-16 pr-8 backdrop-blur">
+        <div className="flex w-full max-w-[720px] items-center justify-between gap-3">
           <div className="min-w-0 text-[13px]">
             {complete ? (
               <span className="text-secondary">

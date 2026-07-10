@@ -137,8 +137,8 @@ export default function DefineRoleScreen({
 
   return (
     <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-background">
-      {/* Header — pinned. */}
-      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-hairline bg-surface px-6 py-4 lg:px-8">
+      {/* Header — pinned. Shares the one page background. */}
+      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-hairline bg-background py-4 pl-16 pr-8">
         {onBack && (
           <button
             type="button"
@@ -165,8 +165,8 @@ export default function DefineRoleScreen({
 
       {/* One scroll region: the card and the conversation. The card is not a
           scroll container; the page scrolls, the composer is pinned. */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 lg:px-8">
-        <div className="flex w-full max-w-2xl flex-col gap-8 py-6">
+      <div className="min-h-0 flex-1 overflow-y-auto pl-16 pr-8">
+        <div className="flex w-full max-w-[720px] flex-col gap-8 py-6">
           <RoleCard scorecard={scorecard} probes={probes} highlight={highlight} />
 
           {jdEchoed && (
@@ -223,7 +223,7 @@ export default function DefineRoleScreen({
                   <SparkleIcon className="h-3 w-3" />
                 </span>
                 <div className="flex-1">
-                  <p className="text-[15px] leading-snug text-ink">{currentQuestion}</p>
+                  <p className="max-w-[62ch] text-[15px] leading-snug text-ink">{currentQuestion}</p>
                   {onOpening && <p className="mt-1 text-[13px] text-secondary">No wrong answers. Say as much as you like.</p>}
                 </div>
               </div>
@@ -249,9 +249,10 @@ export default function DefineRoleScreen({
         </div>
       </div>
 
-      {/* Composer — pinned. Mic is the larger control; typing never blocked. */}
-      <div className="shrink-0 border-t border-hairline bg-surface px-6 py-4 lg:px-8">
-        <div className="mx-auto w-full max-w-2xl">
+      {/* Composer — pinned. Inner content aligns to the same left margin and
+          max-width as the card. Shares the one page background. */}
+      <div className="shrink-0 border-t border-hairline bg-background py-4 pl-16 pr-8">
+        <div className="w-full max-w-[720px]">
           {jd !== 'closed' && jd !== 'panel' ? (
             <JdState jd={jd} onClose={closeJd} onRead={readJd} onReplace={doUpload} />
           ) : jd === 'panel' ? (

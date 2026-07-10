@@ -24,12 +24,13 @@ export function AuthoringNeeded({ note }) {
   )
 }
 
-// A small inline label at the end of the line it belongs to — 11px, muted, no
-// fill. It must never be the most visible thing in its row.
+// A small chip: 11px, uppercase, muted, subtle surface-1 fill, 3px radius,
+// 2px×7px padding. It sits on its own line, never inside a sentence, and is
+// never the most visible thing in its row.
 export function FixtureTag({ className = '' }) {
   return (
     <span
-      className={`text-[11px] uppercase tracking-wide text-muted ${className}`}
+      className={`inline-block rounded-[3px] bg-ink/[0.06] px-[7px] py-[2px] text-[11px] uppercase tracking-[0.09em] text-muted ${className}`}
       title="Sample content from data/fixtures.js — not real"
     >
       fixture

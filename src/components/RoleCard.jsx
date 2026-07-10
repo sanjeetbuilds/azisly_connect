@@ -1,17 +1,17 @@
 import { AuthoringNeeded, FixtureTag } from './Spec.jsx'
 
-// The role card — content on the page, not a box. No white fill, no border, no
-// radius, no shadow. No colour, no colour-coded competencies.
+// The role card — an editorial layout on the page. No container, no fill, no
+// border, no radius, no shadow. No colour, no colour-coded competencies.
 //
-//   craft       one line of text
-//   ladder      a 130px left column of tier + count, criteria as lines of text to
-//               the right, run to a ~70-char measure. Essential in primary text,
-//               the rest in secondary — importance carried by weight, not decoration.
-//   foundation  one sentence.
-//   probes      below a heavier divider, only when a probe exists: the person's
-//               exact phrase (serif, primary) and, under it, what we'll ask the
-//               candidate (small, secondary). Never the competency, score, tier,
-//               weight, or percentage. The mapping is a stub, so each row is FIXTURE.
+//   header      eyebrow "Built around", the craft name at 30px, and the
+//               orientation line in a serif italic.
+//   ladder      a two-column grid with a 0.5px hairline down its left edge.
+//               Tier labels in an 118px left column; criteria to the right at
+//               17px. Essential primary, the rest secondary. No counts.
+//   foundation  one muted sentence.
+//   probes      above a 0.5px rule, only when a probe exists: the phrase (serif,
+//               18px) and, under it, the promise, then a FIXTURE chip on its own
+//               line. Never the competency, score, tier, weight, or percentage.
 
 const TIER_LABELS = ['Essential', 'Very important', 'Nice to have']
 
@@ -19,8 +19,8 @@ const TIER_LABELS = ['Essential', 'Very important', 'Nice to have']
 const FOUNDATION_LINE =
   'Communication, ownership and clarity are read from every answer, which is why this stays short.'
 
-// A serif face for the recruiter's own words. No serif is bundled, so this falls
-// back to the OS serif — no runtime CDN dependency.
+// A serif face for the recruiter's own words and the orientation line. No serif
+// is bundled, so this falls back to the OS serif — no runtime CDN dependency.
 const SERIF = { fontFamily: 'Georgia, "Times New Roman", serif' }
 
 export default function RoleCard({ scorecard, probes = [], highlight = false }) {
@@ -32,28 +32,31 @@ export default function RoleCard({ scorecard, probes = [], highlight = false }) 
   }
 
   return (
-    <div className="flex w-full flex-col gap-5">
-      {/* Craft — one line, no box. */}
-      <p className="text-[15px] font-semibold text-ink">{domainCompetency}</p>
+    <div className="flex w-full flex-col gap-6">
+      {/* Header. Orientation line is verbatim PRD (§B). */}
+      <header className="flex flex-col gap-2">
+        <p className="text-[11px] uppercase tracking-[0.09em] text-muted">Built around</p>
+        <h2 className="text-[30px] font-medium leading-[1.15] text-ink">{domainCompetency}</h2>
+        <p className="max-w-[60ch] text-[16px] italic leading-[1.5] text-secondary" style={SERIF}>
+          Here is what we think a strong {family} looks like. Change anything that does not match.
+        </p>
+      </header>
 
-      {/* Criteria ladder — labels in a 130px left column, criteria to a ~70ch measure. */}
+      {/* Ladder — 0.5px hairline down the left edge; labels in an 118px column. */}
       {criteria.length > 0 ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-5 border-l-[0.5px] border-hairline pl-6">
           {TIER_LABELS.map((tier) => {
             const items = criteria.filter((c) => c.tier === tier)
-            if (items.length === 0) return null
+            if (items.length === 0) return null // a tier with no criteria renders nothing
             const primary = tier === 'Essential'
             return (
-              <div key={tier} className="flex gap-4">
-                <div className="w-[130px] shrink-0">
-                  <div className="text-sm text-ink">{tier}</div>
-                  <div className="text-[12px] text-muted tabular-nums">
-                    {items.length} of {criteria.length}
-                  </div>
-                </div>
-                <div className="flex flex-1 flex-col gap-1">
+              <div key={tier} className="grid grid-cols-[118px_1fr] gap-x-4">
+                <p className={`pt-1 text-[11px] uppercase tracking-[0.09em] ${primary ? 'text-ink' : 'text-secondary'}`}>
+                  {tier}
+                </p>
+                <div className="flex flex-col gap-2">
                   {items.map((c, i) => (
-                    <p key={i} className={`max-w-[70ch] text-sm leading-snug ${primary ? 'text-ink' : 'text-secondary'}`}>
+                    <p key={i} className={`max-w-[62ch] text-[17px] leading-[1.65] ${primary ? 'text-ink' : 'text-secondary'}`}>
                       {c.text}
                     </p>
                   ))}
@@ -67,26 +70,25 @@ export default function RoleCard({ scorecard, probes = [], highlight = false }) 
       )}
 
       {/* Foundation — one sentence. */}
-      <p className="max-w-[70ch] text-[13px] leading-relaxed text-muted">{FOUNDATION_LINE}</p>
+      <p className="max-w-[66ch] text-[13px] leading-[1.6] text-muted">{FOUNDATION_LINE}</p>
 
-      {/* What you told us — heavier divider, only when there is a probe. A faint
+      {/* Probes — above a 0.5px rule, generous space, then the grid. A faint
           transient tint when a probe lands. */}
       {probes.length > 0 && (
         <div
-          className={`flex flex-col gap-3 border-t-2 border-hairline pt-5 transition-colors duration-300 ${
+          className={`flex flex-col gap-5 border-t-[0.5px] border-ink/15 pt-7 transition-colors duration-300 ${
             highlight ? 'bg-ink/[0.03]' : ''
           }`}
         >
-          <p className="text-sm font-medium text-secondary">What you told us, and what we&rsquo;ll ask</p>
-          <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+          <p className="text-[11px] uppercase tracking-[0.09em] text-muted">What you told us, and what we&rsquo;ll ask</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ columnGap: '34px', rowGap: '26px' }}>
             {probes.map((p, i) => (
-              <div key={i} className="flex flex-col gap-1">
-                <p className="text-[15px] leading-snug text-ink" style={SERIF}>
+              <div key={i} className="flex flex-col items-start gap-1.5">
+                <p className="text-[18px] leading-snug text-ink" style={SERIF}>
                   &ldquo;{p.phrase}&rdquo;
                 </p>
-                <p className="max-w-[46ch] text-[12px] leading-snug text-secondary">
-                  {p.promise} <FixtureTag />
-                </p>
+                <p className="max-w-[46ch] text-[14px] leading-[1.6] text-secondary">{p.promise}</p>
+                <FixtureTag />
               </div>
             ))}
           </div>
