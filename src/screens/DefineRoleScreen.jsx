@@ -166,7 +166,7 @@ export default function DefineRoleScreen({
       {/* One scroll region: the card and the conversation. The card is not a
           scroll container; the page scrolls, the composer is pinned. */}
       <div className="min-h-0 flex-1 overflow-y-auto pl-16 pr-8">
-        <div className="flex w-full max-w-[720px] flex-col gap-8 py-6">
+        <div className="flex w-full max-w-[760px] flex-col gap-6 py-6">
           <RoleCard scorecard={scorecard} probes={probes} highlight={highlight} />
 
           {jdEchoed && (
@@ -252,7 +252,7 @@ export default function DefineRoleScreen({
       {/* Composer — pinned. Inner content aligns to the same left margin and
           max-width as the card. Shares the one page background. */}
       <div className="shrink-0 border-t border-hairline bg-background py-4 pl-16 pr-8">
-        <div className="w-full max-w-[720px]">
+        <div className="w-full max-w-[760px]">
           {jd !== 'closed' && jd !== 'panel' ? (
             <JdState jd={jd} onClose={closeJd} onRead={readJd} onReplace={doUpload} />
           ) : jd === 'panel' ? (

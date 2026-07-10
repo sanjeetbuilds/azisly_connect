@@ -47,14 +47,14 @@ export default function ReviewRoleScreen({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto pb-28 pl-16 pr-8 pt-6">
-        <div className="w-full max-w-[720px]">
+        <div className="w-full max-w-[760px]">
           <RoleCard scorecard={scorecard} probes={probes} />
         </div>
       </div>
 
       {/* Sticky action bar — aligned to the same margin and max-width as the card. */}
       <div className="absolute inset-x-0 bottom-0 border-t border-hairline bg-background/90 py-4 pl-16 pr-8 backdrop-blur">
-        <div className="flex w-full max-w-[720px] items-center justify-between gap-3">
+        <div className="flex w-full max-w-[760px] items-center justify-between gap-3">
           <div className="min-w-0 text-[13px]">
             {complete ? (
               <span className="text-secondary">

@@ -24,13 +24,12 @@ export function AuthoringNeeded({ note }) {
   )
 }
 
-// A small chip: 11px, uppercase, muted, subtle surface-1 fill, 3px radius,
-// 2px×7px padding. It sits on its own line, never inside a sentence, and is
-// never the most visible thing in its row.
+// A small 11px muted chip: subtle fill, 3px radius, 2px×7px padding. No
+// uppercase, no letter-spacing. Never the most visible thing in its row.
 export function FixtureTag({ className = '' }) {
   return (
     <span
-      className={`inline-block rounded-[3px] bg-ink/[0.06] px-[7px] py-[2px] text-[11px] uppercase tracking-[0.09em] text-muted ${className}`}
+      className={`inline-block rounded-[3px] bg-ink/[0.06] px-[7px] py-[2px] text-[11px] text-muted ${className}`}
       title="Sample content from data/fixtures.js — not real"
     >
       fixture
