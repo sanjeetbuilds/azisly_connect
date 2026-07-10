@@ -166,10 +166,8 @@ export default function DefineRoleScreen({
       {/* One scroll region: the card and the conversation. The card is not a
           scroll container; the page scrolls, the composer is pinned. */}
       <div className="min-h-0 flex-1 overflow-y-auto px-6 lg:px-8">
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 py-5">
-          <div className={`rounded-card transition-shadow duration-300 ${highlight ? 'ring-2 ring-ink/15' : 'ring-0'}`}>
-            <RoleCard scorecard={scorecard} probes={probes} />
-          </div>
+        <div className="flex w-full max-w-2xl flex-col gap-8 py-6">
+          <RoleCard scorecard={scorecard} probes={probes} highlight={highlight} />
 
           {jdEchoed && (
             <div className="rounded-card border border-hairline bg-surface p-4 text-sm text-secondary">

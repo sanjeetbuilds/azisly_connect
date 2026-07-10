@@ -42,5 +42,5 @@ export const STUB_PROBE_ORDER = [3, 6, 1, 4, 0, 5, 2]
 export const STUB_PROBE_PROMISES = [
   "We'll ask what they did when nobody told them what to do next.",
   "We'll ask about a time priorities shifted under them, and what they did.",
-  "We'll ask how they'd handle it, and what they'd check first.",
+  "We'll ask how they kept a small team pulling the same way.",
 ]

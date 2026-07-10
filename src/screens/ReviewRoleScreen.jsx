@@ -40,26 +40,25 @@ export default function ReviewRoleScreen({
           </button>
         )}
         <div>
+          {/* The role title is the page title. The craft is not repeated here. */}
           <p className="text-[13px] font-medium text-secondary">Review the role</p>
-          <h1 className="mt-1 text-2xl font-bold text-ink">
-            <CopyNeeded note="review page title" />
-          </h1>
+          <h1 className="mt-1 text-2xl font-bold text-ink">{roleTitle}</h1>
         </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-28 pt-6 lg:px-8">
-        <div className="mx-auto w-full max-w-2xl">
+        <div className="w-full max-w-2xl">
           <RoleCard scorecard={scorecard} probes={probes} />
         </div>
       </div>
 
       {/* Sticky action bar */}
       <div className="absolute inset-x-0 bottom-0 border-t border-hairline bg-background/90 px-6 py-4 backdrop-blur lg:px-8">
-        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3">
+        <div className="flex w-full max-w-2xl items-center justify-between gap-3">
           <div className="min-w-0 text-[13px]">
             {complete ? (
               <span className="text-secondary">
-                <CopyNeeded note="ready-to-submit hint" />
+                You can submit now. Anything you add changes what we ask, not who qualifies.
               </span>
             ) : (
               // The reason Submit is disabled, named on screen.

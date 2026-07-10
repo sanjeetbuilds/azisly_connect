@@ -24,13 +24,15 @@ export function AuthoringNeeded({ note }) {
   )
 }
 
+// A small inline label at the end of the line it belongs to — 11px, muted, no
+// fill. It must never be the most visible thing in its row.
 export function FixtureTag({ className = '' }) {
   return (
     <span
-      className={`inline-flex items-center rounded bg-attention/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-attention ${className}`}
+      className={`text-[11px] uppercase tracking-wide text-muted ${className}`}
       title="Sample content from data/fixtures.js — not real"
     >
-      Fixture
+      fixture
     </span>
   )
 }

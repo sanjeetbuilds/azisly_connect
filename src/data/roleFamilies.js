@@ -89,7 +89,14 @@ export const ROLE_FAMILIES = [
     titlePatterns: [/data\s+analyst/i, /business\s+analyst/i, /business\s+intelligence/i, /data\s+analytics/i],
     domainCompetency: 'Data analysis',
     gates: ['Data analysis', 'Problem Solving'],
-    criteria: [],
+    criteria: [
+      { text: 'Gets the data into a shape they can use, without being told how', tier: 'Essential' },
+      { text: 'Notices when a number is wrong before anyone else does', tier: 'Essential' },
+      { text: 'Says what the chart is meant to prove, not just what it shows', tier: 'Essential' },
+      { text: 'Defines a metric precisely enough to argue about', tier: 'Very important' },
+      { text: 'Knows when a difference is not a difference', tier: 'Very important' },
+      { text: 'Has looked at a dataset nobody asked them to look at', tier: 'Nice to have' },
+    ],
   },
   {
     name: 'UI/UX Designer',
