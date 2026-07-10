@@ -7,7 +7,6 @@ import LoginScreen from './screens/LoginScreen.jsx'
 import RolesScreen from './screens/RolesScreen.jsx'
 import CreateRoleScreen from './screens/CreateRoleScreen.jsx'
 import DefineRoleScreen from './screens/DefineRoleScreen.jsx'
-import UnmatchedTitleScreen from './screens/UnmatchedTitleScreen.jsx'
 import ReviewRoleScreen from './screens/ReviewRoleScreen.jsx'
 import { matchFamily } from './data/roleFamilies.js'
 import CandidatesScreen from './screens/CandidatesScreen.jsx'
@@ -175,24 +174,10 @@ export default function App() {
         <CreateRoleScreen
           onCancel={() => setView('roles')}
           onContinue={(cfg) => {
-            // The recruiter always defines by default; asking a manager to define
-            // is an optional action offered on the define screen. A title that
-            // resolves to no family goes to the unmatched screen, never to a
-            // define screen with a blank domain.
+            // The title is picked from the role list, so it always resolves to a
+            // family. Asking a manager to define is an action on the define screen.
             setDraft(cfg)
-            setView(matchFamily(cfg.title) ? 'define' : 'unmatched')
-          }}
-        />
-      )}
-
-      {view === 'unmatched' && (
-        <UnmatchedTitleScreen
-          title={draft?.title ?? ''}
-          onBack={() => setView('create')}
-          onPick={() => setView('define')}
-          onNoneOfThese={() => {
-            setDraft(null)
-            setView('roles')
+            setView('define')
           }}
         />
       )}

@@ -142,11 +142,11 @@ export const ROLE_FAMILIES = [
   },
 ]
 
+// The role list that feeds the create-role picker.
 export const FAMILY_NAMES = ROLE_FAMILIES.map((f) => f.name)
 
-// Exact match: the first family whose title patterns fire. Null means no family
-// owns this title — the load-bearing unmatched case, handled on screen, never as
-// a silent blank.
+// Exact match: the first family whose title patterns fire. Titles are picked from
+// FAMILY_NAMES, so this resolves; null only for a stray non-list title.
 export function matchFamily(title = '') {
   if (!title) return null
   for (const family of ROLE_FAMILIES) {
@@ -159,24 +159,5 @@ export function familyByName(name) {
   return ROLE_FAMILIES.find((f) => f.name === name) ?? null
 }
 
-// STUB — closest-family ranking. The real system ranks families semantically.
-// This interim version scores word overlap between the title and each family's
-// name + domain label, and falls back to the first family on a tie. It decides
-// nothing that ships: it only pre-selects the guess on the unmatched screen,
-// which the recruiter confirms or overrides. Logged in STUBS.md.
-export function guessFamily(title = '') {
-  const exact = matchFamily(title)
-  if (exact) return exact
-  const words = new Set(title.toLowerCase().split(/[^a-z]+/).filter(Boolean))
-  let best = ROLE_FAMILIES[0]
-  let bestScore = -1
-  for (const family of ROLE_FAMILIES) {
-    const hay = `${family.name} ${family.domainCompetency}`.toLowerCase().split(/[^a-z]+/).filter(Boolean)
-    const score = hay.reduce((n, w) => n + (words.has(w) ? 1 : 0), 0)
-    if (score > bestScore) {
-      bestScore = score
-      best = family
-    }
-  }
-  return best
-}
+// There is no closest-family guess. A role is picked from the list (roleFamilies
+// feeds the picker), so a title always resolves to a family — nothing to guess.

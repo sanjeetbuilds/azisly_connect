@@ -8,7 +8,6 @@
 
 // The running demo roles for /states.
 export const DEMO_ROLE_TITLE = 'Associate Product Manager' // matches Product Manager (criteria authored)
-export const DEMO_UNMATCHED_TITLE = 'Growth PM' // matches no family
 
 // A fake uploaded filename for the JD upload states. In the live flow the
 // filename is read from the actual File object.

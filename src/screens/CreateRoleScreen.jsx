@@ -1,23 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button, Card } from '../components'
 import { SearchIcon, CheckIcon, PlusIcon, MinusIcon } from '../components/icons.jsx'
+import { FAMILY_NAMES } from '../data/roleFamilies.js'
+import { track } from '../lib/analytics.js'
 
-// Suggestions map to the eleven role families. No suggestion asserts a number of
-// years, a degree, a college, a tier, a salary, a location, or a named tool.
-const ROLE_SUGGESTIONS = [
-  'Product Manager',
-  'Associate Product Manager',
-  'Program Manager',
-  'Software Engineer',
-  'AI/ML Engineer',
-  'Data Analyst',
-  'UI/UX Designer',
-  'Sales and Marketing',
-  'Customer Success',
-  'Operations and Supply Chain',
-  'Consulting Analyst',
-  'Financial Analyst',
-]
+// The picker is fed by the role list we actually run interviews for
+// (roleFamilies). Free text is never accepted — a role must be picked from the
+// list — so there is no closest-match and no free-text fallback.
+const ROLE_SUGGESTIONS = FAMILY_NAMES
 
 function FieldLabel({ children, hint }) {
   return (
@@ -45,6 +35,11 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
   const matches = q.length >= 2 ? ROLE_SUGGESTIONS.filter((r) => r.toLowerCase().includes(q)) : []
   const showSuggestions = open && q.length >= 2 && !chosen
   const valid = Boolean(chosen) && openings >= 1
+
+  // Free text is not accepted, so an empty result set is a real, terminal state.
+  useEffect(() => {
+    if (q.length >= 2 && matches.length === 0) track('role_search_no_results', { query: q })
+  }, [q, matches.length])
 
   const handleType = (v) => {
     setQuery(v)
@@ -131,13 +126,8 @@ export default function CreateRoleScreen({ onCancel, onContinue }) {
                           </button>
                         ))
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => choose(query.trim())}
-                          className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm text-ink transition-colors hover:bg-background"
-                        >
-                          Use &ldquo;<span className="font-medium">{query.trim()}</span>&rdquo;
-                        </button>
+                        // No closest match, no free-text fallback — just empty.
+                        <p className="px-2.5 py-2 text-sm text-secondary">No roles match.</p>
                       )}
                     </div>
                   </>

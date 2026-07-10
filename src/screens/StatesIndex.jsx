@@ -1,12 +1,10 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { FixtureTag } from '../components/Spec.jsx'
 import DefineRoleScreen from './DefineRoleScreen.jsx'
-import UnmatchedTitleScreen from './UnmatchedTitleScreen.jsx'
 import ReviewRoleScreen from './ReviewRoleScreen.jsx'
-import FindingCandidatesScreen from './FindingCandidatesScreen.jsx'
 import SubmitPeripheralScreen from './SubmitPeripheralScreen.jsx'
 import MagicLinkScreen from './MagicLinkScreen.jsx'
-import { DEMO_ROLE_TITLE, DEMO_UNMATCHED_TITLE, DEMO_VOICE_ANSWERS } from '../data/fixtures.js'
+import { DEMO_ROLE_TITLE, DEMO_VOICE_ANSWERS } from '../data/fixtures.js'
 
 // Answers already given by voice — the "conversed" demo states.
 const VOICE_ANSWERS = DEMO_VOICE_ANSWERS.map((text) => ({ text, fixture: true }))
@@ -29,20 +27,6 @@ const STATES = {
     render: () => (
       <Full>
         <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture onAskManager={() => {}} onComplete={() => {}} />
-      </Full>
-    ),
-  },
-  'define-unmatched': {
-    group: 'Define',
-    label: 'Title unmatched',
-    render: (nav) => (
-      <Full>
-        <UnmatchedTitleScreen
-          title={DEMO_UNMATCHED_TITLE}
-          titleIsFixture
-          onPick={() => nav('/states/define-matched')}
-          onNoneOfThese={() => nav('/states/submit-loadbearing')}
-        />
       </Full>
     ),
   },
@@ -106,31 +90,12 @@ const STATES = {
       </Full>
     ),
   },
-  'review-nofamily': {
-    group: 'Review',
-    label: 'No family — Submit disabled, reason named',
-    render: () => (
-      <Full>
-        {/* No family resolved ⇒ Submit disabled with the reason on screen. */}
-        <ReviewRoleScreen roleTitle={DEMO_UNMATCHED_TITLE} />
-      </Full>
-    ),
-  },
   'submit-peripheral': {
     group: 'Submit',
     label: 'Peripheral gap — candidates immediately',
     render: () => (
       <Full>
         <SubmitPeripheralScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture />
-      </Full>
-    ),
-  },
-  'submit-loadbearing': {
-    group: 'Submit',
-    label: 'Load-bearing gap — Finding candidates',
-    render: (nav) => (
-      <Full>
-        <FindingCandidatesScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture onLeave={() => nav('/states')} />
       </Full>
     ),
   },
