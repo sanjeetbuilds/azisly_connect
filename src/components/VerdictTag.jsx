@@ -1,33 +1,37 @@
 /**
  * VerdictTag — the engine's verdict, the one place colour carries meaning.
  *
- *   strong     (recommend) → green
- *   promising             → neutral grey (NOT green, NOT amber)
- *   not-yet               → amber
+ *   clears        (clears the bar)              → green
+ *   clears-light  (clears, lighter on a craft)  → green, softened (still a pass)
+ *   below         (below the bar)               → failure colour, the only red
+ *
+ * The full label ("Clears the bar, lighter on Product craft" / "Below the bar,
+ * Communication") is passed in as children; the map carries the default word and
+ * the colour.
  */
 const VERDICTS = {
-  strong: {
-    label: 'Strong',
+  clears: {
+    label: 'Clears the bar',
     text: 'text-strong',
     dot: 'bg-strong',
     border: 'border-strong/30',
   },
-  promising: {
-    label: 'Promising',
-    text: 'text-secondary',
-    dot: 'bg-secondary',
-    border: 'border-hairline',
+  'clears-light': {
+    label: 'Clears the bar',
+    text: 'text-strong',
+    dot: 'bg-strong/40',
+    border: 'border-strong/20',
   },
-  'not-yet': {
-    label: 'Not yet',
-    text: 'text-attention',
-    dot: 'bg-attention',
-    border: 'border-attention/30',
+  below: {
+    label: 'Below the bar',
+    text: 'text-danger',
+    dot: 'bg-danger',
+    border: 'border-danger/30',
   },
 }
 
-export default function VerdictTag({ verdict = 'strong', children, className = '' }) {
-  const v = VERDICTS[verdict] ?? VERDICTS.strong
+export default function VerdictTag({ verdict = 'clears', children, className = '' }) {
+  const v = VERDICTS[verdict] ?? VERDICTS.clears
 
   return (
     <span

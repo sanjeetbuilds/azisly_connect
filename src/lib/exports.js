@@ -1,7 +1,7 @@
 // Client-side export helpers for the taken-forward launchpad. The CV documents
 // and CV links are prototype stand-ins (no real cloud), but the CSV and text
 // files download for real.
-import { contactsFor, topExperienceOf } from '../data/candidates.js'
+import { contactsFor, topExperienceOf, verdictLabel } from '../data/candidates.js'
 
 export function downloadFile(filename, content, mime = 'text/plain') {
   const blob = new Blob([content], { type: mime })
@@ -50,7 +50,11 @@ export function candidateCv(c) {
     '',
     `Skills: ${c.skills.join(', ')}`,
     '',
-    c.score != null ? `Interview score: ${c.score} (${c.verdict})` : 'Interview: not yet taken',
+    c.incomplete
+      ? 'Interview: incomplete'
+      : c.score != null
+        ? `Interview score: ${c.score} (${verdictLabel(c)})`
+        : 'Interview: not yet taken',
   ]
   if (c.projects?.length) {
     lines.push('', 'Projects', ...c.projects.map((p) => `  - ${p}`))

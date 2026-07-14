@@ -11,7 +11,8 @@ import { interviews } from '../data/interviews.js'
  */
 export default function ManagerReviewFlow({ token }) {
   const [phase, setPhase] = useState('entry') // entry | review
-  const shortlist = candidates.filter((c) => c.verdict === 'strong')
+  // The recruiter shares those who cleared the bar (both tiers) — never a below.
+  const shortlist = candidates.filter((c) => c.verdict === 'clears' || c.verdict === 'clears-light')
 
   if (phase === 'entry') {
     return (

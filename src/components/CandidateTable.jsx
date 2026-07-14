@@ -1,12 +1,13 @@
+import { Fragment } from 'react'
 import Avatar from './Avatar.jsx'
 import Tag, { skillColor } from './Tag.jsx'
 import Tooltip from './Tooltip.jsx'
-import VerdictTag from './VerdictTag.jsx'
 import { ScoreValue, InterviewScoreValue } from './Scores.jsx'
 import { CheckIcon } from './icons.jsx'
 import { topExperienceOf } from '../data/candidates.js'
 
-const MATCH_EXPLAINER = 'Match score: how well this candidate fits the role on paper, before the interview.'
+const MATCH_EXPLAINER =
+  'How well this candidate fits the role, from their practice and history, before the interview.'
 
 // Pick whole skill chips that fit the budget; the rest become "+N". Never crop a
 // chip mid-word.
@@ -72,6 +73,44 @@ function RowCheck({ checked, onClick }) {
 
 const HEAD = 'text-[11px] font-semibold uppercase tracking-wide text-muted'
 
+// A verdict-group separator on the Interviewed list. The dot carries the tier's
+// colour; failure (below the bar) is the only red.
+const GROUP_DOT = {
+  incomplete: 'bg-secondary/50',
+  clears: 'bg-strong',
+  'clears-light': 'bg-strong/40',
+  below: 'bg-danger',
+}
+function GroupHeader({ tierKey, label }) {
+  return (
+    <div className="flex items-center gap-2 border-b border-hairline bg-background/70 px-5 py-1.5">
+      <span className={`h-1.5 w-1.5 rounded-full ${GROUP_DOT[tierKey] ?? 'bg-secondary/50'}`} aria-hidden="true" />
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</span>
+    </div>
+  )
+}
+
+// The per-row verdict detail beside the score. The group header already names the
+// tier, so the row only carries what is specific to this candidate: the craft they
+// were lighter on, or — in the failure colour — the competency that fell short.
+function RowVerdictDetail({ candidate: c }) {
+  if (c.verdict === 'below') {
+    return (
+      <span className="inline-flex items-center rounded-full bg-danger-soft px-2 py-0.5 text-[11px] font-medium text-danger ring-1 ring-danger/30">
+        {c.belowOn}
+      </span>
+    )
+  }
+  if (c.verdict === 'clears-light') {
+    return (
+      <span className="inline-flex items-center rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-medium text-strong">
+        lighter on {c.lightOn}
+      </span>
+    )
+  }
+  return null
+}
+
 /**
  * CandidateTable — one table for every stage tab. The row end is two FIXED slots:
  * an action slot, and, at the far right, a reserved menu slot that never shifts
@@ -89,6 +128,8 @@ export default function CandidateTable({
   newIds,
   rowAction,
   rowMenu,
+  groupOf,
+  groupLabels,
 }) {
   const allChecked = selectable && candidates.length > 0 && candidates.every((c) => picked.has(c.id))
 
@@ -104,7 +145,7 @@ export default function CandidateTable({
         <div className={`min-w-[160px] flex-1 ${HEAD}`}>Candidate</div>
         <div className={`hidden w-[220px] shrink-0 md:block ${HEAD}`}>Experience</div>
         {showInterview ? (
-          <div className={`w-[150px] shrink-0 ${HEAD}`}>Interview</div>
+          <div className={`w-[200px] shrink-0 ${HEAD}`}>Interview</div>
         ) : (
           <div className={`hidden w-[170px] shrink-0 xl:block ${HEAD}`}>Skills</div>
         )}
@@ -115,13 +156,17 @@ export default function CandidateTable({
 
       {/* Rows */}
       <div>
-        {candidates.map((c) => {
+        {candidates.map((c, i) => {
           const open = c.id === selectedId
           const top = topExperienceOf(c)
           const { shown, extra } = fitSkills(c.skills, 160)
+          const gKey = groupOf?.(c)
+          const prevKey = i > 0 ? groupOf?.(candidates[i - 1]) : undefined
+          const showHeader = Boolean(groupOf) && gKey && gKey !== prevKey
           return (
+            <Fragment key={c.id}>
+            {showHeader && <GroupHeader tierKey={gKey} label={groupLabels?.[gKey] ?? gKey} />}
             <div
-              key={c.id}
               role="button"
               tabIndex={0}
               onClick={() => onSelect(c.id)}
@@ -162,9 +207,15 @@ export default function CandidateTable({
 
               {/* Skills (pre-interview) or Interview score (post-interview) */}
               {showInterview ? (
-                <div className="flex w-[150px] shrink-0 items-center gap-2">
-                  <InterviewScoreValue candidate={c} size="lg" showGate={false} />
-                  {c.verdict && <VerdictTag verdict={c.verdict} />}
+                <div className="flex w-[200px] shrink-0 items-center gap-2.5">
+                  {c.incomplete ? (
+                    <span className="text-[13px] text-muted">Not scored</span>
+                  ) : (
+                    <>
+                      <InterviewScoreValue candidate={c} size="lg" showGate={false} />
+                      <RowVerdictDetail candidate={c} />
+                    </>
+                  )}
                 </div>
               ) : (
                 <div className="hidden w-[170px] shrink-0 items-center gap-1 whitespace-nowrap xl:flex">
@@ -200,6 +251,7 @@ export default function CandidateTable({
               {/* Menu slot (fixed, far right, always reserved) */}
               <div className="flex w-[34px] shrink-0 items-center justify-end">{rowMenu?.(c)}</div>
             </div>
+            </Fragment>
           )
         })}
       </div>

@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { Button, Card, Avatar, VerdictTag } from '../components'
 import { ArrowLeftIcon, CheckIcon, MailIcon, PhoneIcon, LinkIcon } from '../components/icons.jsx'
+import { verdictLabel } from '../data/candidates.js'
 
 const FALLBACK = {
   name: 'Maya Okonkwo',
   role: 'Product Engineer',
   location: 'Lisbon',
   score: 86,
-  verdict: 'strong',
+  verdict: 'clears',
   avatar: 'https://i.pravatar.cc/160?img=47',
 }
 
@@ -63,7 +64,7 @@ export default function DecisionScreen({ candidate = FALLBACK, onBack, onDone })
                     {candidate.role}
                   </p>
                 </div>
-                <VerdictTag verdict={candidate.verdict} />
+                <VerdictTag verdict={candidate.verdict}>{verdictLabel(candidate)}</VerdictTag>
               </div>
             </div>
             <div className="flex shrink-0 flex-col items-end">

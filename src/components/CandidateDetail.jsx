@@ -28,6 +28,7 @@ import {
   GATED_COMPETENCIES,
   ROLE_TARGETS,
   interviewStatus,
+  verdictLabel,
 } from '../data/candidates.js'
 
 const SectionLabel = ({ children }) => (
@@ -35,9 +36,9 @@ const SectionLabel = ({ children }) => (
 )
 
 const RECO = {
-  strong: 'Recommend advancing.',
-  promising: 'Promising, worth a closer look.',
-  'not-yet': 'Not yet, needs a human review.',
+  clears: 'Recommend advancing.',
+  'clears-light': 'Clears the bar; lighter on one craft, worth a closer look.',
+  below: 'Below the bar. Needs a human review before advancing.',
 }
 
 function InterviewVideo({ candidate, summary }) {
@@ -173,13 +174,7 @@ function CompetencyRow({ comp, ev, open, onToggle }) {
               <XIcon className="h-2.5 w-2.5" />
               Below floor
             </span>
-          ) : (
-            gated && (
-              <span className="inline-flex items-center rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-medium text-strong">
-                Gate met
-              </span>
-            )
-          )}
+          ) : null /* A met gate shows nothing — passing is the default. */}
           {ev && <ChevronDownIcon className={`h-3.5 w-3.5 text-muted transition-transform ${open ? 'rotate-180' : ''}`} />}
         </span>
       </div>
@@ -278,7 +273,7 @@ export default function CandidateDetail({ candidate, onBack, interview, decided,
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Interview</span>
                 <div className="flex items-center gap-2">
                   <ScoreValue value={candidate.score} size="xl" />
-                  {candidate.verdict && <VerdictTag verdict={candidate.verdict} />}
+                  {candidate.verdict && <VerdictTag verdict={candidate.verdict}>{verdictLabel(candidate)}</VerdictTag>}
                 </div>
                 <span className="text-[12px] text-muted">Match {candidate.match}</span>
               </div>
@@ -393,16 +388,13 @@ export default function CandidateDetail({ candidate, onBack, interview, decided,
 
             <section className="flex flex-col gap-3">
               <SectionLabel>Why they matched</SectionLabel>
+              {/* Plain reasons — no ticks. Nothing is tested before the interview,
+                  so a checkmark would imply a pass that hasn't happened. */}
               <div className="flex flex-col gap-3.5">
                 {reasons.map((r) => (
-                  <div key={r.competency} className="flex gap-2.5">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-soft text-strong">
-                      <CheckIcon className="h-3 w-3" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-ink">{r.competency}</p>
-                      {r.note && <p className="text-[13px] leading-relaxed text-secondary">{r.note}</p>}
-                    </div>
+                  <div key={r.competency} className="min-w-0">
+                    <p className="text-sm font-medium text-ink">{r.competency}</p>
+                    {r.note && <p className="text-[13px] leading-relaxed text-secondary">{r.note}</p>}
                   </div>
                 ))}
               </div>

@@ -16,9 +16,55 @@ export const CORE_COMPETENCIES = [
 ]
 export const DOMAIN_LABEL = 'Product craft'
 
-// The engine outputs three verdicts: recommend, promising, not-yet. We key them
-// as strong | promising | not-yet and label them Strong | Promising | Not yet.
-export const VERDICTS = ['strong', 'promising', 'not-yet']
+// The engine outputs three verdicts, keyed clears | clears-light | below:
+//   clears        cleared every bar (all gates, and the role's domain target)
+//   clears-light  cleared the bars, lighter on one craft (domain below target)
+//   below         a gated competency fell below the gate — names what failed
+// Only "below" carries the failure colour; both "clears" tiers are a pass.
+// An interview that never finished is NOT judged: it has no verdict and sorts
+// into its own "Interview incomplete" group, never ranked among these three.
+export const VERDICTS = ['clears', 'clears-light', 'below']
+
+// The verdict reads as a full sentence. The two lighter tiers name the craft or
+// competency in play, so the label is built from the candidate, not a fixed word.
+export function verdictLabel(c) {
+  switch (c.verdict) {
+    case 'clears':
+      return 'Clears the bar'
+    case 'clears-light':
+      return `Clears the bar, lighter on ${c.lightOn ?? 'craft'}`
+    case 'below':
+      return `Below the bar, ${c.belowOn ?? 'a core competency'}`
+    default:
+      return null
+  }
+}
+
+// The group a candidate falls into on the Interviewed list. Incomplete interviews
+// are unscored and never mixed with the judged.
+export function interviewGroupOf(c) {
+  if (c.incomplete) return 'incomplete'
+  return c.verdict
+}
+
+// Interviewed rows sort by verdict tier first, then score within tier — never by
+// raw score across tiers (raw sort floats a failed 64 above a passing 58). The
+// incomplete group is unscored and sits at the very top.
+const VERDICT_TIER = { incomplete: 0, clears: 1, 'clears-light': 2, below: 3 }
+export function compareInterviewed(a, b) {
+  const ta = VERDICT_TIER[interviewGroupOf(a)] ?? 99
+  const tb = VERDICT_TIER[interviewGroupOf(b)] ?? 99
+  if (ta !== tb) return ta - tb
+  return (b.score ?? 0) - (a.score ?? 0)
+}
+
+// The label shown above each verdict group on the Interviewed list.
+export const INTERVIEW_GROUP_LABEL = {
+  incomplete: 'Interview incomplete',
+  clears: 'Clears the bar',
+  'clears-light': 'Clears the bar, lighter on craft',
+  below: 'Below the bar',
+}
 
 // One candidate lifecycle. A scored candidate shows the next meaningful state
 // (Ready to review or Needs human), never "Scored" itself.
@@ -59,6 +105,7 @@ export const ROLE_TARGETS = {
 // The candidate's interview status in plain recruiter language, derived from the
 // lifecycle. The list shows this single status; the score carries the verdict.
 export function interviewStatus(c) {
+  if (c.incomplete) return 'Interview incomplete' // started, never finished — not scored
   if (c.score != null) return 'Done' // interview completed and judged
   if (c.lapsed) return 'Lapsed' // invite expired with no interview
   if (c.stage === 'Interviewing') return 'Pending' // invited, not yet completed
@@ -140,10 +187,10 @@ export const candidates = [
     name: 'Maya Okonkwo',
     role: 'Product Engineer',
     location: 'Lisbon',
-    experience: '8 yrs',
+    experience: 'Fresher',
     score: 86,
     confidence: 92,
-    verdict: 'strong',
+    verdict: 'clears',
     gate: null,
     stage: 'Taken forward',
     source: 'referral',
@@ -154,9 +201,9 @@ export const candidates = [
     course: 'BTech',
     discipline: 'Computer Science',
     percentage: 84,
-    expYears: 8,
+    expYears: 0,
     strengths: ['Problem solving', 'Ownership', 'Execution'],
-    work: ['Senior Engineer · Stripe · 3 yrs', 'Engineer · Feedzai · 3 yrs', 'Intern · Google · 6 mo'],
+    work: ['6 mo internship · Stripe'],
     avatar: avatar(47),
     competencies: comps({
       communication: 84,
@@ -187,10 +234,10 @@ export const candidates = [
     name: 'Hana Kim',
     role: 'Product Engineer',
     location: 'Seoul',
-    experience: '6 yrs',
+    experience: 'Fresher',
     score: 89,
     confidence: 96,
-    verdict: 'strong',
+    verdict: 'clears',
     gate: null,
     stage: 'Taken forward',
     source: 'linkedin',
@@ -201,9 +248,9 @@ export const candidates = [
     course: 'BE',
     discipline: 'Computer Science',
     percentage: 88,
-    expYears: 6,
+    expYears: 0,
     strengths: ['Communication', 'Collaboration', 'Product craft'],
-    work: ['Product Engineer · Toss · 4 yrs', 'Intern · Naver · 6 mo'],
+    work: ['6 mo internship · Toss'],
     avatar: avatar(9),
     competencies: comps({
       communication: 93,
@@ -234,10 +281,10 @@ export const candidates = [
     name: 'Sofia Almeida',
     role: 'Frontend Engineer',
     location: 'Porto',
-    experience: '7 yrs',
+    experience: 'Fresher',
     score: 82,
     confidence: 88,
-    verdict: 'strong',
+    verdict: 'clears',
     gate: null,
     stage: 'Shared',
     source: 'careers',
@@ -248,9 +295,9 @@ export const candidates = [
     course: 'BSc',
     discipline: 'Computer Science',
     percentage: 79,
-    expYears: 7,
+    expYears: 0,
     strengths: ['Accessibility', 'Execution', 'Communication'],
-    work: ['Frontend Engineer · Farfetch · 4 yrs', 'Intern · Talkdesk · 6 mo'],
+    work: ['6 mo internship · Farfetch'],
     avatar: avatar(32),
     competencies: comps({
       communication: 88,
@@ -281,10 +328,10 @@ export const candidates = [
     name: 'Daniel Reyes',
     role: 'Backend Engineer',
     location: 'Mexico City',
-    experience: '9 yrs',
+    experience: 'Fresher',
     score: 73,
     confidence: 70,
-    verdict: 'promising',
+    verdict: 'clears',
     gate: null,
     stage: 'Shared',
     source: 'agency',
@@ -295,9 +342,9 @@ export const candidates = [
     course: 'BE',
     discipline: 'Software Engineering',
     percentage: 76,
-    expYears: 9,
+    expYears: 0,
     strengths: ['Distributed systems', 'Problem solving'],
-    work: ['Backend Engineer · Nubank · 5 yrs', 'Engineer · Konfio · 3 yrs'],
+    work: ['6 mo internship · Nubank'],
     avatar: avatar(12),
     // Product craft was not asked in this interview, so it is not assessed.
     competencies: comps({
@@ -329,11 +376,12 @@ export const candidates = [
     name: 'Priya Nair',
     role: 'Platform Engineer',
     location: 'Bangalore',
-    experience: '5 yrs',
+    experience: 'Fresher',
     score: 64,
     confidence: 61,
-    verdict: 'not-yet',
-    // Strong overall, but Communication is below the gate, so a human is needed.
+    verdict: 'below',
+    belowOn: 'Communication',
+    // Healthy elsewhere, but Communication is below the gate — below the bar.
     gate: { competency: 'Communication', score: 44 },
     stage: 'Needs human',
     source: 'linkedin',
@@ -344,9 +392,9 @@ export const candidates = [
     course: 'BTech',
     discipline: 'Information Technology',
     percentage: 72,
-    expYears: 5,
+    expYears: 0,
     strengths: ['Infrastructure', 'Execution'],
-    work: ['Platform Engineer · Razorpay · 3 yrs', 'Intern · Infosys · 6 mo'],
+    work: ['6 mo internship · Razorpay'],
     avatar: avatar(5),
     competencies: comps({
       communication: 44,
@@ -377,10 +425,11 @@ export const candidates = [
     name: 'Liam Patel',
     role: 'Infrastructure Engineer',
     location: 'Manchester',
-    experience: '4 yrs',
+    experience: 'Fresher',
     score: 58,
     confidence: 54,
-    verdict: 'promising',
+    verdict: 'clears-light',
+    lightOn: 'Product craft',
     gate: null,
     stage: 'Ready to review',
     source: 'careers',
@@ -391,9 +440,9 @@ export const candidates = [
     course: 'BEng',
     discipline: 'Computer Science',
     percentage: 68,
-    expYears: 4,
+    expYears: 0,
     strengths: ['Observability', 'Ownership'],
-    work: ['Infra Engineer · Monzo · 2 yrs', 'Intern · ARM · 6 mo'],
+    work: ['6 mo internship · Monzo'],
     avatar: avatar(51),
     competencies: comps({
       communication: 60,
@@ -418,6 +467,41 @@ export const candidates = [
         source: 'Take-home review',
       },
     ],
+  },
+
+  // Interview started but never finished: shows on the Interviewed tab in its own
+  // "Interview incomplete" group — unscored, no verdict, never ranked with the judged.
+  {
+    id: 'ravi-desai',
+    name: 'Ravi Desai',
+    role: 'Product Engineer',
+    location: 'Pune',
+    experience: 'Fresher',
+    score: null,
+    confidence: null,
+    verdict: null,
+    incomplete: true, // dropped partway through the interview; never completed
+    gate: null,
+    stage: 'Interviewing',
+    source: 'careers',
+    applied: 'Jun 20',
+    appliedSort: 20,
+    skills: ['React', 'TypeScript', 'Node.js'],
+    match: 77,
+    course: 'BTech',
+    discipline: 'Computer Science',
+    percentage: 80,
+    expYears: 0,
+    strengths: ['React', 'Problem solving'],
+    work: ['6 mo internship · Zoho'],
+    matchSummary: 'Strong on frontend fundamentals and problem solving for this role.',
+    matchReasons: [
+      { competency: 'Frontend craft', note: 'React and TypeScript across a six-month internship and side projects.' },
+      { competency: 'Problem Solving', note: 'Built and shipped small features end to end during the internship.' },
+    ],
+    avatar: avatar(60),
+    competencies: [],
+    evidence: [],
   },
 
   // Early-lifecycle candidates: not yet scored, so no verdict or competencies.

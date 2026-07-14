@@ -37,8 +37,8 @@ export const seedRoles = [
     approve_by: 'hiring_manager',
     // Optional requirements — the matched list filter bar starts from these but
     // defaults to open so every match (including freshers) shows on first view.
+    // This is a freshers product: there is no years-of-experience requirement.
     requirements: {
-      minExperience: null,
       location: null,
     },
     candidatesReady: 6,
@@ -130,9 +130,7 @@ export function makeRole(
   }
 }
 
-// The MVP requirement fields: experience and location only. Every field is
-// optional; the matched list filters only on the ones a recruiter actually set.
-export const REQUIREMENT_FIELDS = [
-  { key: 'minExperience', label: 'Experience', kind: 'number' },
-  { key: 'location', label: 'Location', kind: 'text' },
-]
+// The MVP requirement field: location only (this is a freshers product, so there
+// is no years-of-experience requirement). Optional; the matched list filters only
+// on what a recruiter actually set.
+export const REQUIREMENT_FIELDS = [{ key: 'location', label: 'Location', kind: 'text' }]

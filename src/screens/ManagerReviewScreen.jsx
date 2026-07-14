@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button, Card, Avatar, VerdictTag, CandidateDetail } from '../components'
 import { CheckIcon } from '../components/icons.jsx'
+import { verdictLabel } from '../data/candidates.js'
 
 function Wordmark() {
   return (
@@ -53,7 +54,7 @@ function RichRow({ candidate, forwarded, selected, onClick }) {
             <CheckIcon className="h-3 w-3" /> Taken forward
           </span>
         ) : (
-          <VerdictTag verdict={candidate.verdict} />
+          <VerdictTag verdict={candidate.verdict}>{verdictLabel(candidate)}</VerdictTag>
         )}
       </div>
     </button>

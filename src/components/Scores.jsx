@@ -1,4 +1,5 @@
 import VerdictTag from './VerdictTag.jsx'
+import { verdictLabel } from '../data/candidates.js'
 
 /**
  * Scores — the two scores that exist in the product, always labelled separately
@@ -63,7 +64,7 @@ export default function Scores({ candidate, className = '' }) {
       <LabelledScore label="Interview score">
         <div className="flex flex-col items-start gap-2">
           <InterviewScoreValue candidate={candidate} size="xl" showGate={false} />
-          {candidate.verdict && <VerdictTag verdict={candidate.verdict} />}
+          {candidate.verdict && <VerdictTag verdict={candidate.verdict}>{verdictLabel(candidate)}</VerdictTag>}
         </div>
       </LabelledScore>
     </div>

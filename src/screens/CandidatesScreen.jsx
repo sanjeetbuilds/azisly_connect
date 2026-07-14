@@ -21,7 +21,13 @@ import {
   PhoneIcon,
   DownloadIcon,
 } from '../components/icons.jsx'
-import { candidates as ALL, contactsFor } from '../data/candidates.js'
+import {
+  candidates as ALL,
+  contactsFor,
+  compareInterviewed,
+  interviewGroupOf,
+  INTERVIEW_GROUP_LABEL,
+} from '../data/candidates.js'
 import { interviews } from '../data/interviews.js'
 import { buildInterviewLink } from '../lib/magicLink.js'
 import { downloadCsv, downloadCv } from '../lib/exports.js'
@@ -34,6 +40,7 @@ function statusOf(c, s) {
   if (s.moved.has(c.id) || c.stage === 'Taken forward' || c.stage === 'Moving forward') return 'taken_forward'
   if (s.declined.has(c.id) || s.rejected.has(c.id) || c.stage === 'Passed') return 'declined'
   if (s.shared.has(c.id) || c.stage === 'Shared') return 'shared'
+  if (c.incomplete) return 'incomplete' // interview started but never finished — unscored
   if (c.score != null) return 'interviewed'
   if (c.declinedInterview) return 'declined_interview'
   if (c.lapsed) return 'lapsed'
@@ -46,6 +53,7 @@ const TAB_OF = {
   pending: 'invited',
   lapsed: 'invited',
   declined_interview: 'invited',
+  incomplete: 'interviewed',
   interviewed: 'interviewed',
   shared: 'interviewed',
   taken_forward: 'taken',
@@ -57,15 +65,6 @@ const TAB_DEFS = [
   { key: 'interviewed', label: 'Interviewed' },
   { key: 'taken', label: 'Taken forward' },
 ]
-
-function FilterField({ label, children }) {
-  return (
-    <label className="inline-flex items-center gap-2 rounded-md border border-hairline bg-surface px-3 py-2 text-[13px] text-secondary shadow-card">
-      <span className="font-medium text-ink">{label}</span>
-      {children}
-    </label>
-  )
-}
 
 /* A quiet but always-visible row action; the row hover lifts its border. */
 function RowPrimary({ onClick, icon, children }) {
@@ -99,7 +98,6 @@ export default function CandidatesScreen({
   const [tab, setTab] = useState('matched')
   const [showDeclined, setShowDeclined] = useState(false)
   const [search, setSearch] = useState('')
-  const [minExperience, setMinExperience] = useState(requirements?.minExperience ?? '')
   const [selectedId, setSelectedId] = useState(null)
   const [picked, setPicked] = useState(() => new Set())
   const [shareIds, setShareIds] = useState(null)
@@ -131,18 +129,21 @@ export default function CandidatesScreen({
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return ALL.filter((c) => {
+    const list = ALL.filter((c) => {
       const st = status(c)
       if (showDeclined ? st !== 'declined' : TAB_OF[st] !== tab) return false
-      if (minExperience && c.expYears < Number(minExperience)) return false
       if (q) {
         const hay = [c.name, c.role, ...c.work, ...c.skills].join(' ').toLowerCase()
         if (!hay.includes(q)) return false
       }
       return true
     })
+    // The Interviewed list ranks by verdict tier first, then score within tier;
+    // the incomplete group sorts to the top. Never a raw-number sort.
+    if (!showDeclined && tab === 'interviewed') list.sort(compareInterviewed)
+    return list
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, showDeclined, search, minExperience, invited, declined, shared, moved, rejected])
+  }, [tab, showDeclined, search, invited, declined, shared, moved, rejected])
 
   const selected = ALL.find((c) => c.id === selectedId) ?? null
   const pickedList = ALL.filter((c) => picked.has(c.id))
@@ -281,6 +282,14 @@ export default function CandidatesScreen({
         </div>
       )
     }
+    if (st === 'incomplete') {
+      return (
+        <div className="flex flex-col items-end gap-0.5">
+          <StatusPill label="Interview incomplete" tone="neutral" />
+          <span className="text-[11px] text-muted">Not finished — not scored</span>
+        </div>
+      )
+    }
     if (st === 'interviewed') {
       return (
         <RowPrimary onClick={() => takeForward(c.id)} icon={<ArrowRightIcon className="h-3.5 w-3.5" />}>
@@ -289,12 +298,7 @@ export default function CandidatesScreen({
       )
     }
     if (st === 'shared') {
-      return (
-        <div className="flex flex-col items-end gap-0.5">
-          <StatusPill label="Shared" tone="accent" />
-          <span className="text-[11px] text-muted">Waiting on {HM_NAME.split(' ')[0]}</span>
-        </div>
-      )
+      return <StatusPill label={`With ${HM_NAME} to review`} tone="accent" />
     }
     if (st === 'taken_forward') {
       return (
@@ -478,15 +482,6 @@ export default function CandidatesScreen({
                     className="w-60 rounded-md border border-hairline bg-surface py-2 pl-9 pr-3 text-sm text-ink shadow-card transition-colors placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
                   />
                 </div>
-                <FilterField label="Min yrs">
-                  <input
-                    type="number"
-                    value={minExperience}
-                    onChange={(e) => setMinExperience(e.target.value)}
-                    placeholder="Any"
-                    className="w-14 bg-transparent text-ink placeholder:text-muted focus:outline-none"
-                  />
-                </FilterField>
 
                 <div className="ml-auto flex items-center gap-2.5">
                   {inTaken && takenList.length > 0 && (
@@ -537,6 +532,8 @@ export default function CandidatesScreen({
                   newIds={newTaken}
                   rowAction={rowAction}
                   rowMenu={rowMenu}
+                  groupOf={inInterviewed ? interviewGroupOf : undefined}
+                  groupLabels={INTERVIEW_GROUP_LABEL}
                 />
               )}
             </div>
