@@ -81,6 +81,7 @@ export const seedRoles = [
     state: 'being_defined',
     define_by: 'hiring_manager',
     approve_by: 'recruiter_alone',
+    sharedWith: 'Priya Shah',
     candidatesReady: 0,
     totalCandidates: 0,
     updated: 'Awaiting hiring manager',
@@ -102,12 +103,14 @@ export const seedRoles = [
     title: 'Frontend Lead',
     location: 'Remote · Global',
     type: 'Full-time',
+    // Auto-closed 15 days after submission, no recruiter action taken.
     state: 'closed',
+    autoClosed: true,
     define_by: 'recruiter',
     approve_by: 'recruiter_alone',
     candidatesReady: 0,
     totalCandidates: 12,
-    updated: 'Closed 3d ago',
+    updated: 'Closed after 15 days',
   },
 ]
 

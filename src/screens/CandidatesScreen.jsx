@@ -8,8 +8,10 @@ import {
   CandidateTable,
   CandidateDetail,
   MatchingProgress,
+  ConfirmDialog,
 } from '../components'
 import ShareWithManagerModal from '../components/ShareWithManagerModal.jsx'
+import { CONFIRM_COPY } from '../lib/roleStatus.js'
 import {
   SearchIcon,
   XIcon,
@@ -93,9 +95,13 @@ export default function CandidatesScreen({
   roleId = 'r-spe',
   requirements,
   runMatch = false,
+  canClose = false,
+  onCloseRole,
 }) {
   const [phase, setPhase] = useState(runMatch ? 'matching' : 'list')
   const [tab, setTab] = useState('matched')
+  const [closeOpen, setCloseOpen] = useState(false)
+  const [closeFeedback, setCloseFeedback] = useState('')
   const [showDeclined, setShowDeclined] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState(null)
@@ -430,6 +436,15 @@ export default function CandidatesScreen({
         <PageHeader
           breadcrumb={['Roles', roleTitle, 'Candidates']}
           title={phase === 'matching' ? 'Matching candidates' : 'Candidates'}
+          actions={
+            // Available from any tab — this lives above the tabs, not inside one.
+            canClose &&
+            phase === 'list' && (
+              <Button variant="secondary" onClick={() => setCloseOpen(true)}>
+                Close role
+              </Button>
+            )
+          }
         />
       </div>
 
@@ -600,6 +615,27 @@ export default function CandidatesScreen({
           onConfirm={() => {
             doReject(rejectIds)
             setRejectIds(null)
+          }}
+        />
+      )}
+
+      {/* Close role — candidates already found stay fully visible on every tab */}
+      {closeOpen && (
+        <ConfirmDialog
+          {...CONFIRM_COPY.close}
+          feedback={{
+            value: closeFeedback,
+            onChange: setCloseFeedback,
+            placeholder: 'Why are you closing this role? (optional)',
+          }}
+          onCancel={() => {
+            setCloseOpen(false)
+            setCloseFeedback('')
+          }}
+          onConfirm={() => {
+            onCloseRole?.(closeFeedback)
+            setCloseOpen(false)
+            setCloseFeedback('')
           }}
         />
       )}

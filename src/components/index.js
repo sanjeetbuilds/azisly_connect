@@ -19,6 +19,7 @@ export { default as Nav } from './Nav.jsx'
 export { default as EvidenceQuote } from './EvidenceQuote.jsx'
 export { default as StaggerList } from './StaggerList.jsx'
 export { default as Chip } from './Chip.jsx'
+export { default as ConfirmDialog } from './ConfirmDialog.jsx'
 
 // Functional furniture
 export { default as Tag, skillColor } from './Tag.jsx'

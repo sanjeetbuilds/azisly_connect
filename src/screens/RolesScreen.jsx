@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Button, PageHeader } from '../components'
-import { ChevronRightIcon, CheckIcon, XIcon, PlusIcon } from '../components/icons.jsx'
-import { ROLE_STATES } from '../data/roles.js'
+import { Button, PageHeader, RowMenu, ConfirmDialog } from '../components'
+import { ChevronRightIcon, CheckIcon, XIcon, PlusIcon, ClockIcon } from '../components/icons.jsx'
+import { roleStatusMeta, CONFIRM_COPY } from '../lib/roleStatus.js'
 
 function EmptyState({ onCreateRole }) {
   return (
@@ -37,35 +37,12 @@ function SkeletonRow() {
   )
 }
 
-// One status per role, grouped into kinds so the recruiter can scan for what is
-// in their court. priority drives the attention-based sort (lower is sooner).
+// Status kinds group into a scan order so the recruiter sees what needs them
+// first. priority drives the sort within that (lower is sooner).
 //   needs    the recruiter must act now (loudest)
 //   progress the system is working, no action
 //   setup    waiting on setup, a definition, or a submit
 //   done     closed
-function roleStatusMeta(role) {
-  switch (role.state) {
-    case 'ready':
-      return { kind: 'needs', label: `${role.candidatesReady} ready to review`, priority: 0 }
-    case 'matching':
-      return { kind: 'progress', label: 'Matching', priority: 1 }
-    case 'defined':
-      return { kind: 'setup', label: 'Ready to submit', priority: 2 }
-    case 'being_defined':
-      return {
-        kind: 'setup',
-        label: role.define_by === 'hiring_manager' ? 'Defining, hiring manager' : 'Defining, you',
-        priority: 3,
-      }
-    case 'created':
-      return { kind: 'setup', label: 'Draft', priority: 4 }
-    case 'closed':
-      return { kind: 'done', label: 'Closed', priority: 5 }
-    default:
-      return { kind: 'setup', label: ROLE_STATES[role.state] ?? role.state, priority: 4 }
-  }
-}
-
 const PILL = {
   needs: 'bg-accent-soft text-strong font-semibold',
   progress: 'bg-info-soft text-info font-medium',
@@ -95,14 +72,27 @@ function candidateSummary(role) {
   return `${role.totalCandidates} candidate${role.totalCandidates === 1 ? '' : 's'}`
 }
 
-function RoleRow({ role, onClick, muted = false }) {
+function RoleRow({ role, onClick, onDiscard, onClose, muted = false }) {
   const meta = roleStatusMeta(role)
   const needs = meta.kind === 'needs'
+  const menuItems =
+    meta.action === 'discard'
+      ? [{ label: 'Discard', tone: 'danger', onClick: () => onDiscard(role) }]
+      : meta.action === 'close'
+        ? [{ label: 'Close', onClick: () => onClose(role) }]
+        : []
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
-      className={`relative flex w-full items-center gap-4 border-b border-hairline px-5 py-4 text-left transition-colors last:border-b-0 hover:bg-background ${
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onClick()
+        }
+      }}
+      className={`relative flex w-full cursor-pointer items-center gap-4 border-b border-hairline px-5 py-4 text-left transition-colors last:border-b-0 hover:bg-background ${
         needs ? 'bg-accent-soft/25' : ''
       } ${muted ? 'opacity-70' : ''}`}
     >
@@ -129,8 +119,10 @@ function RoleRow({ role, onClick, muted = false }) {
         <RoleStatus meta={meta} />
       </div>
 
+      <RowMenu items={menuItems} />
+
       <ChevronRightIcon className={`h-4 w-4 shrink-0 ${muted ? 'text-muted' : 'text-secondary'}`} />
-    </button>
+    </div>
   )
 }
 
@@ -139,9 +131,21 @@ function RoleRow({ role, onClick, muted = false }) {
  * roles lead and stand out; matching and setup follow; closed roles sit in their
  * own de-emphasised section so the active list stays focused.
  */
-export default function RolesScreen({ roles, onCreateRole, onOpenRole, defineNotice }) {
+export default function RolesScreen({
+  roles,
+  onCreateRole,
+  onOpenRole,
+  onDiscardRole,
+  onCloseRole,
+  defineNotice,
+  autoCloseNotice,
+}) {
   const [loading, setLoading] = useState(true)
   const [noticeOpen, setNoticeOpen] = useState(true)
+  const [autoCloseNoticeOpen, setAutoCloseNoticeOpen] = useState(true)
+  const [discardTarget, setDiscardTarget] = useState(null)
+  const [closeTarget, setCloseTarget] = useState(null)
+  const [closeFeedback, setCloseFeedback] = useState('')
 
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 850)
@@ -215,6 +219,38 @@ export default function RolesScreen({ roles, onCreateRole, onOpenRole, defineNot
             </div>
           )}
 
+          {/* A role closed itself after 15 days with no recruiter action */}
+          {autoCloseNotice && autoCloseNoticeOpen && (
+            <div className="mb-4 flex flex-wrap items-center gap-4 rounded-card border border-hairline bg-surface px-5 py-3.5 shadow-card">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] text-secondary">
+                <ClockIcon className="h-4.5 w-4.5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-ink">
+                  Your <span className="font-medium">{autoCloseNotice.roleTitle}</span> role closed after 15 days.
+                  Reopen it?
+                </p>
+              </div>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  autoCloseNotice.onReopen()
+                  setAutoCloseNoticeOpen(false)
+                }}
+              >
+                Reopen role
+              </Button>
+              <button
+                type="button"
+                onClick={() => setAutoCloseNoticeOpen(false)}
+                aria-label="Dismiss notification"
+                className="shrink-0 rounded-lg p-1.5 text-secondary transition-colors hover:bg-background hover:text-ink"
+              >
+                <XIcon className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
           {loading ? (
             <div className="overflow-hidden rounded-card border border-hairline bg-surface shadow-card">
               <div className="animate-pulse divide-y divide-hairline">
@@ -227,7 +263,13 @@ export default function RolesScreen({ roles, onCreateRole, onOpenRole, defineNot
             <>
               <div className="overflow-hidden rounded-card border border-hairline bg-surface shadow-card">
                 {active.map((r) => (
-                  <RoleRow key={r.id} role={r} onClick={() => onOpenRole(r)} />
+                  <RoleRow
+                    key={r.id}
+                    role={r}
+                    onClick={() => onOpenRole(r)}
+                    onDiscard={setDiscardTarget}
+                    onClose={setCloseTarget}
+                  />
                 ))}
               </div>
 
@@ -247,6 +289,37 @@ export default function RolesScreen({ roles, onCreateRole, onOpenRole, defineNot
             </>
           )}
         </div>
+      )}
+
+      {discardTarget && (
+        <ConfirmDialog
+          {...CONFIRM_COPY.discard}
+          onCancel={() => setDiscardTarget(null)}
+          onConfirm={() => {
+            onDiscardRole(discardTarget)
+            setDiscardTarget(null)
+          }}
+        />
+      )}
+
+      {closeTarget && (
+        <ConfirmDialog
+          {...CONFIRM_COPY.close}
+          feedback={{
+            value: closeFeedback,
+            onChange: setCloseFeedback,
+            placeholder: 'Why are you closing this role? (optional)',
+          }}
+          onCancel={() => {
+            setCloseTarget(null)
+            setCloseFeedback('')
+          }}
+          onConfirm={() => {
+            onCloseRole(closeTarget, closeFeedback)
+            setCloseTarget(null)
+            setCloseFeedback('')
+          }}
+        />
       )}
     </div>
   )

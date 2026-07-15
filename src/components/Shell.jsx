@@ -110,7 +110,7 @@ export default function Shell({ active = 'Roles', breadcrumb, title, action, onN
         </div>
 
         {/* Content — the page itself does not scroll; columns scroll. */}
-        <div className="min-h-0 flex-1 overflow-hidden bg-background p-6">{children}</div>
+        <div className="relative min-h-0 flex-1 overflow-hidden bg-background p-6">{children}</div>
       </div>
     </div>
   )

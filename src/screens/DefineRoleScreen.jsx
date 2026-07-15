@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { Button } from '../components'
+import { Button, ConfirmDialog } from '../components'
 import Shell from '../components/Shell.jsx'
 import RoleCard from '../components/RoleCard.jsx'
 import { SparkleIcon, PaperclipIcon, MicIcon, ChatIcon, CheckIcon, XIcon } from '../components/icons.jsx'
 import { roleScorecard } from '../data/scorecard.js'
 import { classifyProbeStub } from '../lib/probeStub.js'
 import { DEMO_VOICE_ANSWERS, DEMO_VOICE_PARTIAL, DEMO_JD_PHRASES, DEMO_JD_FILENAME } from '../data/fixtures.js'
+import { CONFIRM_COPY } from '../lib/roleStatus.js'
 
 /*
  * DefineRoleScreen — two columns inside the app shell.
@@ -41,11 +42,13 @@ export default function DefineRoleScreen({
   onBack,
   onComplete,
   onAskManager,
+  onDiscard,
   reviewLabel = null,
   initialAnswers = [],
   initialJdStage = null, // null | 'uploading' | 'uploaded' | 'reading' | 'landed' | 'error'
   chrome = true,
 }) {
+  const [discardOpen, setDiscardOpen] = useState(false)
   const scorecard = roleScorecard({ title: roleTitle })
   const jdProbe = (i) => ({ ...classifyProbeStub(DEMO_JD_PHRASES[i], i, scorecard.domainCompetency), source: 'jd' })
 
@@ -442,14 +445,35 @@ export default function DefineRoleScreen({
       onNavigate={() => onBack?.()}
       onNewRole={() => onBack?.()}
       action={
-        onAskManager && (
-          <Button variant="secondary" onClick={onAskManager} className="shrink-0 !px-3.5 !py-2 !text-[13px]">
-            Ask a hiring manager to define
-          </Button>
-        )
+        <div className="flex shrink-0 items-center gap-3">
+          {onDiscard && (
+            <button
+              type="button"
+              onClick={() => setDiscardOpen(true)}
+              className="shrink-0 whitespace-nowrap text-[13px] font-medium text-secondary transition-colors hover:text-danger"
+            >
+              Discard
+            </button>
+          )}
+          {onAskManager && (
+            <Button variant="secondary" onClick={onAskManager} className="shrink-0 !px-3.5 !py-2 !text-[13px]">
+              Ask a hiring manager to define
+            </Button>
+          )}
+        </div>
       }
     >
       {body}
+      {discardOpen && (
+        <ConfirmDialog
+          {...CONFIRM_COPY.discard}
+          onCancel={() => setDiscardOpen(false)}
+          onConfirm={() => {
+            setDiscardOpen(false)
+            onDiscard()
+          }}
+        />
+      )}
     </Shell>
   )
 }

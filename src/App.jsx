@@ -85,6 +85,25 @@ export default function App() {
     setRoles((prev) => [makeRole(`role-${prev.length + 1}`, cfg), ...prev])
   }
 
+  // Discard removes a role that never reached real candidates. Close stops
+  // future matching but never touches the candidates already found.
+  const discardRole = (role) => setRoles((prev) => prev.filter((r) => r.id !== role.id))
+  const closeRole = (role, feedback) =>
+    setRoles((prev) =>
+      prev.map((r) =>
+        r.id === role.id ? { ...r, state: 'closed', updated: 'Closed just now', closeFeedback: feedback || undefined } : r,
+      ),
+    )
+  const reopenRole = (role) =>
+    setRoles((prev) =>
+      prev.map((r) => (r.id === role.id ? { ...r, state: 'matching', updated: 'Reopened just now' } : r)),
+    )
+  const discardDraft = () => {
+    setDraft(null)
+    setDraftProbes([])
+    setView('roles')
+  }
+
   const activeNav = ['candidates', 'invite', 'decision', 'manager-decision'].includes(view)
     ? 'Candidates'
     : 'Roles'
@@ -104,6 +123,7 @@ export default function App() {
         roleTitle={draft?.title ?? 'New role'}
         onBack={() => setView('create')}
         onAskManager={() => setView('invite-manager')}
+        onDiscard={discardDraft}
         // Carry every probe currently in state forward — Review must show
         // exactly what the conversation produced, not a blank card.
         onComplete={(probes) => {
@@ -120,6 +140,7 @@ export default function App() {
         openings={draft?.openings ?? 1}
         probes={draftProbes}
         onBack={() => setView('define')}
+        onDiscard={discardDraft}
         onSubmit={() => {
           addRole()
           setDraft(null)
@@ -165,6 +186,8 @@ export default function App() {
             setRunMatch(false)
             setView('candidates')
           }}
+          onDiscardRole={discardRole}
+          onCloseRole={closeRole}
           defineNotice={{
             // A hiring manager finished defining a role via magic link.
             manager: 'Tom',
@@ -175,6 +198,11 @@ export default function App() {
               setRunMatch(true) // a fresh submit: run the matching animation once
               setView('candidates')
             },
+          }}
+          autoCloseNotice={{
+            // Frontend Lead closed itself 15 days after submission, no action taken.
+            roleTitle: 'Frontend Lead',
+            onReopen: () => reopenRole({ id: 'r-fl' }),
           }}
         />
       )}
@@ -231,7 +259,11 @@ export default function App() {
 
       {view === 'candidates' &&
         (() => {
-          const pipelineRole = openRole ?? roles.find((r) => r.id === 'r-spe')
+          // Re-resolve from the live roles array (not the stale openRole
+          // snapshot) so a Close/Discard while inside this screen is reflected.
+          const pipelineRoleId = openRole?.id ?? 'r-spe'
+          const pipelineRole = roles.find((r) => r.id === pipelineRoleId)
+          const canClose = pipelineRole?.state === 'matching' || pipelineRole?.state === 'ready'
           return (
             <CandidatesScreen
               key={`${pipelineRole?.id}-${runMatch ? 'match' : 'list'}`}
@@ -239,6 +271,8 @@ export default function App() {
               roleId={pipelineRole?.id ?? 'r-spe'}
               requirements={pipelineRole?.requirements}
               runMatch={runMatch}
+              canClose={canClose}
+              onCloseRole={(feedback) => pipelineRole && closeRole(pipelineRole, feedback)}
             />
           )
         })()}

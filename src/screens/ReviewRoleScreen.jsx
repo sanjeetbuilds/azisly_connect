@@ -1,9 +1,11 @@
-import { Button } from '../components'
+import { useState } from 'react'
+import { Button, ConfirmDialog } from '../components'
 import Shell from '../components/Shell.jsx'
 import RoleCard from '../components/RoleCard.jsx'
 import { CopyNeeded, AuthoringNeeded } from '../components/Spec.jsx'
 import { CheckIcon } from '../components/icons.jsx'
 import { roleScorecard } from '../data/scorecard.js'
+import { CONFIRM_COPY } from '../lib/roleStatus.js'
 
 /*
  * ReviewRoleScreen — review the role inside the app shell and submit.
@@ -26,9 +28,11 @@ export default function ReviewRoleScreen({
   probes = [],
   onBack,
   onSubmit,
+  onDiscard,
 }) {
   const scorecard = scorecardProp ?? roleScorecard({ title: roleTitle })
   const complete = familySet(scorecard)
+  const [discardOpen, setDiscardOpen] = useState(false)
 
   return (
     <Shell
@@ -37,15 +41,27 @@ export default function ReviewRoleScreen({
       title={roleTitle}
       onNavigate={() => onBack?.()}
       action={
-        <Button
-          onClick={onSubmit}
-          disabled={!complete}
-          variant="secondary"
-          className="shrink-0 !border-ink !bg-ink !py-2 !text-[13px] !text-white"
-        >
-          {/* "Submit role" is verbatim PRD. */}
-          Submit role
-        </Button>
+        <div className="flex shrink-0 items-center gap-3">
+          {/* Quiet next to Submit — Submit stays the loud action here. */}
+          {onDiscard && (
+            <button
+              type="button"
+              onClick={() => setDiscardOpen(true)}
+              className="shrink-0 whitespace-nowrap text-[13px] font-medium text-secondary transition-colors hover:text-danger"
+            >
+              Discard
+            </button>
+          )}
+          <Button
+            onClick={onSubmit}
+            disabled={!complete}
+            variant="secondary"
+            className="shrink-0 !border-ink !bg-ink !py-2 !text-[13px] !text-white"
+          >
+            {/* "Submit role" is verbatim PRD. */}
+            Submit role
+          </Button>
+        </div>
       }
     >
       <div className="flex h-full w-full flex-col gap-4 overflow-y-auto">
@@ -77,6 +93,17 @@ export default function ReviewRoleScreen({
           )}
         </div>
       </div>
+
+      {discardOpen && (
+        <ConfirmDialog
+          {...CONFIRM_COPY.discard}
+          onCancel={() => setDiscardOpen(false)}
+          onConfirm={() => {
+            setDiscardOpen(false)
+            onDiscard()
+          }}
+        />
+      )}
     </Shell>
   )
 }
