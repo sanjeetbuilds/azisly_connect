@@ -2,6 +2,7 @@ import { Button } from '../components'
 import Shell from '../components/Shell.jsx'
 import RoleCard from '../components/RoleCard.jsx'
 import { CopyNeeded, AuthoringNeeded } from '../components/Spec.jsx'
+import { CheckIcon } from '../components/icons.jsx'
 import { roleScorecard } from '../data/scorecard.js'
 
 /*
@@ -14,7 +15,18 @@ function familySet(scorecard) {
   return Boolean(scorecard?.family && scorecard?.domainCompetency)
 }
 
-export default function ReviewRoleScreen({ roleTitle = '', scorecard: scorecardProp, probes = [], onBack, onSubmit }) {
+// The company this workspace recruits for. Matches the "Acme" used
+// throughout the sidebar and the manager-facing flows.
+const COMPANY = 'Acme'
+
+export default function ReviewRoleScreen({
+  roleTitle = '',
+  openings = 1,
+  scorecard: scorecardProp,
+  probes = [],
+  onBack,
+  onSubmit,
+}) {
   const scorecard = scorecardProp ?? roleScorecard({ title: roleTitle })
   const complete = familySet(scorecard)
 
@@ -37,6 +49,19 @@ export default function ReviewRoleScreen({ roleTitle = '', scorecard: scorecardP
       }
     >
       <div className="flex h-full w-full flex-col gap-4 overflow-y-auto">
+        {/* This is a finished definition, not a form still being filled in. */}
+        <div className="flex max-w-[720px] flex-wrap items-center gap-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-[12px] font-medium text-accent-strong">
+            <CheckIcon className="h-3 w-3" />
+            Defined
+          </span>
+          <span className="text-[13px] text-secondary">{COMPANY}</span>
+          <span className="text-muted">·</span>
+          <span className="text-[13px] text-secondary">
+            {openings} opening{openings === 1 ? '' : 's'}
+          </span>
+        </div>
+
         <RoleCard scorecard={scorecard} probes={probes} className="max-w-[720px]" />
 
         <div className="text-[13px]">

@@ -46,6 +46,13 @@
   --color-blue: #3a6fb0;
   --color-info: #3a6fb0;
 
+  /* Role-card tier labels — Essential / Very important / Nice to have. A fixed
+     three-way taxonomy, kept separate from verdict/status colour so neither
+     can drift if the other changes. */
+  --color-tier-essential: #7a2a2a;
+  --color-tier-important: #b5731f;
+  --color-tier-nice: #2f6f7d;
+
   /* Type — Inter, with mono kept for the rare code-ish slot. */
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;

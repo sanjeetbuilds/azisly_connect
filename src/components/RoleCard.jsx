@@ -1,4 +1,5 @@
-import { AuthoringNeeded, FixtureTag } from './Spec.jsx'
+import { useState } from 'react'
+import { AuthoringNeeded } from './Spec.jsx'
 
 // The role card. It is ordered by who spoke last.
 //
@@ -14,11 +15,23 @@ import { AuthoringNeeded, FixtureTag } from './Spec.jsx'
 
 const TIER_LABELS = ['Essential', 'Very important', 'Nice to have']
 
+// Colour appears here once, on the tier label only — never on the item text,
+// the card border, or anywhere else on the card.
+const TIER_COLOR = {
+  Essential: 'text-tier-essential',
+  'Very important': 'text-tier-important',
+  'Nice to have': 'text-tier-nice',
+}
+
 // Verbatim PRD (§B): the one fixed line about the fundamentals.
 const FOUNDATION_LINE =
   'Communication, ownership and clarity are read from every answer, which is why this stays short.'
 
 const CARD = 'rounded-[10px] border-[0.5px] border-hairline bg-surface px-6 py-5'
+
+// More than this many probes collapses behind a "+N more" affordance, the
+// same overflow pattern used for skill chips elsewhere in the product.
+const VISIBLE_PROBES = 3
 
 function Ladder({ criteria }) {
   if (criteria.length === 0) return <AuthoringNeeded note="criteria" />
@@ -30,7 +43,7 @@ function Ladder({ criteria }) {
         const primary = tier === 'Essential'
         return (
           <div key={tier} className="grid grid-cols-[100px_1fr] gap-x-3">
-            <p className="text-[13px] font-medium text-muted">{tier}</p>
+            <p className={`text-[13px] font-medium ${TIER_COLOR[tier] ?? 'text-muted'}`}>{tier}</p>
             <div className="flex flex-col gap-3">
               {items.map((c, i) => (
                 <p key={i} className={`text-[14px] leading-[1.5] ${primary ? 'text-ink' : 'text-secondary'}`}>
@@ -47,6 +60,7 @@ function Ladder({ criteria }) {
 
 export default function RoleCard({ scorecard, probes = [], pulse = false, className = '' }) {
   const { family, domainCompetency, criteria = [] } = scorecard ?? {}
+  const [expanded, setExpanded] = useState(false)
 
   if (!family || !domainCompetency) {
     return (
@@ -58,6 +72,8 @@ export default function RoleCard({ scorecard, probes = [], pulse = false, classN
 
   const hasProbes = probes.length > 0
   const sourceLabel = probes[0]?.source === 'jd' ? 'From your JD' : 'What you told us'
+  const visibleProbes = expanded ? probes : probes.slice(0, VISIBLE_PROBES)
+  const hiddenCount = probes.length - visibleProbes.length
 
   return (
     <div className={`${CARD} ${pulse ? 'animate-card-pulse' : ''} ${className}`}>
@@ -67,19 +83,34 @@ export default function RoleCard({ scorecard, probes = [], pulse = false, classN
             {/* Probes, on top, ordered by who spoke last. */}
             <div className="flex flex-col gap-3">
               <p className="text-[13px] font-medium text-ink">{sourceLabel}</p>
-              {probes.map((p, i) => (
+              {visibleProbes.map((p, i) => (
                 <div
                   key={i}
                   className="flex animate-probe-in flex-col gap-1"
                   style={{ animationDelay: `${i * 150}ms` }}
                 >
                   <p className="text-[14px] leading-snug text-ink">&ldquo;{p.phrase}&rdquo;</p>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <p className="text-[13px] leading-snug text-secondary">{p.promise}</p>
-                    <FixtureTag className="shrink-0" />
-                  </div>
+                  <p className="text-[13px] leading-snug text-secondary">{p.promise}</p>
                 </div>
               ))}
+              {hiddenCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setExpanded(true)}
+                  className="inline-flex w-fit items-center rounded-full border-[0.5px] border-hairline px-2.5 py-1 text-[12px] font-medium text-secondary transition-colors hover:border-ink/30 hover:text-ink"
+                >
+                  +{hiddenCount} more you told us
+                </button>
+              )}
+              {expanded && probes.length > VISIBLE_PROBES && (
+                <button
+                  type="button"
+                  onClick={() => setExpanded(false)}
+                  className="w-fit text-[12px] font-medium text-secondary transition-colors hover:text-ink"
+                >
+                  Show fewer
+                </button>
+              )}
             </div>
 
             <div className="border-t-[0.5px] border-hairline" />

@@ -4,10 +4,26 @@ import DefineRoleScreen from './DefineRoleScreen.jsx'
 import ReviewRoleScreen from './ReviewRoleScreen.jsx'
 import SubmitPeripheralScreen from './SubmitPeripheralScreen.jsx'
 import MagicLinkScreen from './MagicLinkScreen.jsx'
-import { DEMO_ROLE_TITLE, DEMO_VOICE_ANSWERS } from '../data/fixtures.js'
+import { roleScorecard } from '../data/scorecard.js'
+import { classifyProbeStub } from '../lib/probeStub.js'
+import { DEMO_ROLE_TITLE, DEMO_VOICE_ANSWERS, DEMO_JD_PHRASES } from '../data/fixtures.js'
 
 // Answers already given by voice — the "conversed" demo states.
-const VOICE_ANSWERS = DEMO_VOICE_ANSWERS.map((text) => ({ text, fixture: true }))
+const VOICE_ANSWERS = DEMO_VOICE_ANSWERS.map((text) => ({ text }))
+
+// Five probes (two from a JD, three from talking) — enough to exercise the
+// "+N more" cap on both Define and Review.
+const previewScorecard = roleScorecard({ title: DEMO_ROLE_TITLE })
+const MANY_PROBES = [
+  ...DEMO_JD_PHRASES.map((phrase, i) => ({
+    ...classifyProbeStub(phrase, i, previewScorecard.domainCompetency),
+    source: 'jd',
+  })),
+  ...DEMO_VOICE_ANSWERS.map((text, i) => ({
+    ...classifyProbeStub(text, i, previewScorecard.domainCompetency),
+    source: 'said',
+  })),
+]
 
 /*
  * /states — a click-through index of every state this build defines, reachable
@@ -46,7 +62,7 @@ const STATES = {
   },
   'define-answered': {
     group: 'Define',
-    label: 'Answered, three probes',
+    label: 'Answered, three probes — closing line, Review role primary',
     render: () => (
       <Full>
         <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture initialAnswers={VOICE_ANSWERS} onComplete={() => {}} />
@@ -62,12 +78,63 @@ const STATES = {
       </Full>
     ),
   },
+  'define-many-probes': {
+    group: 'Define',
+    label: 'Five probes — "+N more" cap',
+    render: () => (
+      <Full>
+        <DefineRoleScreen
+          roleTitle={DEMO_ROLE_TITLE}
+          titleIsFixture
+          initialAnswers={VOICE_ANSWERS}
+          initialJdStage="landed"
+          onComplete={() => {}}
+        />
+      </Full>
+    ),
+  },
   'define-jd-landed': {
     group: 'JD',
     label: 'JD landed, two probes',
     render: () => (
       <Full>
         <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture initialJdStage="landed" onComplete={() => {}} />
+      </Full>
+    ),
+  },
+  'jd-uploading': {
+    group: 'JD',
+    label: 'Uploading',
+    render: () => (
+      <Full>
+        <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture initialJdStage="uploading" onComplete={() => {}} />
+      </Full>
+    ),
+  },
+  'jd-uploaded': {
+    group: 'JD',
+    label: 'Uploaded — filename, Remove/Replace',
+    render: () => (
+      <Full>
+        <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture initialJdStage="uploaded" onComplete={() => {}} />
+      </Full>
+    ),
+  },
+  'jd-reading': {
+    group: 'JD',
+    label: 'Reading',
+    render: () => (
+      <Full>
+        <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture initialJdStage="reading" onComplete={() => {}} />
+      </Full>
+    ),
+  },
+  'jd-error': {
+    group: 'JD',
+    label: 'Could not read the file',
+    render: () => (
+      <Full>
+        <DefineRoleScreen roleTitle={DEMO_ROLE_TITLE} titleIsFixture initialJdStage="error" onComplete={() => {}} />
       </Full>
     ),
   },
@@ -78,6 +145,15 @@ const STATES = {
       <Full>
         {/* Product Manager is authored, so its real card is complete. */}
         <ReviewRoleScreen roleTitle={DEMO_ROLE_TITLE} onSubmit={() => {}} />
+      </Full>
+    ),
+  },
+  'review-with-probes': {
+    group: 'Review',
+    label: 'Probes carried over from Define, five probes',
+    render: () => (
+      <Full>
+        <ReviewRoleScreen roleTitle={DEMO_ROLE_TITLE} openings={3} probes={MANY_PROBES} onSubmit={() => {}} />
       </Full>
     ),
   },

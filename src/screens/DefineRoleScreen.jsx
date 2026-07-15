@@ -2,11 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { Button } from '../components'
 import Shell from '../components/Shell.jsx'
 import RoleCard from '../components/RoleCard.jsx'
-import { FixtureTag } from '../components/Spec.jsx'
-import { SparkleIcon, PaperclipIcon, MicIcon, ChatIcon, CheckIcon } from '../components/icons.jsx'
+import { SparkleIcon, PaperclipIcon, MicIcon, ChatIcon, CheckIcon, XIcon } from '../components/icons.jsx'
 import { roleScorecard } from '../data/scorecard.js'
 import { classifyProbeStub } from '../lib/probeStub.js'
-import { DEMO_VOICE_ANSWERS, DEMO_VOICE_PARTIAL, DEMO_JD_PHRASES } from '../data/fixtures.js'
+import { DEMO_VOICE_ANSWERS, DEMO_VOICE_PARTIAL, DEMO_JD_PHRASES, DEMO_JD_FILENAME } from '../data/fixtures.js'
 
 /*
  * DefineRoleScreen — two columns inside the app shell.
@@ -27,10 +26,15 @@ const FOLLOWUPS = [
   'Who will they work with day to day?',
 ]
 const MAX_FOLLOWUPS = 2
+const CLOSING = "That's everything I need for now. Review the card whenever you're ready."
 
 const BEAT_FOUND =
   'From this JD, this role is mostly about growth experiments and working closely with a small engineering team.'
 const BEAT_LEFTOUT = "I've left out the experience and degree requirements, since this is a freshers role."
+const JD_ERROR = 'I could not read that file. Try another file or paste the text instead.'
+
+// jdStage timing, all relative to the upload starting.
+const JD_TIMING = { uploaded: 600, reading: 1400, found: 2300, probe0: 3100, probe1: 3250, leftout: 3900, done: 4600 }
 
 export default function DefineRoleScreen({
   roleTitle = '',
@@ -39,32 +43,44 @@ export default function DefineRoleScreen({
   onAskManager,
   reviewLabel = null,
   initialAnswers = [],
-  initialJdStage = null, // null | 'landed'
+  initialJdStage = null, // null | 'uploading' | 'uploaded' | 'reading' | 'landed' | 'error'
   chrome = true,
 }) {
   const scorecard = roleScorecard({ title: roleTitle })
-  const jdProbe = (i) => ({ ...classifyProbeStub(DEMO_JD_PHRASES[i], i, scorecard.domainCompetency), source: 'jd', fixture: true })
+  const jdProbe = (i) => ({ ...classifyProbeStub(DEMO_JD_PHRASES[i], i, scorecard.domainCompetency), source: 'jd' })
 
-  const jdInit =
-    initialJdStage === 'landed'
-      ? {
-          beats: [{ text: 'Reading the JD...' }, { text: BEAT_FOUND, fixture: true }, { text: BEAT_LEFTOUT }, { text: JD_OPENING }],
+  const jdInit = (() => {
+    switch (initialJdStage) {
+      case 'uploading':
+        return { stage: 'uploading', beats: [], probes: [] }
+      case 'uploaded':
+        return { stage: 'uploaded', beats: [], probes: [] }
+      case 'reading':
+        return { stage: 'reading', beats: [{ text: 'Reading the JD...' }], probes: [] }
+      case 'landed':
+        return {
+          stage: 'done',
+          beats: [{ text: 'Reading the JD...' }, { text: BEAT_FOUND }, { text: BEAT_LEFTOUT }, { text: JD_OPENING }],
           probes: [jdProbe(0), jdProbe(1)],
-          read: true,
         }
-      : { beats: [], probes: [], read: false }
+      case 'error':
+        return { stage: 'error', beats: [], probes: [] }
+      default:
+        return { stage: 'idle', beats: [], probes: [] }
+    }
+  })()
 
   const [answers, setAnswers] = useState(initialAnswers)
   const [input, setInput] = useState('')
   const [mode, setMode] = useState('chat') // chat | voice — one conversation, two ways in
   const [voiceStatus, setVoiceStatus] = useState('idle') // idle | listening | thinking
   const [liveTranscript, setLiveTranscript] = useState('')
+  const [jdStage, setJdStage] = useState(jdInit.stage) // idle | uploading | uploaded | reading | done | error
   const [jdBeats, setJdBeats] = useState(jdInit.beats)
   const [jdProbes, setJdProbes] = useState(jdInit.probes)
-  const [jdRead, setJdRead] = useState(jdInit.read)
-  const [jdRunning, setJdRunning] = useState(false)
   const [pulse, setPulse] = useState(false)
   const talkTimeouts = useRef([])
+  const jdTimeouts = useRef([])
 
   const bumpPulse = () => {
     setPulse(true)
@@ -75,8 +91,15 @@ export default function DefineRoleScreen({
     talkTimeouts.current.forEach(clearTimeout)
     talkTimeouts.current = []
   }
+  const clearJdTimeouts = () => {
+    jdTimeouts.current.forEach(clearTimeout)
+    jdTimeouts.current = []
+  }
 
-  useEffect(() => clearTalkTimeouts, [])
+  useEffect(() => () => {
+    clearTalkTimeouts()
+    clearJdTimeouts()
+  }, [])
 
   // Leaving Voice mid-turn cancels the in-progress capture; nothing said is kept
   // as an answer until the recruiter actually stops talking.
@@ -91,24 +114,24 @@ export default function DefineRoleScreen({
   const talkProbes = answers.map((a, i) => ({
     ...classifyProbeStub(a.text, i, scorecard.domainCompetency),
     source: 'said',
-    fixture: a.fixture,
   }))
   const probes = [...jdProbes, ...talkProbes]
   const complete = answers.length > MAX_FOLLOWUPS
 
   // The conversation stream: the opening, each answer + its follow-up, then any
-  // JD beats.
+  // JD beats, then the closing line once nothing is left to ask.
   const stream = [{ from: 'ai', text: OPENING, sub: answers.length === 0 && jdBeats.length === 0 }]
   answers.forEach((a, i) => {
-    stream.push({ from: 'user', text: a.text, fixture: a.fixture })
+    stream.push({ from: 'user', text: a.text })
     if (i < MAX_FOLLOWUPS) stream.push({ from: 'ai', text: FOLLOWUPS[i] })
   })
-  jdBeats.forEach((b) => stream.push({ from: 'ai', text: b.text, fixture: b.fixture }))
+  jdBeats.forEach((b) => stream.push({ from: 'ai', text: b.text }))
+  if (complete) stream.push({ from: 'ai', text: CLOSING })
 
   const submitType = () => {
     const text = input.trim()
     if (!text) return
-    setAnswers((prev) => [...prev, { text, fixture: false }])
+    setAnswers((prev) => [...prev, { text }])
     bumpPulse()
     setInput('')
   }
@@ -122,7 +145,7 @@ export default function DefineRoleScreen({
     setLiveTranscript('')
     talkTimeouts.current.push(
       setTimeout(() => {
-        setAnswers((prev) => [...prev, { text: DEMO_VOICE_ANSWERS[prev.length], fixture: true }])
+        setAnswers((prev) => [...prev, { text: DEMO_VOICE_ANSWERS[prev.length] }])
         bumpPulse()
         setVoiceStatus('idle')
       }, 550),
@@ -150,27 +173,65 @@ export default function DefineRoleScreen({
   const currentQuestion = [...stream].reverse().find((m) => m.from === 'ai') ?? stream[0]
   const voiceDone = answers.length >= DEMO_VOICE_ANSWERS.length
 
-  // A JD streams four beats down the right; probes land on the left card.
-  const runJd = () => {
-    if (jdRunning || jdRead) return
-    setJdRunning(true)
-    setJdBeats([{ text: 'Reading the JD...' }])
-    setTimeout(() => setJdBeats((b) => [...b, { text: BEAT_FOUND, fixture: true }]), 900)
-    setTimeout(() => {
-      setJdProbes([jdProbe(0)])
-      bumpPulse()
-    }, 1700)
-    setTimeout(() => {
-      setJdProbes((p) => [...p, jdProbe(1)])
-      bumpPulse()
-    }, 1850)
-    setTimeout(() => setJdBeats((b) => [...b, { text: BEAT_LEFTOUT }]), 2500)
-    setTimeout(() => {
-      setJdBeats((b) => [...b, { text: JD_OPENING }])
-      setJdRead(true)
-      setJdRunning(false)
-    }, 3200)
+  // The JD pipeline: upload, land, read, then the same four beats as before.
+  // Every stage is visible in the chip, not just the end state.
+  const runJdPipeline = () => {
+    clearJdTimeouts()
+    setJdStage('uploading')
+    setJdBeats([])
+    setJdProbes([])
+    jdTimeouts.current.push(setTimeout(() => setJdStage('uploaded'), JD_TIMING.uploaded))
+    jdTimeouts.current.push(
+      setTimeout(() => {
+        setJdStage('reading')
+        setJdBeats([{ text: 'Reading the JD...' }])
+      }, JD_TIMING.reading),
+    )
+    jdTimeouts.current.push(setTimeout(() => setJdBeats((b) => [...b, { text: BEAT_FOUND }]), JD_TIMING.found))
+    jdTimeouts.current.push(
+      setTimeout(() => {
+        setJdProbes([jdProbe(0)])
+        bumpPulse()
+      }, JD_TIMING.probe0),
+    )
+    jdTimeouts.current.push(
+      setTimeout(() => {
+        setJdProbes((p) => [...p, jdProbe(1)])
+        bumpPulse()
+      }, JD_TIMING.probe1),
+    )
+    jdTimeouts.current.push(setTimeout(() => setJdBeats((b) => [...b, { text: BEAT_LEFTOUT }]), JD_TIMING.leftout))
+    jdTimeouts.current.push(
+      setTimeout(() => {
+        setJdBeats((b) => [...b, { text: JD_OPENING }])
+        setJdStage('done')
+      }, JD_TIMING.done),
+    )
   }
+
+  const startJd = () => {
+    if (jdStage !== 'idle' && jdStage !== 'error') return
+    runJdPipeline()
+  }
+  const removeJd = () => {
+    clearJdTimeouts()
+    setJdStage('idle')
+    setJdBeats([])
+    setJdProbes([])
+  }
+  const replaceJd = () => runJdPipeline()
+
+  // Shared between Chat and Voice — one CTA, and the probes it carries forward
+  // to Review are whatever is in state right now, not a snapshot from earlier.
+  const reviewButton = onComplete && (
+    <Button
+      variant="secondary"
+      onClick={() => onComplete(probes)}
+      className={`shrink-0 !py-2.5 !text-[13px] ${complete ? '!border-ink !bg-ink !text-white' : ''}`}
+    >
+      {reviewLabel ?? 'Review role'}
+    </Button>
+  )
 
   const body = (
     <div className="flex h-full w-full gap-6">
@@ -183,7 +244,9 @@ export default function DefineRoleScreen({
       <div className="flex min-w-0 flex-[42] flex-col overflow-hidden rounded-[10px] border-[0.5px] border-hairline bg-surface shadow-panel">
         {/* Header — mode toggle and Add a JD, always visible regardless of mode. */}
         <div className="flex shrink-0 items-center justify-between gap-3 border-b-[0.5px] border-hairline p-3">
-          <div className="inline-flex items-center gap-0.5 rounded-lg bg-ink/[0.04] p-0.5">
+          {/* The toggle is a mode switch, not another action pill — the active
+              segment reads as a track selection (solid ink), never a faint tint. */}
+          <div className="inline-flex shrink-0 items-center gap-0.5 rounded-lg border-[0.5px] border-hairline bg-background p-0.5">
             {[
               { key: 'chat', label: 'Chat', Icon: ChatIcon },
               { key: 'voice', label: 'Voice', Icon: MicIcon },
@@ -194,7 +257,7 @@ export default function DefineRoleScreen({
                 onClick={() => setMode(key)}
                 aria-pressed={mode === key}
                 className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors ${
-                  mode === key ? 'bg-surface text-ink shadow-card' : 'text-secondary hover:text-ink'
+                  mode === key ? 'bg-ink text-white shadow-card' : 'text-secondary hover:text-ink'
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -203,18 +266,71 @@ export default function DefineRoleScreen({
             ))}
           </div>
 
-          <button
-            type="button"
-            onClick={runJd}
-            disabled={jdRunning || jdRead}
-            aria-label="Add a JD"
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border-[0.5px] px-3 py-1.5 text-[13px] font-medium transition-colors ${
-              jdRead ? 'border-hairline text-secondary' : 'border-hairline text-ink hover:bg-ink/[0.04]'
-            } disabled:cursor-default`}
-          >
-            {jdRead ? <CheckIcon className="h-3.5 w-3.5" /> : <PaperclipIcon className="h-3.5 w-3.5" />}
-            {jdRead ? 'JD added' : jdRunning ? 'Reading the JD...' : 'Add a JD'}
-          </button>
+          <div className="min-w-0">
+            {jdStage === 'idle' && (
+              <button
+                type="button"
+                onClick={startJd}
+                className="inline-flex items-center gap-1.5 rounded-full border-[0.5px] border-hairline px-3 py-1.5 text-[13px] font-medium text-ink transition-colors hover:bg-ink/[0.04]"
+              >
+                <PaperclipIcon className="h-3.5 w-3.5" />
+                Add a JD
+              </button>
+            )}
+
+            {jdStage === 'uploading' && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border-[0.5px] border-hairline px-3 py-1.5 text-[13px] font-medium text-secondary">
+                <span className="h-1.5 w-1.5 animate-think rounded-full bg-secondary" aria-hidden="true" />
+                Uploading...
+              </span>
+            )}
+
+            {jdStage === 'uploaded' && (
+              <div className="inline-flex items-center gap-2 rounded-full border-[0.5px] border-hairline px-3 py-1.5 text-[13px] font-medium text-ink">
+                <PaperclipIcon className="h-3.5 w-3.5 shrink-0 text-secondary" />
+                <span className="max-w-[130px] truncate">{DEMO_JD_FILENAME}</span>
+                <span className="h-3 w-px shrink-0 bg-hairline" aria-hidden="true" />
+                <button type="button" onClick={replaceJd} className="shrink-0 text-secondary transition-colors hover:text-ink">
+                  Replace
+                </button>
+                <button
+                  type="button"
+                  onClick={removeJd}
+                  aria-label="Remove JD"
+                  className="shrink-0 text-secondary transition-colors hover:text-ink"
+                >
+                  <XIcon className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+
+            {jdStage === 'reading' && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border-[0.5px] border-hairline px-3 py-1.5 text-[13px] font-medium text-secondary">
+                <span className="h-1.5 w-1.5 animate-think rounded-full bg-secondary" aria-hidden="true" />
+                Reading the JD...
+              </span>
+            )}
+
+            {jdStage === 'done' && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border-[0.5px] border-hairline px-3 py-1.5 text-[13px] font-medium text-secondary">
+                <CheckIcon className="h-3.5 w-3.5" />
+                JD added
+              </span>
+            )}
+
+            {jdStage === 'error' && (
+              <div className="flex max-w-[260px] items-center gap-2 rounded-lg border-[0.5px] border-danger/40 bg-danger-soft px-3 py-1.5 text-[12px] font-medium leading-snug text-danger">
+                <span className="flex-1">{JD_ERROR}</span>
+                <button
+                  type="button"
+                  onClick={startJd}
+                  className="shrink-0 whitespace-nowrap underline decoration-danger/40 underline-offset-2 hover:decoration-danger"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {mode === 'chat' ? (
@@ -227,19 +343,13 @@ export default function DefineRoleScreen({
                       <SparkleIcon className="h-3 w-3" />
                     </span>
                     <div className="flex-1">
-                      <p className="text-[15px] leading-snug text-ink">
-                        {t.text}
-                        {t.fixture && <FixtureTag className="ml-1.5" />}
-                      </p>
+                      <p className="text-[15px] leading-snug text-ink">{t.text}</p>
                       {t.sub && <p className="mt-1 text-[13px] text-secondary">No wrong answers. Say as much as you like.</p>}
                     </div>
                   </div>
                 ) : (
                   <div key={i} className="flex justify-end">
-                    <div className="rounded-lg bg-ink/[0.04] px-3 py-1.5 text-sm text-ink">
-                      {t.text}
-                      {t.fixture && <FixtureTag className="ml-1.5" />}
-                    </div>
+                    <div className="rounded-lg bg-ink/[0.04] px-3 py-1.5 text-sm text-ink">{t.text}</div>
                   </div>
                 ),
               )}
@@ -261,15 +371,7 @@ export default function DefineRoleScreen({
                   placeholder="Type a reply"
                   className="min-w-0 flex-1 resize-none rounded-lg border-[0.5px] border-hairline bg-background px-3 py-2.5 text-sm leading-relaxed text-ink placeholder:text-muted focus:border-ink/25 focus:outline-none"
                 />
-                {onComplete && (
-                  <Button
-                    variant="secondary"
-                    onClick={onComplete}
-                    className={`shrink-0 !py-2.5 !text-[13px] ${complete ? '!border-ink !bg-ink !text-white' : ''}`}
-                  >
-                    {reviewLabel ?? 'Review role'}
-                  </Button>
-                )}
+                {reviewButton}
               </div>
             </div>
           </>
@@ -281,10 +383,7 @@ export default function DefineRoleScreen({
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] text-secondary">
                   <SparkleIcon className="h-3 w-3" />
                 </span>
-                <p className="text-xl leading-snug text-ink">
-                  {currentQuestion?.text}
-                  {currentQuestion?.fixture && <FixtureTag className="ml-1.5" />}
-                </p>
+                <p className="text-xl leading-snug text-ink">{currentQuestion?.text}</p>
                 {currentQuestion?.sub && <p className="text-[13px] text-secondary">No wrong answers. Say as much as you like.</p>}
               </div>
 
@@ -318,23 +417,12 @@ export default function DefineRoleScreen({
               {voiceStatus === 'listening' && (
                 <p className="max-w-sm rounded-lg border-[0.5px] border-hairline bg-background px-3.5 py-2.5 text-[13px] leading-relaxed text-secondary">
                   {liveTranscript}
-                  <FixtureTag className="ml-1.5" />
                 </p>
               )}
             </div>
 
             <div className="shrink-0 border-t-[0.5px] border-hairline p-3">
-              <div className="flex items-center justify-end">
-                {onComplete && (
-                  <Button
-                    variant="secondary"
-                    onClick={onComplete}
-                    className={`shrink-0 !py-2.5 !text-[13px] ${complete ? '!border-ink !bg-ink !text-white' : ''}`}
-                  >
-                    {reviewLabel ?? 'Review role'}
-                  </Button>
-                )}
-              </div>
+              <div className="flex items-center justify-end">{reviewButton}</div>
             </div>
           </>
         )}

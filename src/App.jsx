@@ -32,6 +32,7 @@ export default function App() {
   const [view, setView] = useState('roles') // roles | create | define | review | candidates | invite | decision
   const [roles, setRoles] = useState(seedRoles)
   const [draft, setDraft] = useState(null) // { title, openings }
+  const [draftProbes, setDraftProbes] = useState([]) // probes captured while defining, carried to Review
   const [decisionCandidate, setDecisionCandidate] = useState(null)
   const [submitRole, setSubmitRole] = useState(null) // the defined role being submitted for matching
   const [openRole, setOpenRole] = useState(null) // the role whose candidate pipeline is open
@@ -103,7 +104,12 @@ export default function App() {
         roleTitle={draft?.title ?? 'New role'}
         onBack={() => setView('create')}
         onAskManager={() => setView('invite-manager')}
-        onComplete={() => setView('review')}
+        // Carry every probe currently in state forward — Review must show
+        // exactly what the conversation produced, not a blank card.
+        onComplete={(probes) => {
+          setDraftProbes(probes ?? [])
+          setView('review')
+        }}
       />
     )
   }
@@ -111,10 +117,13 @@ export default function App() {
     return (
       <ReviewRoleScreen
         roleTitle={draft?.title ?? 'New role'}
+        openings={draft?.openings ?? 1}
+        probes={draftProbes}
         onBack={() => setView('define')}
         onSubmit={() => {
           addRole()
           setDraft(null)
+          setDraftProbes([])
           setRunMatch(true) // first submit of this role: run the matching animation
           setView('candidates')
         }}
