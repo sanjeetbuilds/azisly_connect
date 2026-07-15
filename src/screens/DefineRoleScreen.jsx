@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '../components'
 import Shell from '../components/Shell.jsx'
 import RoleCard from '../components/RoleCard.jsx'
 import { FixtureTag } from '../components/Spec.jsx'
-import { SparkleIcon, PaperclipIcon, MicIcon } from '../components/icons.jsx'
+import { SparkleIcon, PaperclipIcon, MicIcon, ChatIcon, CheckIcon } from '../components/icons.jsx'
 import { roleScorecard } from '../data/scorecard.js'
 import { classifyProbeStub } from '../lib/probeStub.js'
-import { DEMO_VOICE_ANSWERS, DEMO_JD_PHRASES } from '../data/fixtures.js'
+import { DEMO_VOICE_ANSWERS, DEMO_VOICE_PARTIAL, DEMO_JD_PHRASES } from '../data/fixtures.js'
 
 /*
  * DefineRoleScreen — two columns inside the app shell.
@@ -56,17 +56,37 @@ export default function DefineRoleScreen({
 
   const [answers, setAnswers] = useState(initialAnswers)
   const [input, setInput] = useState('')
-  const [voice, setVoice] = useState('off')
+  const [mode, setMode] = useState('chat') // chat | voice — one conversation, two ways in
+  const [voiceStatus, setVoiceStatus] = useState('idle') // idle | listening | thinking
+  const [liveTranscript, setLiveTranscript] = useState('')
   const [jdBeats, setJdBeats] = useState(jdInit.beats)
   const [jdProbes, setJdProbes] = useState(jdInit.probes)
   const [jdRead, setJdRead] = useState(jdInit.read)
   const [jdRunning, setJdRunning] = useState(false)
   const [pulse, setPulse] = useState(false)
+  const talkTimeouts = useRef([])
 
   const bumpPulse = () => {
     setPulse(true)
     setTimeout(() => setPulse(false), 420)
   }
+
+  const clearTalkTimeouts = () => {
+    talkTimeouts.current.forEach(clearTimeout)
+    talkTimeouts.current = []
+  }
+
+  useEffect(() => clearTalkTimeouts, [])
+
+  // Leaving Voice mid-turn cancels the in-progress capture; nothing said is kept
+  // as an answer until the recruiter actually stops talking.
+  useEffect(() => {
+    if (mode !== 'voice' && voiceStatus !== 'idle') {
+      clearTalkTimeouts()
+      setVoiceStatus('idle')
+      setLiveTranscript('')
+    }
+  }, [mode])
 
   const talkProbes = answers.map((a, i) => ({
     ...classifyProbeStub(a.text, i, scorecard.domainCompetency),
@@ -93,15 +113,42 @@ export default function DefineRoleScreen({
     setInput('')
   }
 
-  const micTap = () => {
-    if (voice === 'listening' || answers.length >= DEMO_VOICE_ANSWERS.length) return
-    setVoice('listening')
-    setTimeout(() => {
-      setVoice('off')
-      setAnswers((prev) => [...prev, { text: DEMO_VOICE_ANSWERS[prev.length], fixture: true }])
-      bumpPulse()
-    }, 1200)
+  // Stopping (early tap, or the transcript running out) always finalises with
+  // the real answer, never the in-progress partial — the partial is only ever
+  // a preview of capture-in-progress, same as any live transcript would be.
+  const finishTalk = () => {
+    clearTalkTimeouts()
+    setVoiceStatus('thinking')
+    setLiveTranscript('')
+    talkTimeouts.current.push(
+      setTimeout(() => {
+        setAnswers((prev) => [...prev, { text: DEMO_VOICE_ANSWERS[prev.length], fixture: true }])
+        bumpPulse()
+        setVoiceStatus('idle')
+      }, 550),
+    )
   }
+
+  const talkTap = () => {
+    if (voiceStatus === 'listening') {
+      finishTalk() // tap again to stop early
+      return
+    }
+    if (voiceStatus !== 'idle' || answers.length >= DEMO_VOICE_ANSWERS.length) return
+    setVoiceStatus('listening')
+    setLiveTranscript('')
+    const words = DEMO_VOICE_PARTIAL.split(' ')
+    words.forEach((_, i) => {
+      talkTimeouts.current.push(
+        setTimeout(() => setLiveTranscript(words.slice(0, i + 1).join(' ')), 130 * (i + 1)),
+      )
+    })
+    talkTimeouts.current.push(setTimeout(finishTalk, 130 * words.length + 350))
+  }
+
+  // The question currently being answered, shown large in Voice mode.
+  const currentQuestion = [...stream].reverse().find((m) => m.from === 'ai') ?? stream[0]
+  const voiceDone = answers.length >= DEMO_VOICE_ANSWERS.length
 
   // A JD streams four beats down the right; probes land on the left card.
   const runJd = () => {
@@ -132,84 +179,165 @@ export default function DefineRoleScreen({
         <RoleCard scorecard={scorecard} probes={probes} pulse={pulse} />
       </div>
 
-      {/* Right: the conversation — white, lifted. Composer pinned to the bottom. */}
+      {/* Right: the conversation — white, lifted. One conversation, Chat or Voice. */}
       <div className="flex min-w-0 flex-[42] flex-col overflow-hidden rounded-[10px] border-[0.5px] border-hairline bg-surface shadow-panel">
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
-          {stream.map((t, i) =>
-            t.from === 'ai' ? (
-              <div key={i} className="flex gap-2.5">
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] text-secondary">
-                  <SparkleIcon className="h-3 w-3" />
-                </span>
-                <div className="flex-1">
-                  <p className="text-[15px] leading-snug text-ink">
-                    {t.text}
-                    {t.fixture && <FixtureTag className="ml-1.5" />}
-                  </p>
-                  {t.sub && <p className="mt-1 text-[13px] text-secondary">No wrong answers. Say as much as you like.</p>}
-                </div>
-              </div>
-            ) : (
-              <div key={i} className="flex justify-end">
-                <div className="rounded-lg bg-ink/[0.04] px-3 py-1.5 text-sm text-ink">
-                  {t.text}
-                  {t.fixture && <FixtureTag className="ml-1.5" />}
-                </div>
-              </div>
-            ),
-          )}
-          {voice === 'listening' && <p className="pl-[34px] text-[13px] text-secondary">Listening</p>}
+        {/* Header — mode toggle and Add a JD, always visible regardless of mode. */}
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b-[0.5px] border-hairline p-3">
+          <div className="inline-flex items-center gap-0.5 rounded-lg bg-ink/[0.04] p-0.5">
+            {[
+              { key: 'chat', label: 'Chat', Icon: ChatIcon },
+              { key: 'voice', label: 'Voice', Icon: MicIcon },
+            ].map(({ key, label, Icon }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setMode(key)}
+                aria-pressed={mode === key}
+                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                  mode === key ? 'bg-surface text-ink shadow-card' : 'text-secondary hover:text-ink'
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={runJd}
+            disabled={jdRunning || jdRead}
+            aria-label="Add a JD"
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border-[0.5px] px-3 py-1.5 text-[13px] font-medium transition-colors ${
+              jdRead ? 'border-hairline text-secondary' : 'border-hairline text-ink hover:bg-ink/[0.04]'
+            } disabled:cursor-default`}
+          >
+            {jdRead ? <CheckIcon className="h-3.5 w-3.5" /> : <PaperclipIcon className="h-3.5 w-3.5" />}
+            {jdRead ? 'JD added' : jdRunning ? 'Reading the JD...' : 'Add a JD'}
+          </button>
         </div>
 
-        {/* Composer — mic, field, paperclip, Review (right-aligned), one row. */}
-        <div className="shrink-0 border-t-[0.5px] border-hairline p-3">
-          <div className="flex items-end gap-2.5">
-            <span className="relative flex h-11 w-11 shrink-0 items-center justify-center">
-              {voice === 'listening' && (
-                <span className="absolute inset-0 animate-mic-ring rounded-full bg-accent/30" aria-hidden="true" />
+        {mode === 'chat' ? (
+          <>
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
+              {stream.map((t, i) =>
+                t.from === 'ai' ? (
+                  <div key={i} className="flex gap-2.5">
+                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] text-secondary">
+                      <SparkleIcon className="h-3 w-3" />
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-[15px] leading-snug text-ink">
+                        {t.text}
+                        {t.fixture && <FixtureTag className="ml-1.5" />}
+                      </p>
+                      {t.sub && <p className="mt-1 text-[13px] text-secondary">No wrong answers. Say as much as you like.</p>}
+                    </div>
+                  </div>
+                ) : (
+                  <div key={i} className="flex justify-end">
+                    <div className="rounded-lg bg-ink/[0.04] px-3 py-1.5 text-sm text-ink">
+                      {t.text}
+                      {t.fixture && <FixtureTag className="ml-1.5" />}
+                    </div>
+                  </div>
+                ),
               )}
-              {/* The mic is the only coloured element; recording is a ring scale. */}
-              <button
-                type="button"
-                onClick={micTap}
-                aria-label="Speak"
-                className="relative flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white transition-colors hover:bg-accent-hover"
-              >
-                <MicIcon className="h-5 w-5" />
-              </button>
-            </span>
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  submitType()
-                }
-              }}
-              rows={1}
-              placeholder="or type"
-              className="min-w-0 flex-1 resize-none rounded-lg border-[0.5px] border-hairline bg-background px-3 py-2.5 text-sm leading-relaxed text-ink placeholder:text-muted focus:border-ink/25 focus:outline-none"
-            />
-            <button
-              type="button"
-              onClick={runJd}
-              aria-label="Add a JD"
-              className="flex h-11 w-9 shrink-0 items-center justify-center rounded-md text-secondary transition-colors hover:text-ink"
-            >
-              <PaperclipIcon className="h-4 w-4" />
-            </button>
-            {onComplete && (
-              <Button
-                variant="secondary"
-                onClick={onComplete}
-                className={`shrink-0 !py-2.5 !text-[13px] ${complete ? '!border-ink !bg-ink !text-white' : ''}`}
-              >
-                {reviewLabel ?? 'Review role'}
-              </Button>
-            )}
-          </div>
-        </div>
+            </div>
+
+            {/* Composer — type field and Review, no mic here; talk lives in Voice. */}
+            <div className="shrink-0 border-t-[0.5px] border-hairline p-3">
+              <div className="flex items-end gap-2.5">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      submitType()
+                    }
+                  }}
+                  rows={1}
+                  placeholder="Type a reply"
+                  className="min-w-0 flex-1 resize-none rounded-lg border-[0.5px] border-hairline bg-background px-3 py-2.5 text-sm leading-relaxed text-ink placeholder:text-muted focus:border-ink/25 focus:outline-none"
+                />
+                {onComplete && (
+                  <Button
+                    variant="secondary"
+                    onClick={onComplete}
+                    className={`shrink-0 !py-2.5 !text-[13px] ${complete ? '!border-ink !bg-ink !text-white' : ''}`}
+                  >
+                    {reviewLabel ?? 'Review role'}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Voice — the question, a talk control, and a live transcript. No text input. */}
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 overflow-y-auto p-6 text-center">
+              <div className="flex max-w-sm flex-col items-center gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] text-secondary">
+                  <SparkleIcon className="h-3 w-3" />
+                </span>
+                <p className="text-xl leading-snug text-ink">
+                  {currentQuestion?.text}
+                  {currentQuestion?.fixture && <FixtureTag className="ml-1.5" />}
+                </p>
+                {currentQuestion?.sub && <p className="text-[13px] text-secondary">No wrong answers. Say as much as you like.</p>}
+              </div>
+
+              <span className="relative flex h-20 w-20 shrink-0 items-center justify-center">
+                {voiceStatus === 'listening' && (
+                  <span className="absolute inset-0 animate-mic-ring rounded-full bg-error/30" aria-hidden="true" />
+                )}
+                <button
+                  type="button"
+                  onClick={talkTap}
+                  disabled={voiceStatus === 'thinking' || (voiceDone && voiceStatus === 'idle')}
+                  aria-label={voiceStatus === 'listening' ? 'Stop talking' : 'Talk'}
+                  className={`relative flex h-20 w-20 items-center justify-center rounded-full shadow-panel transition-colors disabled:cursor-default disabled:opacity-40 ${
+                    voiceStatus === 'listening' ? 'bg-error text-surface' : 'bg-ink text-surface hover:bg-ink-hover'
+                  }`}
+                >
+                  <MicIcon className="h-7 w-7" />
+                </button>
+              </span>
+
+              <p className="text-[13px] text-secondary">
+                {voiceStatus === 'listening'
+                  ? 'Listening, tap to stop'
+                  : voiceStatus === 'thinking'
+                    ? 'Thinking...'
+                    : voiceDone
+                      ? 'Nothing more to answer here'
+                      : 'Tap to talk'}
+              </p>
+
+              {voiceStatus === 'listening' && (
+                <p className="max-w-sm rounded-lg border-[0.5px] border-hairline bg-background px-3.5 py-2.5 text-[13px] leading-relaxed text-secondary">
+                  {liveTranscript}
+                  <FixtureTag className="ml-1.5" />
+                </p>
+              )}
+            </div>
+
+            <div className="shrink-0 border-t-[0.5px] border-hairline p-3">
+              <div className="flex items-center justify-end">
+                {onComplete && (
+                  <Button
+                    variant="secondary"
+                    onClick={onComplete}
+                    className={`shrink-0 !py-2.5 !text-[13px] ${complete ? '!border-ink !bg-ink !text-white' : ''}`}
+                  >
+                    {reviewLabel ?? 'Review role'}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
