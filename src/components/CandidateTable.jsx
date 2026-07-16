@@ -1,10 +1,9 @@
-import { Fragment } from 'react'
 import Avatar from './Avatar.jsx'
 import Tag, { skillColor } from './Tag.jsx'
 import Tooltip from './Tooltip.jsx'
 import { ScoreValue, InterviewScoreValue } from './Scores.jsx'
 import { CheckIcon } from './icons.jsx'
-import { topExperienceOf } from '../data/candidates.js'
+import { topExperienceOf, scoreTier } from '../data/candidates.js'
 
 const MATCH_EXPLAINER =
   'How well this candidate fits the role, from their practice and history, before the interview.'
@@ -73,42 +72,24 @@ function RowCheck({ checked, onClick }) {
 
 const HEAD = 'text-[11px] font-semibold uppercase tracking-wide text-muted'
 
-// A verdict-group separator on the Interviewed list. The dot carries the tier's
-// colour; failure (below the bar) is the only red.
-const GROUP_DOT = {
-  incomplete: 'bg-secondary/50',
-  clears: 'bg-strong',
-  'clears-light': 'bg-strong/40',
-  below: 'bg-danger',
+// The Interviewed list's one badge: same three labels and shapes on every row,
+// so the list scans as a single system instead of a different pill per tier.
+const SCORE_TIER = {
+  strong: { label: 'Strong', dot: 'bg-strong', text: 'text-strong', border: 'border-strong/30' },
+  promising: { label: 'Promising', dot: 'bg-attention', text: 'text-attention', border: 'border-attention/30' },
+  'not-yet': { label: 'Not yet', dot: 'bg-danger', text: 'text-danger', border: 'border-danger/30' },
 }
-function GroupHeader({ tierKey, label }) {
+function ScoreBadge({ tier }) {
+  const t = SCORE_TIER[tier]
+  if (!t) return null
   return (
-    <div className="flex items-center gap-2 border-b border-hairline bg-background/70 px-5 py-1.5">
-      <span className={`h-1.5 w-1.5 rounded-full ${GROUP_DOT[tierKey] ?? 'bg-secondary/50'}`} aria-hidden="true" />
-      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</span>
-    </div>
+    <span
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border ${t.border} px-2.5 py-1 text-[11px] font-medium ${t.text}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${t.dot}`} aria-hidden="true" />
+      {t.label}
+    </span>
   )
-}
-
-// The per-row verdict detail beside the score. The group header already names the
-// tier, so the row only carries what is specific to this candidate: the craft they
-// were lighter on, or — in the failure colour — the competency that fell short.
-function RowVerdictDetail({ candidate: c }) {
-  if (c.verdict === 'below') {
-    return (
-      <span className="inline-flex items-center rounded-full bg-danger-soft px-2 py-0.5 text-[11px] font-medium text-danger ring-1 ring-danger/30">
-        {c.belowOn}
-      </span>
-    )
-  }
-  if (c.verdict === 'clears-light') {
-    return (
-      <span className="inline-flex items-center rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-medium text-strong">
-        lighter on {c.lightOn}
-      </span>
-    )
-  }
-  return null
 }
 
 /**
@@ -128,8 +109,6 @@ export default function CandidateTable({
   newIds,
   rowAction,
   rowMenu,
-  groupOf,
-  groupLabels,
 }) {
   const allChecked = selectable && candidates.length > 0 && candidates.every((c) => picked.has(c.id))
 
@@ -156,17 +135,13 @@ export default function CandidateTable({
 
       {/* Rows */}
       <div>
-        {candidates.map((c, i) => {
+        {candidates.map((c) => {
           const open = c.id === selectedId
           const top = topExperienceOf(c)
           const { shown, extra } = fitSkills(c.skills, 160)
-          const gKey = groupOf?.(c)
-          const prevKey = i > 0 ? groupOf?.(candidates[i - 1]) : undefined
-          const showHeader = Boolean(groupOf) && gKey && gKey !== prevKey
           return (
-            <Fragment key={c.id}>
-            {showHeader && <GroupHeader tierKey={gKey} label={groupLabels?.[gKey] ?? gKey} />}
             <div
+              key={c.id}
               role="button"
               tabIndex={0}
               onClick={() => onSelect(c.id)}
@@ -209,11 +184,11 @@ export default function CandidateTable({
               {showInterview ? (
                 <div className="flex w-[200px] shrink-0 items-center gap-2.5">
                   {c.incomplete ? (
-                    <span className="text-[13px] text-muted">Not scored</span>
+                    <span className="text-[13px] text-muted">Not scored yet</span>
                   ) : (
                     <>
                       <InterviewScoreValue candidate={c} size="lg" showGate={false} />
-                      <RowVerdictDetail candidate={c} />
+                      <ScoreBadge tier={scoreTier(c)} />
                     </>
                   )}
                 </div>
@@ -251,7 +226,6 @@ export default function CandidateTable({
               {/* Menu slot (fixed, far right, always reserved) */}
               <div className="flex w-[34px] shrink-0 items-center justify-end">{rowMenu?.(c)}</div>
             </div>
-            </Fragment>
           )
         })}
       </div>

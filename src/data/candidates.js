@@ -40,30 +40,25 @@ export function verdictLabel(c) {
   }
 }
 
-// The group a candidate falls into on the Interviewed list. Incomplete interviews
-// are unscored and never mixed with the judged.
-export function interviewGroupOf(c) {
-  if (c.incomplete) return 'incomplete'
-  return c.verdict
+// The Interviewed list's one badge: the same three labels on every row, so the
+// list scans as a single system instead of a different pill per verdict.
+//   strong     verdict clears        — cleared every bar
+//   promising  verdict clears-light  — cleared, lighter on one craft
+//   not-yet    verdict below         — a gated competency fell short
+// An interview that never finished has no verdict, so it carries no tier —
+// the row shows "Not scored yet" in the badge's place instead.
+export function scoreTier(c) {
+  if (c.incomplete || !c.verdict) return null
+  if (c.verdict === 'clears') return 'strong'
+  if (c.verdict === 'clears-light') return 'promising'
+  return 'not-yet'
 }
 
-// Interviewed rows sort by verdict tier first, then score within tier — never by
-// raw score across tiers (raw sort floats a failed 64 above a passing 58). The
-// incomplete group is unscored and sits at the very top.
-const VERDICT_TIER = { incomplete: 0, clears: 1, 'clears-light': 2, below: 3 }
+// Interviewed rows are a single flat list ranked by score, descending.
+// Unscored (incomplete) interviews carry no score and sort to the end.
 export function compareInterviewed(a, b) {
-  const ta = VERDICT_TIER[interviewGroupOf(a)] ?? 99
-  const tb = VERDICT_TIER[interviewGroupOf(b)] ?? 99
-  if (ta !== tb) return ta - tb
+  if (Boolean(a.incomplete) !== Boolean(b.incomplete)) return a.incomplete ? 1 : -1
   return (b.score ?? 0) - (a.score ?? 0)
-}
-
-// The label shown above each verdict group on the Interviewed list.
-export const INTERVIEW_GROUP_LABEL = {
-  incomplete: 'Interview incomplete',
-  clears: 'Clears the bar',
-  'clears-light': 'Clears the bar, lighter on craft',
-  below: 'Below the bar',
 }
 
 // One candidate lifecycle. A scored candidate shows the next meaningful state

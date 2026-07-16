@@ -23,18 +23,13 @@ import {
   PhoneIcon,
   DownloadIcon,
 } from '../components/icons.jsx'
-import {
-  candidates as ALL,
-  contactsFor,
-  compareInterviewed,
-  interviewGroupOf,
-  INTERVIEW_GROUP_LABEL,
-} from '../data/candidates.js'
+import { candidates as ALL, contactsFor, compareInterviewed } from '../data/candidates.js'
 import { interviews } from '../data/interviews.js'
 import { buildInterviewLink } from '../lib/magicLink.js'
 import { downloadCsv, downloadCv } from '../lib/exports.js'
 
 const HM_NAME = 'Anjali Rao'
+const HM_FIRST = HM_NAME.split(' ')[0]
 const SEED_TAKEN = ALL.filter((c) => c.stage === 'Taken forward' || c.stage === 'Moving forward').map((c) => c.id)
 
 // One status per candidate, from the seed lifecycle plus session actions.
@@ -289,12 +284,7 @@ export default function CandidatesScreen({
       )
     }
     if (st === 'incomplete') {
-      return (
-        <div className="flex flex-col items-end gap-0.5">
-          <StatusPill label="Interview incomplete" tone="neutral" />
-          <span className="text-[11px] text-muted">Not finished — not scored</span>
-        </div>
-      )
+      return <StatusPill label="Interview incomplete" tone="neutral" />
     }
     if (st === 'interviewed') {
       return (
@@ -304,7 +294,14 @@ export default function CandidatesScreen({
       )
     }
     if (st === 'shared') {
-      return <StatusPill label={`With ${HM_NAME} to review`} tone="accent" />
+      return (
+        <div className="flex flex-col items-end gap-1">
+          <RowPrimary onClick={() => takeForward(c.id)} icon={<ArrowRightIcon className="h-3.5 w-3.5" />}>
+            Take forward
+          </RowPrimary>
+          <span className="text-[11px] text-muted">Shared, waiting on {HM_FIRST}</span>
+        </div>
+      )
     }
     if (st === 'taken_forward') {
       return (
@@ -332,6 +329,7 @@ export default function CandidatesScreen({
     if (st === 'interviewed') {
       return (
         <RowMenu
+          variant="chevron"
           items={[
             { label: 'Share with manager', icon: <LinkIcon className="h-3.5 w-3.5" />, onClick: () => openShare(c.id) },
             { label: 'Reject', tone: 'danger', icon: <XIcon className="h-3.5 w-3.5" />, onClick: () => askReject(c.id) },
@@ -342,10 +340,8 @@ export default function CandidatesScreen({
     if (st === 'shared') {
       return (
         <RowMenu
-          items={[
-            { label: 'Take forward', icon: <ArrowRightIcon className="h-3.5 w-3.5" />, onClick: () => takeForward(c.id) },
-            { label: 'Reject', tone: 'danger', icon: <XIcon className="h-3.5 w-3.5" />, onClick: () => askReject(c.id) },
-          ]}
+          variant="chevron"
+          items={[{ label: 'Reject', tone: 'danger', icon: <XIcon className="h-3.5 w-3.5" />, onClick: () => askReject(c.id) }]}
         />
       )
     }
@@ -547,8 +543,6 @@ export default function CandidatesScreen({
                   newIds={newTaken}
                   rowAction={rowAction}
                   rowMenu={rowMenu}
-                  groupOf={inInterviewed ? interviewGroupOf : undefined}
-                  groupLabels={INTERVIEW_GROUP_LABEL}
                 />
               )}
             </div>
