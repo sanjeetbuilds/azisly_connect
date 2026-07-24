@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Button,
   PageHeader,
   Tabs,
   StatusPill,
   RowMenu,
+  Tooltip,
   CandidateTable,
   CandidateDetail,
   MatchingProgress,
@@ -27,20 +28,36 @@ import { candidates as ALL, contactsFor, compareInterviewed } from '../data/cand
 import { interviews } from '../data/interviews.js'
 import { buildInterviewLink } from '../lib/magicLink.js'
 import { downloadCsv, downloadCv } from '../lib/exports.js'
+import { creditLimitReason, creditRefundMessage } from '../data/plan.js'
 
 const HM_NAME = 'Anjali Rao'
 const HM_FIRST = HM_NAME.split(' ')[0]
 const SEED_TAKEN = ALL.filter((c) => c.stage === 'Taken forward' || c.stage === 'Moving forward').map((c) => c.id)
+
+// Scripted outcomes for the credit-refund demo: a small, deterministic subset
+// of candidates whose invite resolves into a refund a few seconds later, one
+// per refund reason, so every toast variant is reachable without waiting on a
+// real candidate response.
+//   lapsed              — fires after the recruiter invites this candidate
+//   declined_interview  — fires after the recruiter invites this candidate
+//   incomplete          — fires once, on mount, since this candidate is already
+//                         mid-interview ("accepted") in the seed data
+const DEMO_REFUND_OUTCOMES = {
+  'grace-liang': 'lapsed',
+  'noah-becker': 'declined_interview',
+  'amara-diallo': 'incomplete',
+}
+const DEMO_REFUND_DELAY_MS = 4000
 
 // One status per candidate, from the seed lifecycle plus session actions.
 function statusOf(c, s) {
   if (s.moved.has(c.id) || c.stage === 'Taken forward' || c.stage === 'Moving forward') return 'taken_forward'
   if (s.declined.has(c.id) || s.rejected.has(c.id) || c.stage === 'Passed') return 'declined'
   if (s.shared.has(c.id) || c.stage === 'Shared') return 'shared'
-  if (c.incomplete) return 'incomplete' // interview started but never finished — unscored
+  if (c.incomplete || s.incompleteIds.has(c.id)) return 'incomplete' // interview started but never finished — unscored
   if (c.score != null) return 'interviewed'
-  if (c.declinedInterview) return 'declined_interview'
-  if (c.lapsed) return 'lapsed'
+  if (c.declinedInterview || s.declinedInterviewIds.has(c.id)) return 'declined_interview'
+  if (c.lapsed || s.lapsedIds.has(c.id)) return 'lapsed'
   if (s.invited.has(c.id) || c.stage === 'Invited' || c.stage === 'Interviewing') return 'pending'
   return 'matched'
 }
@@ -92,6 +109,12 @@ export default function CandidatesScreen({
   runMatch = false,
   canClose = false,
   onCloseRole,
+  plan = 'free',
+  creditsUsed = 0,
+  creditLimit = 10,
+  onConsumeCredits,
+  onRefundCredit,
+  onUpgrade,
 }) {
   const [phase, setPhase] = useState(runMatch ? 'matching' : 'list')
   const [tab, setTab] = useState('matched')
@@ -113,10 +136,19 @@ export default function CandidatesScreen({
   const [shared, setShared] = useState(() => new Set())
   const [moved, setMoved] = useState(() => new Set())
   const [rejected, setRejected] = useState(() => new Set())
-  const sets = { invited, declined, shared, moved, rejected }
+  // Session overrides for the credit-refund demo — a candidate moves into one
+  // of these once their scripted outcome fires (see DEMO_REFUND_OUTCOMES).
+  const [lapsedIds, setLapsedIds] = useState(() => new Set())
+  const [declinedInterviewIds, setDeclinedInterviewIds] = useState(() => new Set())
+  const [incompleteIds, setIncompleteIds] = useState(() => new Set())
+  const sets = { invited, declined, shared, moved, rejected, lapsedIds, declinedInterviewIds, incompleteIds }
 
   const status = (c) => statusOf(c, sets)
   const nameOf = (id) => ALL.find((c) => c.id === id)?.name
+
+  const creditsRemaining = Math.max(0, creditLimit - creditsUsed)
+  const inviteBlocked = creditsRemaining <= 0
+  const inviteBlockedReason = creditLimitReason(plan)
 
   const counts = TAB_DEFS.reduce((acc, t) => {
     acc[t.key] = ALL.filter((c) => TAB_OF[status(c)] === t.key).length
@@ -144,7 +176,19 @@ export default function CandidatesScreen({
     if (!showDeclined && tab === 'interviewed') list.sort(compareInterviewed)
     return list
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, showDeclined, search, invited, declined, shared, moved, rejected])
+  }, [
+    tab,
+    showDeclined,
+    search,
+    invited,
+    declined,
+    shared,
+    moved,
+    rejected,
+    lapsedIds,
+    declinedInterviewIds,
+    incompleteIds,
+  ])
 
   const selected = ALL.find((c) => c.id === selectedId) ?? null
   const pickedList = ALL.filter((c) => picked.has(c.id))
@@ -166,12 +210,43 @@ export default function CandidatesScreen({
       ;[].concat(ids).forEach((id) => next.delete(id))
       return next
     })
+  // A refunded credit is never a silent count change: it always names what
+  // happened and who, then adjusts the visible usage line immediately.
+  const refundCredit = (id, reason) => {
+    if (reason === 'lapsed') add(setLapsedIds)(id)
+    if (reason === 'declined_interview') add(setDeclinedInterviewIds)(id)
+    if (reason === 'incomplete') add(setIncompleteIds)(id)
+    onRefundCredit?.()
+    showToast(creditRefundMessage(nameOf(id), reason))
+  }
+
   const invite = (ids) => {
+    if (inviteBlocked) return
     const list = [].concat(ids)
     add(setInvited)(list)
     dropPicked(list)
+    onConsumeCredits?.(list.length)
     showToast(list.length === 1 ? `Invite sent to ${nameOf(list[0])}` : `${list.length} invites sent`)
+    // Demo-scripted candidates resolve into a refund a few seconds later.
+    list.forEach((id) => {
+      const outcome = DEMO_REFUND_OUTCOMES[id]
+      if (outcome && outcome !== 'incomplete') {
+        setTimeout(() => refundCredit(id, outcome), DEMO_REFUND_DELAY_MS)
+      }
+    })
   }
+
+  // Amara Diallo is already mid-interview in the seed data ("accepted", never
+  // finished) — script her refund to fire once, shortly after the screen
+  // loads, so the "never completed" toast is reachable without an invite click.
+  useEffect(() => {
+    const id = Object.keys(DEMO_REFUND_OUTCOMES).find((k) => DEMO_REFUND_OUTCOMES[k] === 'incomplete')
+    const candidate = ALL.find((c) => c.id === id)
+    if (!candidate || statusOf(candidate, sets) !== 'pending') return
+    const t = setTimeout(() => refundCredit(id, 'incomplete'), DEMO_REFUND_DELAY_MS)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const takeForward = (ids) => {
     add(setMoved)(ids)
     dropPicked(ids)
@@ -244,6 +319,15 @@ export default function CandidatesScreen({
   const rowAction = (c) => {
     const st = status(c)
     if (st === 'matched') {
+      if (inviteBlocked) {
+        return (
+          <Tooltip label={inviteBlockedReason}>
+            <span className="cursor-not-allowed whitespace-nowrap text-[12px] font-medium text-muted">
+              Invite limit reached
+            </span>
+          </Tooltip>
+        )
+      }
       return (
         <RowPrimary onClick={() => invite(c.id)} icon={<SendIcon className="h-3.5 w-3.5" />}>
           Invite to interview
@@ -262,16 +346,22 @@ export default function CandidatesScreen({
       return (
         <div className="flex flex-col items-end gap-1">
           <StatusPill label="Invite expired" tone="warning" />
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              invite(c.id)
-            }}
-            className="text-[12px] font-medium text-strong transition-colors hover:underline"
-          >
-            Re-invite
-          </button>
+          {inviteBlocked ? (
+            <Tooltip label={inviteBlockedReason}>
+              <span className="cursor-not-allowed text-[12px] font-medium text-muted">Re-invite</span>
+            </Tooltip>
+          ) : (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                invite(c.id)
+              }}
+              className="text-[12px] font-medium text-strong transition-colors hover:underline"
+            >
+              Re-invite
+            </button>
+          )}
         </div>
       )
     }
@@ -390,10 +480,21 @@ export default function CandidatesScreen({
             <XIcon className="h-4 w-4" />
             Decline
           </Button>
-          <Button onClick={() => invite(ids)}>
-            <SendIcon className="h-4 w-4" />
-            Invite {n} to interview
-          </Button>
+          {inviteBlocked ? (
+            <>
+              <span className="text-[13px] text-secondary">{inviteBlockedReason}</span>
+              {plan === 'free' && (
+                <Button variant="secondary" onClick={onUpgrade}>
+                  Upgrade
+                </Button>
+              )}
+            </>
+          ) : (
+            <Button onClick={() => invite(ids)}>
+              <SendIcon className="h-4 w-4" />
+              Invite {n} to interview
+            </Button>
+          )}
         </>
       )
     }
@@ -493,6 +594,11 @@ export default function CandidatesScreen({
                   />
                 </div>
 
+                {/* Quiet usage line — the fact only, no bar or countdown. */}
+                <span className="text-[13px] text-secondary">
+                  {creditsUsed} of {creditLimit} interviews used
+                </span>
+
                 <div className="ml-auto flex items-center gap-2.5">
                   {inTaken && takenList.length > 0 && (
                     <Button variant="secondary" onClick={() => downloadCsv(takenList)}>
@@ -576,6 +682,10 @@ export default function CandidatesScreen({
                 onReject: () => askReject(selected.id),
                 onReachOut: () => setContactId(selected.id),
                 onDownloadCv: () => downloadCv(selected),
+                inviteBlocked,
+                inviteBlockedReason,
+                plan,
+                onUpgrade,
               }}
             />
           </div>

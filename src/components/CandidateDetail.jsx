@@ -499,10 +499,25 @@ export default function CandidateDetail({ candidate, onBack, interview, decided,
           <span className="text-sm text-secondary">Declined. Not moving ahead for this role.</span>
         ) : status === 'matched' ? (
           <div className="flex w-full flex-wrap items-center gap-2">
-            <Button onClick={recruiter.onInvite}>
-              <SendIcon className="h-4 w-4" />
-              Invite to interview
-            </Button>
+            {recruiter.inviteBlocked ? (
+              <div className="flex flex-1 flex-wrap items-center gap-2.5">
+                <Button disabled>
+                  <SendIcon className="h-4 w-4" />
+                  Invite to interview
+                </Button>
+                <span className="text-[13px] text-secondary">{recruiter.inviteBlockedReason}</span>
+                {recruiter.plan === 'free' && (
+                  <Button variant="secondary" onClick={recruiter.onUpgrade}>
+                    Upgrade
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <Button onClick={recruiter.onInvite}>
+                <SendIcon className="h-4 w-4" />
+                Invite to interview
+              </Button>
+            )}
             <Button variant="secondary" className="ml-auto" onClick={recruiter.onDecline}>
               <XIcon className="h-4 w-4" />
               Decline
@@ -517,10 +532,14 @@ export default function CandidateDetail({ candidate, onBack, interview, decided,
           <div className="flex w-full flex-wrap items-center gap-2.5">
             <StatusPill label="Invite expired" tone="warning" />
             <span className="text-sm text-secondary">The invite expired before the interview. Credit returned.</span>
-            <Button variant="secondary" className="ml-auto" onClick={recruiter.onInvite}>
-              <SendIcon className="h-4 w-4" />
-              Re-invite
-            </Button>
+            {recruiter.inviteBlocked ? (
+              <span className="ml-auto text-[13px] text-secondary">{recruiter.inviteBlockedReason}</span>
+            ) : (
+              <Button variant="secondary" className="ml-auto" onClick={recruiter.onInvite}>
+                <SendIcon className="h-4 w-4" />
+                Re-invite
+              </Button>
+            )}
           </div>
         ) : status === 'declined_interview' ? (
           <div className="flex w-full items-center gap-2.5">

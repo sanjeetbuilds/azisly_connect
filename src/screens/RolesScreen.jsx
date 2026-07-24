@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { Button, PageHeader, RowMenu, ConfirmDialog } from '../components'
 import { ChevronRightIcon, CheckIcon, XIcon, PlusIcon, ClockIcon } from '../components/icons.jsx'
 import { roleStatusMeta, CONFIRM_COPY } from '../lib/roleStatus.js'
+import { JOB_LIMIT_REASON } from '../data/plan.js'
 
-function EmptyState({ onCreateRole }) {
+function EmptyState({ onCreateRole, jobLimitReached, onUpgrade }) {
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center px-6 pb-16">
       <div className="flex max-w-sm flex-col items-center gap-5 text-center">
@@ -16,10 +17,14 @@ function EmptyState({ onCreateRole }) {
         <div className="flex flex-col gap-1.5">
           <h2 className="text-lg text-ink">No roles yet</h2>
           <p className="text-sm leading-relaxed text-secondary">
-            Create your first role to start sourcing and judging candidates.
+            {jobLimitReached ? JOB_LIMIT_REASON : 'Create your first role to start sourcing and judging candidates.'}
           </p>
         </div>
-        <Button onClick={onCreateRole}>Create your first role</Button>
+        {jobLimitReached ? (
+          <Button onClick={onUpgrade}>Upgrade</Button>
+        ) : (
+          <Button onClick={onCreateRole}>Create your first role</Button>
+        )}
       </div>
     </div>
   )
@@ -134,6 +139,8 @@ function RoleRow({ role, onClick, onDiscard, onClose, muted = false }) {
 export default function RolesScreen({
   roles,
   onCreateRole,
+  jobLimitReached = false,
+  onUpgrade,
   onOpenRole,
   onDiscardRole,
   onCloseRole,
@@ -181,18 +188,32 @@ export default function RolesScreen({
               : undefined
           }
           actions={
-            !empty && (
+            !empty &&
+            (jobLimitReached ? (
+              <Button disabled>
+                <PlusIcon className="h-4 w-4" />
+                New role
+              </Button>
+            ) : (
               <Button onClick={onCreateRole}>
                 <PlusIcon className="h-4 w-4" />
                 New role
               </Button>
-            )
+            ))
           }
         />
+        {!empty && jobLimitReached && (
+          <p className="mt-3 text-[13px] text-secondary">
+            {JOB_LIMIT_REASON}{' '}
+            <button type="button" onClick={onUpgrade} className="font-medium text-strong hover:underline">
+              Upgrade
+            </button>
+          </p>
+        )}
       </div>
 
       {empty ? (
-        <EmptyState onCreateRole={onCreateRole} />
+        <EmptyState onCreateRole={onCreateRole} jobLimitReached={jobLimitReached} onUpgrade={onUpgrade} />
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-10 lg:px-8">
           {/* A hiring manager finished a definition — a dismissible notification */}
