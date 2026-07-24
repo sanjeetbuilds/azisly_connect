@@ -4,9 +4,14 @@ import DefineRoleScreen from './DefineRoleScreen.jsx'
 import ReviewRoleScreen from './ReviewRoleScreen.jsx'
 import SubmitPeripheralScreen from './SubmitPeripheralScreen.jsx'
 import MagicLinkScreen from './MagicLinkScreen.jsx'
+import LoginScreen from './LoginScreen.jsx'
+import SetPasswordScreen from './SetPasswordScreen.jsx'
+import ExpiredLinkScreen from './ExpiredLinkScreen.jsx'
+import ProfileScreen from './ProfileScreen.jsx'
 import { roleScorecard } from '../data/scorecard.js'
 import { classifyProbeStub } from '../lib/probeStub.js'
 import { DEMO_ROLE_TITLE, DEMO_VOICE_ANSWERS, DEMO_JD_PHRASES } from '../data/fixtures.js'
+import { RECRUITER_ACCOUNT } from '../data/recruiterAccount.js'
 
 // Answers already given by voice — the "conversed" demo states.
 const VOICE_ANSWERS = DEMO_VOICE_ANSWERS.map((text) => ({ text }))
@@ -188,9 +193,66 @@ const STATES = {
     label: 'Expired while paused',
     render: () => <MagicLinkScreen variant="expiredPaused" />,
   },
+  'auth-signin': {
+    group: 'Auth',
+    label: 'Sign in',
+    render: () => <LoginScreen onSignIn={() => {}} />,
+  },
+  'auth-signin-activated': {
+    group: 'Auth',
+    label: 'Sign in — after Set Password ("Account activated")',
+    render: () => (
+      <LoginScreen
+        onSignIn={() => {}}
+        prefillEmail={RECRUITER_ACCOUNT.email}
+        notice="Account activated. Sign in to continue."
+      />
+    ),
+  },
+  'auth-signin-reset': {
+    group: 'Auth',
+    label: 'Sign in — after Reset Password',
+    render: () => (
+      <LoginScreen
+        onSignIn={() => {}}
+        prefillEmail={RECRUITER_ACCOUNT.email}
+        notice="Password updated, sign in."
+      />
+    ),
+  },
+  'auth-forgot': {
+    group: 'Auth',
+    label: 'Forgot password',
+    render: () => <LoginScreen onSignIn={() => {}} initialView="forgot" />,
+  },
+  'auth-set-password': {
+    group: 'Auth',
+    label: 'Set Password (from invite link)',
+    render: () => <SetPasswordScreen email={RECRUITER_ACCOUNT.email} mode="invite" onSuccess={() => {}} />,
+  },
+  'auth-reset-password': {
+    group: 'Auth',
+    label: 'Reset Password (from reset link)',
+    render: () => <SetPasswordScreen email={RECRUITER_ACCOUNT.email} mode="reset" onSuccess={() => {}} />,
+  },
+  'auth-expired-invite': {
+    group: 'Auth',
+    label: 'Expired link — Set Password (invite)',
+    render: () => <ExpiredLinkScreen variant="invite" />,
+  },
+  'auth-expired-reset': {
+    group: 'Auth',
+    label: 'Expired link — Reset Password',
+    render: () => <ExpiredLinkScreen variant="reset" onRequestNewLink={() => {}} />,
+  },
+  'auth-profile': {
+    group: 'Auth',
+    label: 'Profile & company',
+    render: () => <ProfileScreen onBack={() => {}} />,
+  },
 }
 
-const GROUP_ORDER = ['Define', 'JD', 'Voice', 'Review', 'Submit', 'Magic link']
+const GROUP_ORDER = ['Define', 'JD', 'Voice', 'Review', 'Submit', 'Magic link', 'Auth']
 
 export default function StatesIndex() {
   const { id } = useParams()

@@ -242,6 +242,14 @@ export const EyeIcon = ({ className = 'h-4 w-4' }) => (
   </svg>
 )
 
+export const EyeOffIcon = ({ className = 'h-4 w-4' }) => (
+  <svg {...base} strokeWidth="1.4" className={className}>
+    <path d="M1.8 8s2.4-4 6.2-4 6.2 4 6.2 4-2.4 4-6.2 4-6.2-4-6.2-4z" strokeLinejoin="round" />
+    <circle cx="8" cy="8" r="1.7" />
+    <path d="M2 14L14 2" strokeLinecap="round" />
+  </svg>
+)
+
 export const SmileIcon = ({ className = 'h-4 w-4' }) => (
   <svg {...base} strokeWidth="1.4" className={className}>
     <circle cx="8" cy="8" r="5.8" />

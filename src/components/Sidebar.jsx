@@ -38,8 +38,12 @@ export default function Sidebar({
   active = 'Candidates',
   onNavigate,
   onNewRole,
+  newRoleDisabled = false,
   workspace,
   counts = {},
+  plan,
+  onTogglePlan,
+  onOpenProfile,
   className = '',
 }) {
   return (
@@ -100,23 +104,43 @@ export default function Sidebar({
           </div>
         ))}
 
-        <div className="px-1.5 pt-1">
-          <Button variant="primary" className="w-full" onClick={onNewRole}>
+        <div className="flex flex-col gap-1.5 px-1.5 pt-1">
+          <Button variant="primary" className="w-full" disabled={newRoleDisabled} onClick={onNewRole}>
             New role
           </Button>
+          {newRoleDisabled && (
+            <p className="px-1 text-[11px] leading-snug text-secondary">
+              You&rsquo;ve used your free job. Upgrade to post another.
+            </p>
+          )}
         </div>
       </nav>
 
       {/* Recruiter identity */}
       {workspace && (
         <div className="border-t border-hairline px-3 py-3">
-          <div className="flex items-center gap-3 rounded-lg px-1.5 py-1.5">
+          <button
+            type="button"
+            onClick={onOpenProfile}
+            disabled={!onOpenProfile}
+            className="flex w-full items-center gap-3 rounded-lg px-1.5 py-1.5 text-left transition-colors enabled:hover:bg-background"
+          >
             <Avatar name={workspace.name} size={34} />
             <div className="flex min-w-0 flex-col">
               <span className="truncate text-sm font-medium text-ink">{workspace.name}</span>
               <span className="truncate text-xs text-secondary">{workspace.role}</span>
             </div>
-          </div>
+          </button>
+          {onTogglePlan && (
+            <button
+              type="button"
+              onClick={onTogglePlan}
+              className="mt-1 flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[12px] transition-colors hover:bg-background"
+            >
+              <span className="font-medium text-secondary">{plan === 'free' ? 'Free plan' : 'Paid plan'}</span>
+              <span className="font-medium text-strong">Switch (demo)</span>
+            </button>
+          )}
         </div>
       )}
     </aside>

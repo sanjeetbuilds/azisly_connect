@@ -14,6 +14,8 @@ import './index.css'
 import App from './App.jsx'
 import ManagerDefineRoute from './routes/ManagerDefineRoute.jsx'
 import CandidateInterviewRoute from './routes/CandidateInterviewRoute.jsx'
+import SetPasswordRoute from './routes/SetPasswordRoute.jsx'
+import ResetPasswordRoute from './routes/ResetPasswordRoute.jsx'
 import StatesIndex from './screens/StatesIndex.jsx'
 
 createRoot(document.getElementById('root')).render(
@@ -22,6 +24,8 @@ createRoot(document.getElementById('root')).render(
       <Routes>
         <Route path="/m/define/:token" element={<ManagerDefineRoute />} />
         <Route path="/i/:token" element={<CandidateInterviewRoute />} />
+        <Route path="/set-password/:token" element={<SetPasswordRoute />} />
+        <Route path="/reset-password/:token" element={<ResetPasswordRoute />} />
         <Route path="/states" element={<StatesIndex />} />
         <Route path="/states/:id" element={<StatesIndex />} />
         <Route path="*" element={<App />} />

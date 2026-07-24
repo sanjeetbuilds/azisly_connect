@@ -20,6 +20,9 @@ export { default as EvidenceQuote } from './EvidenceQuote.jsx'
 export { default as StaggerList } from './StaggerList.jsx'
 export { default as Chip } from './Chip.jsx'
 export { default as ConfirmDialog } from './ConfirmDialog.jsx'
+export { default as Checkbox } from './Checkbox.jsx'
+export { default as Wordmark } from './Wordmark.jsx'
+export { default as AuthBrandPanel } from './AuthBrandPanel.jsx'
 
 // Functional furniture
 export { default as Tag, skillColor } from './Tag.jsx'

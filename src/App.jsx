@@ -1,10 +1,13 @@
 import { useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Sidebar } from './components'
 import { candidates, workspace, roleTotals } from './data/candidates.js'
 import { interviews } from './data/interviews.js'
 import { seedRoles, makeRole } from './data/roles.js'
+import { PLAN_LIMITS } from './data/plan.js'
 import LoginScreen from './screens/LoginScreen.jsx'
 import RolesScreen from './screens/RolesScreen.jsx'
+import UpgradeScreen from './screens/UpgradeScreen.jsx'
 import CreateRoleScreen from './screens/CreateRoleScreen.jsx'
 import DefineRoleScreen from './screens/DefineRoleScreen.jsx'
 import ReviewRoleScreen from './screens/ReviewRoleScreen.jsx'
@@ -18,6 +21,7 @@ import DecisionScreen from './screens/DecisionScreen.jsx'
 import ManagerFlow from './screens/ManagerFlow.jsx'
 import ManagerReviewFlow from './screens/ManagerReviewFlow.jsx'
 import CandidateInterviewFlow from './screens/CandidateInterviewFlow.jsx'
+import ProfileScreen from './screens/ProfileScreen.jsx'
 
 // Magic-link entries: a hiring manager reaches the app via ?invite=<token>
 // (define a role) or ?review=<token> (review the shortlist). Resolved once at
@@ -27,9 +31,19 @@ const inviteToken = params.get('invite')
 const reviewToken = params.get('review')
 const interviewToken = params.get('interview')
 
+// "Keep me logged in" persistence (C1): localStorage survives a browser
+// restart, sessionStorage clears when the tab closes. Both are read at mount
+// so a Set Password / Reset Password redirect and a plain refresh behave the
+// same way.
+const AUTH_KEY = 'azisly.recruit.authed'
+const loadAuthed = () =>
+  localStorage.getItem(AUTH_KEY) === '1' || sessionStorage.getItem(AUTH_KEY) === '1'
+
 export default function App() {
-  const [authed, setAuthed] = useState(false)
-  const [view, setView] = useState('roles') // roles | create | define | review | candidates | invite | decision
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [authed, setAuthed] = useState(loadAuthed)
+  const [view, setView] = useState('roles') // roles | create | define | review | candidates | invite | decision | profile
   const [roles, setRoles] = useState(seedRoles)
   const [draft, setDraft] = useState(null) // { title, openings }
   const [draftProbes, setDraftProbes] = useState([]) // probes captured while defining, carried to Review
@@ -37,6 +51,24 @@ export default function App() {
   const [submitRole, setSubmitRole] = useState(null) // the defined role being submitted for matching
   const [openRole, setOpenRole] = useState(null) // the role whose candidate pipeline is open
   const [runMatch, setRunMatch] = useState(false) // show the matching animation only on first submit
+
+  // Plan limits. plan is normally fixed per account; it's toggleable here only
+  // so both the free and paid experiences are reachable in this prototype.
+  const [plan, setPlan] = useState('free')
+  // Lifetime jobs submitted — never decremented by closing or discarding a role.
+  const [jobsEverSubmitted, setJobsEverSubmitted] = useState(seedRoles.length)
+  // Interview credits are account-wide, shared across every role, and tracked
+  // per plan so switching the demo toggle shows each tier's own usage.
+  const [creditsUsed, setCreditsUsed] = useState({ free: 4, paid: 12 })
+
+  const jobLimitReached = jobsEverSubmitted >= PLAN_LIMITS[plan].jobs
+  const creditLimit = PLAN_LIMITS[plan].interviews
+  const creditsUsedForPlan = creditsUsed[plan]
+
+  const consumeCredits = (n = 1) =>
+    setCreditsUsed((prev) => ({ ...prev, [plan]: Math.min(PLAN_LIMITS[plan].interviews, prev[plan] + n) }))
+  const refundCredit = () => setCreditsUsed((prev) => ({ ...prev, [plan]: Math.max(0, prev[plan] - 1) }))
+  const goUpgrade = () => setView('upgrade')
 
   // Candidate interview flow (public, no account): landing then pre-interview
   // setup. The token value selects the state for preview; a real token would be
@@ -72,9 +104,14 @@ export default function App() {
   if (!authed) {
     return (
       <LoginScreen
-        onSignIn={() => {
+        prefillEmail={location.state?.prefillEmail}
+        notice={location.state?.notice}
+        initialView={location.state?.openForgot ? 'forgot' : 'signin'}
+        onSignIn={({ keepLoggedIn } = {}) => {
+          ;(keepLoggedIn ? localStorage : sessionStorage).setItem(AUTH_KEY, '1')
           setAuthed(true)
           setView('roles')
+          navigate('/', { replace: true, state: null })
         }}
       />
     )
@@ -83,6 +120,7 @@ export default function App() {
   const addRole = () => {
     const cfg = draft ?? { title: 'New role', define_by: 'recruiter', approve_by: 'hiring_manager' }
     setRoles((prev) => [makeRole(`role-${prev.length + 1}`, cfg), ...prev])
+    setJobsEverSubmitted((prev) => prev + 1)
   }
 
   // Discard removes a role that never reached real candidates. Close stops
@@ -166,8 +204,14 @@ export default function App() {
           }
         }}
         onNewRole={() => setView('create')}
+        newRoleDisabled={jobLimitReached}
         workspace={workspace}
+        plan={plan}
+        onTogglePlan={() => setPlan((p) => (p === 'free' ? 'paid' : 'free'))}
+        onOpenProfile={() => setView('profile')}
       />
+
+      {view === 'profile' && <ProfileScreen onBack={() => setView('roles')} />}
 
       {view === 'roles' && (
         <RolesScreen
@@ -179,6 +223,8 @@ export default function App() {
               : r,
           )}
           onCreateRole={() => setView('create')}
+          jobLimitReached={jobLimitReached}
+          onUpgrade={goUpgrade}
           onOpenRole={(role) => {
             // Opening an existing role goes straight to the candidate tabs; the
             // matching animation only runs the one time a role is submitted.
@@ -273,9 +319,19 @@ export default function App() {
               runMatch={runMatch}
               canClose={canClose}
               onCloseRole={(feedback) => pipelineRole && closeRole(pipelineRole, feedback)}
+              plan={plan}
+              creditsUsed={creditsUsedForPlan}
+              creditLimit={creditLimit}
+              onConsumeCredits={consumeCredits}
+              onRefundCredit={refundCredit}
+              onUpgrade={goUpgrade}
             />
           )
         })()}
+
+      {view === 'upgrade' && (
+        <UpgradeScreen onBack={() => setView(activeNav === 'Candidates' ? 'candidates' : 'roles')} />
+      )}
 
 
       {view === 'manager-decision' && (
