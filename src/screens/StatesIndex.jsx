@@ -2,6 +2,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { FixtureTag } from '../components/Spec.jsx'
 import DefineRoleScreen from './DefineRoleScreen.jsx'
 import ReviewRoleScreen from './ReviewRoleScreen.jsx'
+import InterviewQuestionsScreen from './InterviewQuestionsScreen.jsx'
 import SubmitPeripheralScreen from './SubmitPeripheralScreen.jsx'
 import MagicLinkScreen from './MagicLinkScreen.jsx'
 import LoginScreen from './LoginScreen.jsx'
@@ -162,6 +163,42 @@ const STATES = {
       </Full>
     ),
   },
+  'questions-suggested': {
+    group: 'Questions',
+    label: 'Suggested from the card',
+    render: () => (
+      <Full>
+        <InterviewQuestionsScreen roleTitle={DEMO_ROLE_TITLE} onBack={() => {}} onSubmit={() => {}} />
+      </Full>
+    ),
+  },
+  'questions-with-probes': {
+    group: 'Questions',
+    label: 'Recruiter words carried onto questions',
+    render: () => (
+      <Full>
+        <InterviewQuestionsScreen roleTitle={DEMO_ROLE_TITLE} probes={MANY_PROBES} onBack={() => {}} onSubmit={() => {}} />
+      </Full>
+    ),
+  },
+  'questions-adding': {
+    group: 'Questions',
+    label: 'Adding a question',
+    render: () => (
+      <Full>
+        <InterviewQuestionsScreen roleTitle={DEMO_ROLE_TITLE} initialAdding onBack={() => {}} onSubmit={() => {}} />
+      </Full>
+    ),
+  },
+  'questions-unauthored': {
+    group: 'Questions',
+    label: 'Family with no criteria authored — warm-up only',
+    render: () => (
+      <Full>
+        <InterviewQuestionsScreen roleTitle="Program Manager" onBack={() => {}} onSubmit={() => {}} />
+      </Full>
+    ),
+  },
   'submit-peripheral': {
     group: 'Submit',
     label: 'Peripheral gap — candidates immediately',
@@ -252,7 +289,7 @@ const STATES = {
   },
 }
 
-const GROUP_ORDER = ['Define', 'JD', 'Voice', 'Review', 'Submit', 'Magic link', 'Auth']
+const GROUP_ORDER = ['Define', 'JD', 'Voice', 'Review', 'Questions', 'Submit', 'Magic link', 'Auth']
 
 export default function StatesIndex() {
   const { id } = useParams()

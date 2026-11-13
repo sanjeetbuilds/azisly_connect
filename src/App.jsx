@@ -11,6 +11,7 @@ import UpgradeScreen from './screens/UpgradeScreen.jsx'
 import CreateRoleScreen from './screens/CreateRoleScreen.jsx'
 import DefineRoleScreen from './screens/DefineRoleScreen.jsx'
 import ReviewRoleScreen from './screens/ReviewRoleScreen.jsx'
+import InterviewQuestionsScreen from './screens/InterviewQuestionsScreen.jsx'
 import { matchFamily } from './data/roleFamilies.js'
 import CandidatesScreen from './screens/CandidatesScreen.jsx'
 import ManagerDecisionScreen from './screens/ManagerDecisionScreen.jsx'
@@ -47,6 +48,7 @@ export default function App() {
   const [roles, setRoles] = useState(seedRoles)
   const [draft, setDraft] = useState(null) // { title, openings }
   const [draftProbes, setDraftProbes] = useState([]) // probes captured while defining, carried to Review
+  const [draftQuestions, setDraftQuestions] = useState(null) // recruiter-edited interview questions; null = suggested
   const [decisionCandidate, setDecisionCandidate] = useState(null)
   const [submitRole, setSubmitRole] = useState(null) // the defined role being submitted for matching
   const [openRole, setOpenRole] = useState(null) // the role whose candidate pipeline is open
@@ -117,9 +119,9 @@ export default function App() {
     )
   }
 
-  const addRole = () => {
+  const addRole = (interviewQuestions = null) => {
     const cfg = draft ?? { title: 'New role', define_by: 'recruiter', approve_by: 'hiring_manager' }
-    setRoles((prev) => [makeRole(`role-${prev.length + 1}`, cfg), ...prev])
+    setRoles((prev) => [{ ...makeRole(`role-${prev.length + 1}`, cfg), interviewQuestions }, ...prev])
     setJobsEverSubmitted((prev) => prev + 1)
   }
 
@@ -139,6 +141,7 @@ export default function App() {
   const discardDraft = () => {
     setDraft(null)
     setDraftProbes([])
+    setDraftQuestions(null)
     setView('roles')
   }
 
@@ -177,12 +180,30 @@ export default function App() {
         roleTitle={draft?.title ?? 'New role'}
         openings={draft?.openings ?? 1}
         probes={draftProbes}
+        submitLabel="Next: interview questions"
         onBack={() => setView('define')}
         onDiscard={discardDraft}
-        onSubmit={() => {
-          addRole()
+        onSubmit={() => setView('questions')}
+      />
+    )
+  }
+  if (view === 'questions') {
+    return (
+      <InterviewQuestionsScreen
+        roleTitle={draft?.title ?? 'New role'}
+        probes={draftProbes}
+        questions={draftQuestions ?? undefined}
+        // Keep edits when stepping back to the card and returning.
+        onBack={(qs) => {
+          if (qs) setDraftQuestions(qs)
+          setView('review')
+        }}
+        onDiscard={discardDraft}
+        onSubmit={(qs) => {
+          addRole(qs)
           setDraft(null)
           setDraftProbes([])
+          setDraftQuestions(null)
           setRunMatch(true) // first submit of this role: run the matching animation
           setView('candidates')
         }}

@@ -29,6 +29,7 @@ export default function ReviewRoleScreen({
   onBack,
   onSubmit,
   onDiscard,
+  submitLabel = 'Submit role',
 }) {
   const scorecard = scorecardProp ?? roleScorecard({ title: roleTitle })
   const complete = familySet(scorecard)
@@ -58,8 +59,8 @@ export default function ReviewRoleScreen({
             variant="secondary"
             className="shrink-0 !border-ink !bg-ink !py-2 !text-[13px] !text-white"
           >
-            {/* "Submit role" is verbatim PRD. */}
-            Submit role
+            {/* "Submit role" is verbatim PRD; in the live flow it leads to interview questions first. */}
+            {submitLabel}
           </Button>
         </div>
       }
