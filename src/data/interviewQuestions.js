@@ -130,7 +130,7 @@ function resolve(competencies, domain) {
 export function buildInterview({ title = '', probes = [] } = {}) {
   const family = matchFamily(title)
   const domain = family?.domainCompetency
-  const rows = [{ id: nextId(), section: 'warmup', text: WARMUP.text, competencies: WARMUP.competencies, mustAsk: false, locked: false, origin: 'suggested' }]
+  const rows = [{ id: nextId(), section: 'warmup', text: WARMUP.text, suggestedText: WARMUP.text, competencies: WARMUP.competencies, mustAsk: false, locked: false, origin: 'suggested' }]
 
   for (const c of family?.criteria ?? []) {
     const authored = QUESTION_FOR_CRITERION[c.text]
